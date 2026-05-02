@@ -1,1 +1,861 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개복디 종합툴</title>
+    <script src="data.js"></script>
+    <style>
+        /* 기본 테마 및 레이아웃 */
+        body { 
+            background-color: #05080a; 
+            background-image: radial-gradient(circle at 50% 0%, #0d1b26 0%, #05080a 70%); 
+            color: #d4d4d4; 
+            font-family: 'Malgun Gothic', sans-serif; 
+            margin: 0; padding: 0; 
+            -webkit-user-select: none; user-select: none; 
+            display: flex; flex-direction: column; align-items: center; 
+            height: 100vh; overflow: hidden; 
+        }
+        .container { width: 100%; max-width: 1700px; padding: 0 20px; box-sizing: border-box; display: flex; flex-direction: column; height: 100%; }
+        
+        /* 상단 헤더 영역 */
+        .header-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 15px 25px; margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 191, 255, 0.3); 
+            background: rgba(5, 8, 10, 0.85); 
+            backdrop-filter: blur(12px); 
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0; gap: 20px;
+        }
+        
+        .title-group { display: flex; flex-direction: column; gap: 6px; flex: 1; max-width: 350px; }
+        .main-title { color: #00bfff; margin: 0; font-size: 1.6rem; font-weight: 900; letter-spacing: 1px; text-shadow: 0 0 10px rgba(0, 191, 255, 0.6); }
+        .creator-info { font-size: 0.9rem; color: #888; font-weight: bold; margin: 0; }
+        
+        .view-toggles { flex: 2; display: flex; justify-content: center; align-items: center; gap: 15px; }
+        .btn-view { 
+            background: #112d3b; border: 1px solid #1a3644; color: #aaa; 
+            padding: 12px 35px; 
+            font-size: 1.2rem; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; 
+        }
+        .btn-view:hover { background: rgba(0, 191, 255, 0.2); }
+        .btn-view.active { background: #00bfff; color: #000; box-shadow: 0 0 15px rgba(0,191,255,0.5); border-color:#00bfff; }
+        
+        .btn-guide {
+            background: #f39c12; color: #000; border: 1px solid #e67e22; 
+            border-radius: 8px; padding: 10px 20px; font-size: 1rem; font-weight: bold; 
+            cursor: pointer; box-shadow: 0 0 10px rgba(243, 156, 18, 0.4); 
+            transition: 0.2s; display: none; align-items: center; justify-content: center;
+        }
+        .btn-guide:hover { background: #f1c40f; box-shadow: 0 0 15px rgba(243, 156, 18, 0.6); transform: translateY(-2px); }
+
+        .header-dummy { flex: 1; max-width: 350px; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.7); z-index: 1000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #0a0f14; border: 2px solid #00bfff; border-radius: 12px;
+            width: 90%; max-width: 500px; padding: 25px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 191, 255, 0.1);
+            color: #d4d4d4; position: relative; animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #1a3644; padding-bottom: 10px; }
+        .modal-header h2 { margin: 0; color: #00bfff; font-size: 1.3rem; font-weight: bold; }
+        .modal-close { font-size: 2rem; color: #888; cursor: pointer; line-height: 1; transition: 0.2s; }
+        .modal-close:hover { color: #f39c12; }
+        .modal-body p { margin: 10px 0; line-height: 1.6; font-size: 1.05rem; }
+        .modal-body strong { color: #ffd700; }
+
+        /* 검색창 영역 */
+        .search-panel { 
+            width: 100%; display: flex; gap: 10px; align-items: center; justify-content: center; 
+            margin-bottom: 20px; flex-shrink: 0;
+        }
+        .search-panel .input-container { position: relative; flex: 1; max-width: 1200px; height: 50px; }
+        .search-panel .input-overlay-box { 
+            width: 100%; height: 100%; box-sizing: border-box; font-size: 1.2rem; font-weight: bold; 
+            padding: 0 25px; line-height: 48px; white-space: pre; overflow-x: auto; overflow-y: hidden; 
+            border-radius: 8px; scrollbar-width: none; 
+        }
+        .search-panel .input-overlay-box::-webkit-scrollbar { display: none; }
+        #highlightLayer { position: absolute; top: 0; left: 0; z-index: 1; background-color: rgba(0, 0, 0, 0.5); border: 1px solid #1a3644; color: #d4d4d4; pointer-events: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        #comboInput { position: absolute; top: 0; left: 0; z-index: 2; background: transparent; border: 1px solid transparent; color: transparent; caret-color: #00bfff; outline: none; }
+        #comboInput::placeholder { color: rgba(255, 255, 255, 0.3); }
+        .search-panel .btn-reset { height: 50px; background: linear-gradient(135deg, #1f3b4d, #112d3b); color: #00bfff; border: 1px solid #1a3644; border-radius: 8px; padding: 0 30px; font-size: 1.1rem; cursor: pointer; font-weight: bold; flex-shrink: 0;}
+
+        /* View 섹션 제어 */
+        .view-section { display: none; width: 100%; flex: 1; min-height: 0; margin-bottom: 20px; }
+        .view-section.active { display: flex; gap: 20px; }
+
+        .left-panel { width: 50%; display: flex; flex-direction: column; height: 100%; }
+        .right-panel { width: 50%; display: flex; flex-direction: column; height: 100%; }
+        /* 매직코스트 5x4 배열 적용 */
+        .magic-dashboard { flex-shrink: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: rgba(10, 15, 20, 0.7); border: 1px solid rgba(0, 191, 255, 0.2); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+        .cost-slot { background: #080c10; border: 1px solid #1a3644; border-radius: 6px; padding: 5px; text-align: center; display: flex; flex-direction: column; height: 60px; justify-content: center; }
+        .cost-slot.active { border-color: #00bfff; background: rgba(0, 30, 50, 0.6); }
+        .slot-val { font-size: 1.2rem; font-weight: 900; color: #fff; display: flex; flex-direction: column; justify-content: center; height: 100%; } 
+        .slot-name { font-size: 0.8rem; color: #bbb; margin-top: 2px; } 
+        #searchResultList { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 32px; }
+        .result-item { background: linear-gradient(180deg, #152f40 0%, #0d1b26 100%); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; border: 1px solid #1a3644; font-weight: bold; }
+        #tablesContainer { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .tabs-wrapper { display: flex; gap: 8px; margin-bottom: 10px; flex-shrink: 0; } 
+        .tab-btn { flex: 1; background: rgba(11, 26, 36, 0.6); border: 1px solid #1a3644; border-radius: 6px; padding: 12px 5px; color: #dcdcaa; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: #00bfff; color: #000; border-color: #00bfff; }
+        .tab-btn .unit-count { display: block; font-size: 0.8rem; margin-top: 4px; } 
+        .tab-content-area { flex: 1; overflow-y: auto; background: #080c10; border-radius: 8px; border: 1px solid #1a3644; }
+        table { width: 100%; border-collapse: collapse; }
+        td { border-bottom: 1px solid rgba(26, 54, 68, 0.4); padding: 12px 15px; font-size: 0.9rem; }
+        #treeView { flex: 1; overflow-y: auto; padding-right: 10px; }
+        .analysis-card { background: #080c10; border: 1px solid #1a3644; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-top: 3px solid #ffd700; }
+        .analysis-card h3 { margin: 0 0 8px 0; color: #fff; border-bottom: 1px solid rgba(26, 54, 68, 0.6); padding-bottom: 8px; font-size: 1.05rem; display: flex; justify-content: space-between; }
+        .tree-btn { background: #112d3b; color: #00bfff; border: 1px solid #1a3644; border-radius: 5px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .tree-btn.active-state { background: #00bfff; color: #000; }
+        .tree-ul { list-style: none; padding-left: 15px; margin: 5px 0 0 5px; border-left: 1px dashed rgba(74, 90, 106, 0.5); }
+        .tree-ul.root-ul { border-left: none; margin-left: 0; padding-left: 0; }
+        .tree-li { position: relative; margin: 6px 0 0 0; }
+        .tree-li::before { content: ""; position: absolute; top: 13px; left: -16px; width: 12px; height: 1px; background-color: rgba(74, 90, 106, 0.5); }
+        .unit-badge { display: inline-flex; align-items: center; background-color: #0b1a24; border: 1px solid #1a3644; border-radius: 4px; padding: 5px 10px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .toggle-mark { margin-left: auto; font-size: 0.6rem; color: #aaa; padding-left: 8px; }
+        
+        .bullet-recipe { color: #888; font-size: 0.75rem; margin: 4px 0 0 5px; padding-left: 12px; }
+        .bullet-cost { color: #4ea8de; font-size: 0.75rem; margin: 2px 0 0 5px; padding-left: 12px; font-weight: bold; }
+
+        /* 일일정수 (View 2) 전용 스타일 */
+        #view-essence { flex-direction: column; overflow-y: auto; padding-right: 10px; }
+        .essence-header-panel { background: rgba(10, 15, 20, 0.8); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 10px; padding: 25px; text-align: center; margin-bottom: 20px; flex-shrink: 0; }
+        #essence-total-val { font-size: 5rem; color: #ffd700; font-weight: 900; line-height: 1; display: block; margin-bottom: 20px; text-shadow: 0 0 25px rgba(255, 215, 0, 0.4); }
+        .essence-cards { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .essence-card { flex: 1; min-width: 200px; max-width: 350px; background: #080c10; border: 1px solid #1a3644; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .essence-card.coral { border-top: 3px solid #4ea8de; }
+        .essence-card.aiur { border-top: 3px solid #f4d03f; }
+        .essence-card.zerus { border-top: 3px solid #af7ac5; }
+        .essence-card-title { font-size: 1.1rem; color: #ccc; font-weight: bold; margin-bottom: 5px; }
+        .essence-card-val { font-size: 2rem; font-weight: 900; color: #fff; }
+        .essence-card-max { font-size: 1.1rem; color: #888; }
+        .essence-groups-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .essence-group-box { background: rgba(11, 26, 36, 0.4); border: 1px solid #1a3644; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; }
+        .essence-group-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(26, 54, 68, 0.8); padding-bottom: 8px; margin-bottom: 8px; }
+        .essence-group-title { font-size: 1.1rem; font-weight: bold; color: #00bfff; margin: 0; }
+        .btn-select-all { background: #112d3b; color: #00bfff; border: 1px solid #1a3644; border-radius: 5px; padding: 5px 12px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; }
+        .btn-select-all:hover { background: #00bfff; color: #000; box-shadow: 0 0 8px rgba(0,191,255,0.5); }
+        .essence-sub-category { font-size: 0.95rem; font-weight: bold; color: #dcdcaa; margin: 12px 0 6px 0; padding-left: 8px; border-left: 3px solid #1a3644; }
+        .essence-unit-grid { display: flex; flex-direction: column; gap: 6px; }
+        .essence-unit-btn { 
+            background: #0b1a24; border: 1px solid #1a3644; 
+            padding: 10px 12px; border-radius: 5px; cursor: pointer; 
+            font-size: 0.95rem; font-weight: bold; user-select: none; transition: 0.2s; 
+            text-align: left; 
+        }
+        .essence-unit-btn.active { background: #00bfff !important; color: #000 !important; border-color: #00bfff; box-shadow: 0 0 10px rgba(0,191,255,0.4); text-shadow: none !important; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #05080a; }
+        ::-webkit-scrollbar-thumb { background: #1a3644; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00bfff; }
+    </style>
+</head>
+<body oncontextmenu="return false">
+
+<div id="guideModal" class="modal-overlay" onclick="closeGuideModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>📢 일일정수 사용법</h2>
+            <span class="modal-close" onclick="closeGuideModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>코랄, 아이어, 제루스의 하위유닛은 1회 조합 시 <strong>+1 정수</strong>가 합산됩니다.</p>
+            <p>혼종 유닛의 경우 3회 조합 시 코랄/아이어/제루스 3개 정수 전체에 <strong>+1 정수</strong>가 동시 합산됩니다.</p>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-container">
+        <div class="title-group">
+            <h1 class="main-title">개복디 종합툴</h1>
+            <p class="creator-info">제작자 회장 | 핸들값 3-S2-1-2461127</p>
+        </div>
+        <div class="view-toggles">
+            <button id="btn-view1" class="btn-view active" onclick="switchView(1)">히든조합</button>
+            <button id="btn-view2" class="btn-view" onclick="switchView(2)">일일정수</button>
+            <button id="btn-guide" class="btn-guide" onclick="openGuideModal()">사용법</button>
+        </div>
+        <div class="header-dummy"></div>
+    </div>
+
+    <div class="search-panel" id="searchWrapper">
+        <div class="input-container">
+            <input type="text" id="comboInput" class="input-overlay-box" placeholder="유닛명*수량 (예: 타이커스*8)" autocomplete="off" spellcheck="false">
+            <div id="highlightLayer" class="input-overlay-box"></div>
+        </div>
+        <button class="btn-reset" onclick="resetCombo()">초기화</button>
+    </div>
+
+    <div id="view-combo" class="view-section active">
+        <div class="left-panel">
+            <div id="searchResultList"></div>
+            <div class="magic-dashboard" id="magicDashboard"></div>
+            <div id="tablesContainer"></div>
+        </div>
+        <div class="right-panel">
+            <div id="treeView"></div>
+        </div>
+    </div>
+
+    <div id="view-essence" class="view-section">
+        <div class="essence-header-panel">
+            <span id="essence-total-val">0</span>
+            <div class="essence-cards">
+                <div class="essence-card coral">
+                    <div class="essence-card-title">코랄의 정수</div>
+                    <div><span class="essence-card-val" id="val-coral">0</span><span class="essence-card-max" id="max-coral"> / 0</span></div>
+                </div>
+                <div class="essence-card aiur">
+                    <div class="essence-card-title">아이어의 정수</div>
+                    <div><span class="essence-card-val" id="val-aiur">0</span><span class="essence-card-max" id="max-aiur"> / 0</span></div>
+                </div>
+                <div class="essence-card zerus">
+                    <div class="essence-card-title">제루스의 정수</div>
+                    <div><span class="essence-card-val" id="val-zerus">0</span><span class="essence-card-max" id="max-zerus"> / 0</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="essence-groups-container" id="essenceGroupsContainer"></div>
+    </div>
+</div>
+
+<script>
+// [데이터와 파싱 로직 분리 모듈화] - 특수/예외 코스트 키워드 매핑 테이블
+const specialKeywordMap = [
+    { keys: ["자동포탑"], atom: "자동포탑" },
+    { keys: ["지뢰", "시체매"], atom: "땅거미지뢰", divider: 12 },
+    { keys: ["우르사돈[암]", "우르사돈암"], atom: "우르사돈[암]" },
+    { keys: ["우르사돈[수]", "우르사돈수"], atom: "우르사돈[수]" },
+    { keys: ["메시브", "디제스터", "데제스터"], atom: "갓오브타임/메시브데제스터", subKey: "massive" },
+    { keys: ["갓오브타임"], atom: "갓오브타임/메시브데제스터", subKey: "godOfTime" }
+];
+
+const allUnits = []; const DOM = {};
+const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
+
+const essenceMax = { coral: 0, aiur: 0, zerus: 0 };
+const essenceUnitsMap = { coral: [], aiur: [], zerus: [], hybrid: [] };
+const essenceClickState = {};
+
+function init() {
+    DOM.tablesContainer = document.getElementById("tablesContainer");
+    DOM.magicDashboard = document.getElementById("magicDashboard");
+    DOM.searchResultList = document.getElementById("searchResultList");
+    DOM.treeView = document.getElementById("treeView");
+    DOM.comboInput = document.getElementById("comboInput");
+    DOM.highlightLayer = document.getElementById("highlightLayer");
+    DOM.comboInput.addEventListener("input", () => { updateHighlight(); debounceSearch(); });
+    DOM.comboInput.addEventListener("scroll", () => { DOM.highlightLayer.scrollLeft = DOM.comboInput.scrollLeft; });
+    loadUnits(); renderDashboardAtoms(); renderTabs(); initEssenceData();
+}
+
+function switchView(viewId) {
+    document.getElementById('btn-view1').classList.remove('active');
+    document.getElementById('btn-view2').classList.remove('active');
+    document.getElementById('view-combo').classList.remove('active');
+    document.getElementById('view-essence').classList.remove('active');
+    if (viewId === 1) {
+        document.getElementById('btn-view1').classList.add('active');
+        document.getElementById('view-combo').classList.add('active');
+        document.getElementById('searchWrapper').style.display = 'flex';
+        document.getElementById('btn-guide').style.display = 'none';
+    } else {
+        document.getElementById('btn-view2').classList.add('active');
+        document.getElementById('view-essence').classList.add('active');
+        document.getElementById('searchWrapper').style.display = 'none';
+        document.getElementById('btn-guide').style.display = 'flex';
+    }
+}
+
+function openGuideModal() { document.getElementById('guideModal').style.display = 'flex'; }
+function closeGuideModal() { document.getElementById('guideModal').style.display = 'none'; }
+
+function isLegend(name) { return unitGradeMap["레전드"].some(u => clean(u) === clean(name)); }
+function isHidden(name) { return unitGradeMap["히든"].some(u => clean(u) === clean(name)); }
+function isSuperHidden(name) { return unitGradeMap["슈퍼히든"].some(u => clean(u) === clean(name)); }
+
+function initEssenceData() {
+    essenceUnitsMap.coral = []; essenceUnitsMap.aiur = []; essenceUnitsMap.zerus = []; essenceUnitsMap.hybrid = [];
+    rawData.forEach(cat => {
+        cat.items.forEach(item => {
+            const unitName = item.name; essenceClickState[unitName] = false;
+            let targetGroup = null;
+            if (cat.category === "테바" || cat.category === "테메") targetGroup = "coral";
+            else if (cat.category === "토바" || cat.category === "토메") targetGroup = "aiur";
+            else if (cat.category === "저그중립") targetGroup = "zerus";
+            else if (cat.category === "혼종") targetGroup = "hybrid";
+            if (targetGroup) {
+                if (targetGroup !== "hybrid" && isLegend(unitName)) return; 
+                essenceUnitsMap[targetGroup].push({ name: unitName, category: cat.category, isSuper: isSuperHidden(unitName) });
+            }
+        });
+    });
+    const superHiddenCheck = (u) => u.isSuper ? 1 : 0;
+    const hybridLength = essenceUnitsMap.hybrid.length;
+    ["coral", "aiur", "zerus", "hybrid"].forEach(group => {
+        essenceUnitsMap[group].sort((a, b) => superHiddenCheck(a) - superHiddenCheck(b));
+        if(group !== "hybrid") {
+            essenceMax[group] = essenceUnitsMap[group].length + hybridLength; 
+            document.getElementById(`max-${group}`).innerText = ` / ${essenceMax[group]}`;
+        }
+    });
+    renderEssenceGroups();
+}
+
+function renderEssenceGroups() {
+    const container = document.getElementById('essenceGroupsContainer');
+    const groupConfigs = [
+        { id: 'coral', title: '코랄', data: essenceUnitsMap.coral },
+        { id: 'aiur', title: '아이어', data: essenceUnitsMap.aiur },
+        { id: 'zerus', title: '제루스', data: essenceUnitsMap.zerus },
+        { id: 'hybrid', title: '혼종', data: essenceUnitsMap.hybrid }
+    ];
+    let html = '';
+    groupConfigs.forEach(g => {
+        html += `<div class="essence-group-box"><div class="essence-group-header"><div class="essence-group-title">${g.title}</div><button class="btn-select-all" onclick="toggleAllEssence('${g.id}')">전체선택</button></div>`;
+        const categories = [...new Set(g.data.map(u => u.category))];
+        categories.forEach(cat => {
+            const catUnits = g.data.filter(u => u.category === cat);
+            if(catUnits.length === 0) return;
+            html += `<div class="essence-sub-category">${cat}</div><div class="essence-unit-grid">`;
+            catUnits.forEach((uObj, idx) => {
+                const color = getUnitColor(uObj.name); const unitName = uObj.name;
+                const textColor = uObj.isSuper ? '#ffd700' : '#888';
+                html += `<div class="essence-unit-btn" id="es-btn-${clean(unitName)}" onclick="toggleEssence('${unitName}')" style="border-left: 4px solid ${color}; color: ${textColor};">${idx + 1}. ${unitName}</div>`;
+            });
+            html += `</div>`;
+        });
+        html += `</div>`;
+    });
+    container.innerHTML = html; updateEssenceCalculation();
+}
+
+function toggleAllEssence(groupId) {
+    const units = essenceUnitsMap[groupId]; const allSelected = units.every(u => essenceClickState[u.name]);
+    const newState = !allSelected;
+    units.forEach(u => {
+        essenceClickState[u.name] = newState; const btn = document.getElementById(`es-btn-${clean(u.name)}`);
+        if (btn) { if(newState) btn.classList.add('active'); else btn.classList.remove('active'); }
+    });
+    updateEssenceCalculation();
+}
+
+function toggleEssence(unitName) {
+    essenceClickState[unitName] = !essenceClickState[unitName];
+    const btn = document.getElementById(`es-btn-${clean(unitName)}`);
+    if(essenceClickState[unitName]) btn.classList.add('active'); else btn.classList.remove('active');
+    updateEssenceCalculation();
+}
+
+function updateEssenceCalculation() {
+    let baseCounts = { coral: 0, aiur: 0, zerus: 0, hybrid: 0 };
+    essenceUnitsMap.coral.forEach(u => { if(essenceClickState[u.name]) baseCounts.coral++; });
+    essenceUnitsMap.aiur.forEach(u => { if(essenceClickState[u.name]) baseCounts.aiur++; });
+    essenceUnitsMap.zerus.forEach(u => { if(essenceClickState[u.name]) baseCounts.zerus++; });
+    essenceUnitsMap.hybrid.forEach(u => { if(essenceClickState[u.name]) baseCounts.hybrid++; });
+    const actualCoral = baseCounts.coral + baseCounts.hybrid; const actualAiur = baseCounts.aiur + baseCounts.hybrid; const actualZerus = baseCounts.zerus + baseCounts.hybrid;
+    document.getElementById('val-coral').innerText = actualCoral; document.getElementById('val-aiur').innerText = actualAiur; document.getElementById('val-zerus').innerText = actualZerus;
+    document.getElementById('essence-total-val').innerText = actualCoral + actualAiur + actualZerus;
+}
+
+function loadUnits() {
+    rawData.forEach(cat => cat.items.forEach(item => {
+        // [데이터 패치 보정] 데이터 파일 자체 누락 보정 (갓오브타임/메시브 스킬 코스트 추가)
+        if (item.name === "혼종뫼비우스" && item.cost && !item.cost.includes("갓오브타임")) {
+            item.cost += ",갓오브타임[1]";
+        }
+        if (item.name === "제우스폭격기" && item.cost && !item.cost.includes("메시브")) {
+            item.cost += ",메시브디제스터[1]";
+        }
+        allUnits.push({ ...item, key: clean(item.name), category: cat.category });
+    }));
+    
+    hiddenUnits.forEach(u => {
+        const exist = allUnits.find(e => e.key === clean(u.name));
+        if (!exist) allUnits.push({ ...u, key: clean(u.name), category: "히든" });
+        else if (u.recipe) exist.recipe = u.recipe;
+    });
+}
+
+function getUnitColor(name) {
+    const cName = clean(name.split(/[(\[▶▼]/)[0]);
+    for (const [grade, units] of Object.entries(unitGradeMap)) { if (units.some(u => clean(u) === cName)) return gradeColors[grade]; }
+    const unit = allUnits.find(u => u.key === cName);
+    return (unit && raceColors[unit.category]) ? raceColors[unit.category] : "#ffffff";
+}
+
+function updateHighlight() {
+    const val = DOM.comboInput.value; if (!val) { DOM.highlightLayer.innerHTML = ""; return; }
+    const safeVal = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const parts = safeVal.split(/([,\/]+)/);
+    const coloredParts = parts.map(part => {
+        if (/^[,\/]+$/.test(part)) return `<span style="color:#888">${part}</span>`;
+        const subParts = part.split('*'); let unitName = subParts[0]; let color = "#d4d4d4";
+        if (unitName.trim().length > 0) {
+            const cleanName = clean(unitName);
+            const ali = { "아몬":"아몬", "불새":"불새케리건", "노바":"비밀작전노바", "아둔":"아둔의창", "나루드":"나루드", "초월체":"초월체" };
+            let searchKey = ali[cleanName] ? clean(ali[cleanName]) : cleanName;
+            let found = allUnits.find(u => u.key === searchKey || u.key.includes(searchKey));
+            if (found) color = getUnitColor(found.name);
+        }
+        subParts[0] = `<span style="color:${color}">${unitName}</span>`;
+        return subParts.join('<span style="color:#888">*</span>');
+    });
+    DOM.highlightLayer.innerHTML = coloredParts.join('');
+}
+
+// 키워드 기반 코스트 산출 공통 모듈
+function processCostKeyword(rawName, amount, map) {
+    let matched = false;
+    const cName = clean(rawName);
+    for (const conf of specialKeywordMap) {
+        if (conf.keys.some(k => cName.includes(clean(k)))) {
+            const val = conf.divider ? amount / conf.divider : amount;
+            if (conf.subKey) {
+                map[conf.atom][conf.subKey] += val;
+            } else {
+                map[conf.atom] = (map[conf.atom] || 0) + val;
+            }
+            matched = true;
+            break;
+        }
+    }
+    if (!matched) {
+        const atom = dashboardAtoms.find(a => clean(a.name) === cName);
+        if (atom) { map[atom.name] = (map[atom.name] || 0) + amount; matched = true; }
+    }
+    return matched;
+}
+
+function parseFixedCost(costStr, multiplier, map) {
+    if (!costStr || costStr === "정보 부족" || costStr === "미발견" || costStr === "없음") return;
+    const parts = costStr.split(',');
+    parts.forEach(p => {
+        const match = p.match(/(.+)\[(\d+)\]/);
+        if (match) {
+            processCostKeyword(match[1], parseInt(match[2]) * multiplier, map);
+        } else {
+            processCostKeyword(p, multiplier, map);
+        }
+    });
+}
+
+function calculateRecursiveCost(name, m, map, visited = new Set()) {
+    const pName = clean(name.split(/[(\[]/)[0]); 
+    if (visited.has(pName)) return;
+    const curV = new Set(visited); curV.add(pName);
+
+    // 1순위: 특수 키워드나 기본 아톰인지 매핑 확인 후 일치 시 바로 종료
+    if (processCostKeyword(pName, m, map)) {
+        return;
+    }
+    
+    // 2순위: 그 외 레시피 파싱 재귀 탐색
+    const u = allUnits.find(x => x.key === pName);
+    if (u && u.recipe) {
+        u.recipe.split(/[+,]/).forEach(part => {
+            const ingMatch = part.match(/([^(\[\]+]+)/);
+            if (ingMatch) {
+                const ingName = ingMatch[1].trim(); 
+                const cntMatch = part.match(/\[(\d+)\]/);
+                const cnt = cntMatch ? parseInt(cntMatch[1]) : 1;
+                calculateRecursiveCost(ingName, cnt * m, map, curV);
+            } else {
+                calculateRecursiveCost(part.trim(), m, map, curV);
+            }
+        });
+    }
+}
+
+function analyzeUnits(keys, mults = {}) {
+    resetMagicDashboard(false); 
+    const totalMap = {}; 
+    
+    // Total map 초기화 (다중 값인 갓오브타임/메시브 객체 할당)
+    dashboardAtoms.forEach(a => { 
+        if (a.name === "갓오브타임/메시브데제스터") totalMap[a.name] = { godOfTime: 0, massive: 0 };
+        else totalMap[a.name] = 0; 
+    });
+    
+    if (keys.length === 1) {
+        const targetUnit = allUnits.find(x => x.key === keys[0]);
+        if (targetUnit && (isLegend(targetUnit.name) || isHidden(targetUnit.name))) {
+            const parents = allUnits.filter(u => {
+                const isTargetGrade = isHidden(u.name) || isSuperHidden(u.name);
+                return isTargetGrade && u.name !== targetUnit.name && u.recipe && u.recipe.includes(targetUnit.name);
+            });
+
+            if (parents.length > 0) {
+                let parentHtml = `<div class="analysis-card" style="border-top-color: #ffd700; border-bottom: 1px solid rgba(255,215,0,0.2); margin-bottom: 20px; background: rgba(255,215,0,0.05);">
+                    <h3 style="color: #ffd700; font-size: 0.95rem;">▲ 상위 계보 (이 유닛으로 조합 가능한 상위 유닛)</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">`;
+                
+                parents.forEach(p => {
+                    parentHtml += `<div class="unit-badge" style="color:${getUnitColor(p.name)}; border-color:rgba(255,215,0,0.4);" onclick="selectUnitFromAction('${p.name}')">${p.name}</div>`;
+                });
+                
+                parentHtml += `</div></div>`;
+                DOM.treeView.innerHTML += parentHtml;
+            }
+        }
+    }
+
+    keys.forEach(k => {
+        const u = allUnits.find(x => x.key === k); if(!u) return;
+        const c = mults[k] || 1;
+        if (u.cost && u.cost !== "정보 부족" && u.cost !== "미발견" && u.cost !== "없음") parseFixedCost(u.cost, c, totalMap); 
+        else calculateRecursiveCost(u.name, c, totalMap);
+        DOM.treeView.innerHTML += `<div class="analysis-card" style="border-top-color:${getUnitColor(u.name)}"><h3><span>[ ${u.name}${c>1?' x'+c:''} ]</span><button class="tree-btn" data-expanded="false" onclick="toggleSingleTree(this)">모두 펼치기</button></h3><ul class="tree-ul root-ul">${buildTree(u.key, new Set(), true)}</ul></div>`;
+    });
+    
+    // 계산된 수치 렌더링 
+    dashboardAtoms.forEach(a => {
+        const val = totalMap[a.name]; 
+        const e = document.getElementById(`val-${a.name}`); 
+        const container = document.getElementById(`val-container-${a.name}`);
+        const nameEl = container.querySelector('.slot-name');
+
+        if (a.name === "갓오브타임/메시브데제스터") {
+            if (val.godOfTime > 0 || val.massive > 0) {
+                let html = "";
+                if (val.godOfTime > 0) html += `<div style="font-size:0.85rem; line-height:1.3; color:#f39c12;">갓오브타임 [${Math.ceil(val.godOfTime)}]</div>`;
+                if (val.massive > 0) html += `<div style="font-size:0.85rem; line-height:1.3; color:#e74c3c;">메시브 [${Math.ceil(val.massive)}]</div>`;
+                e.innerHTML = html;
+                if(nameEl) nameEl.style.display = 'none'; // 분할 텍스트일 때 슬롯 하단 기본명칭 숨김
+                container.classList.add('active'); 
+            }
+        } else if (val > 0) { 
+            e.innerText = Math.ceil(val); 
+            if(nameEl) nameEl.style.display = 'block';
+            container.classList.add('active'); 
+        }
+    });
+}
+
+function buildTree(key, visited = new Set(), isRoot = false) {
+    const u = allUnits.find(x => x.key === key);
+    if (!u) return `<li class="tree-li"><div class="unit-badge">${key}</div></li>`;
+    if (visited.has(key)) return `<li class="tree-li"><div class="unit-badge" style="color:#e07a5f;">${u.name} (중복)</div></li>`;
+    const newV = new Set(visited); newV.add(key);
+    const dStyle = isRoot ? 'block' : 'none'; const mark = dStyle === 'block' ? '▼' : '▶'; let ch = '';
+    if (u.recipe) {
+        u.recipe.split(/[+,]/).forEach(part => {
+            const childNameMatch = part.match(/^([^(\[\]+]+)/);
+            const childName = childNameMatch ? clean(childNameMatch[1]) : clean(part);
+            const target = allUnits.find(x => x.key === childName);
+            if (target && target.key !== u.key) ch += buildTree(target.key, newV, false);
+        });
+    }
+    const isRedundant = u.recipe && u.cost && clean(u.recipe) === clean(u.cost);
+    return `<li class="tree-li">
+        <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">
+            ${u.name}${ch ? `<span class="toggle-mark">${mark}</span>` : ''}
+        </div>
+        ${u.recipe ? `<div class="bullet-recipe" style="display:${dStyle};">${u.recipe}</div>` : ''}
+        ${(u.cost && !isRedundant) ? `<div class="bullet-cost" style="display:${dStyle};">코스트: ${u.cost}</div>` : ''}
+        ${ch ? `<ul class="tree-ul" style="display:${dStyle};">${ch}</ul>` : ''}
+    </li>`;
+}
+
+const debounceSearch = debounce(() => {
+    const val = clean(DOM.comboInput.value); DOM.searchResultList.innerHTML = ""; resetMagicDashboard(false); if (!val) return;
+    const terms = val.split(/[,\/]/).map(t => t.trim()).filter(t => t !== ""); const multMap = {}; const exacts = [];
+    const ali = { "아몬":"아몬", "불새":"불새케리건", "노바":"비밀작전노바", "아둔":"아둔의창", "나루드":"나루드", "초월체":"초월체" };
+    
+    terms.forEach(raw => {
+        let [t, c] = raw.split('*'); let p = clean(t);
+        let found = allUnits.find(u => u.key === p) || allUnits.find(u => u.key.includes(p));
+        let k = ali[p] ? clean(ali[p]) : (found || {}).key;
+        if(k) { exacts.push(k); multMap[k] = parseInt(c) || 1; }
+    });
+    
+    allUnits.filter(u => {
+        const searchWord = clean(terms[0].split('*')[0]);
+        if (searchWord === "데하카") return u.name === "데하카"; 
+        return u.key.includes(searchWord);
+    }).slice(0, 15).forEach(u => {
+        const d = document.createElement("div"); d.className = "result-item"; d.innerText = u.name; d.style.color = getUnitColor(u.name); 
+        d.onclick = () => selectUnitFromAction(u.name); DOM.searchResultList.appendChild(d);
+    });
+    
+    if (exacts.length && (val.includes(',') || val.includes('/') || val.includes('*'))) { DOM.treeView.innerHTML = ""; analyzeUnits(exacts, multMap); }
+}, 200);
+
+function selectUnitFromAction(name) {
+    DOM.comboInput.value = name; updateHighlight(); DOM.searchResultList.innerHTML = ""; DOM.treeView.innerHTML = ""; analyzeUnits([clean(name)]);
+    if(window.innerWidth <= 1024) document.getElementById('treeView').scrollIntoView({ behavior: 'smooth' }); else DOM.treeView.scrollTop = 0;
+}
+
+function renderTabs() {
+    let h = `<div class="tabs-wrapper">`;
+    rawData.forEach((cat, idx) => { h += `<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">${cat.category}<span class="unit-count">(${cat.items.length})</span></button>`; });
+    h += `</div><div id="tabContent" class="tab-content-area"></div>`;
+    DOM.tablesContainer.innerHTML = h; selectTab(0);
+}
+
+function selectTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => { if(i === idx) btn.classList.add('active'); else btn.classList.remove('active'); });
+    let h = `<table><tbody>`;
+    rawData[idx].items.forEach((item, i) => { h += `<tr onclick="selectUnitFromAction('${item.name}')"><td style="color:${getUnitColor(item.name)}; font-weight:bold; cursor:pointer; width:30%;">${i+1}. ${item.name}</td><td style="cursor:pointer; color:#aaa;">${item.recipe}</td></tr>`; });
+    h += `</tbody></table>`;
+    const contentArea = document.getElementById('tabContent'); contentArea.innerHTML = h; contentArea.scrollTop = 0;
+}
+
+function toggleTreeNode(el) { 
+    const p = el.closest('.tree-li'); 
+    const r = p.querySelector(':scope > .bullet-recipe'); 
+    const c = p.querySelector(':scope > .bullet-cost'); 
+    const t = p.querySelector(':scope > .tree-ul'); 
+    const m = el.querySelector('.toggle-mark'); 
+    if(t) t.style.display = (t.style.display === 'none' ? 'block' : 'none'); 
+    if(r) r.style.display = (r.style.display === 'none' ? 'block' : 'none'); 
+    if(c) c.style.display = (c.style.display === 'none' ? 'block' : 'none'); 
+    if(m) m.innerText = (m.innerText === '▶' ? '▼' : '▶'); 
+}
+
+function toggleSingleTree(btn) {
+    const card = btn.closest('.analysis-card'); const newState = !(btn.getAttribute('data-expanded') === 'true');
+    const displayStyle = newState ? 'block' : 'none'; const markChar = newState ? '▼' : '▶';
+    card.querySelectorAll('.tree-ul:not(.root-ul)').forEach(el => el.style.display = displayStyle);
+    card.querySelectorAll('.bullet-recipe').forEach(el => el.style.display = displayStyle);
+    card.querySelectorAll('.bullet-cost').forEach(el => el.style.display = displayStyle); 
+    card.querySelectorAll('.toggle-mark').forEach(el => el.innerText = markChar);
+    btn.setAttribute('data-expanded', newState); btn.innerText = newState ? '모두 접기' : '모두 펼치기';
+    if(newState) btn.classList.add('active-state'); else btn.classList.remove('active-state');
+}
+
+function resetCombo() { DOM.comboInput.value = ""; updateHighlight(); DOM.searchResultList.innerHTML = ""; DOM.treeView.innerHTML = ""; resetMagicDashboard(true); }
+
+function renderDashboardAtoms() { 
+    dashboardAtoms.forEach(a => { 
+        const d = document.createElement("div"); 
+        d.className = `cost-slot ${a.class}`; 
+        d.id = `val-container-${a.name}`; 
+        d.innerHTML = `<div class="slot-val" id="val-${a.name}">0</div><div class="slot-name">${a.name}</div>`; 
+        DOM.magicDashboard.appendChild(d); 
+    }); 
+}
+
+function resetMagicDashboard(clearAll) { 
+    dashboardAtoms.forEach(a => { 
+        const container = document.getElementById(`val-container-${a.name}`);
+        const e = document.getElementById(`val-${a.name}`); 
+        const nameEl = container.querySelector('.slot-name');
+        
+        if(e) {
+            e.innerHTML = "0"; 
+            e.style.display = ""; // flex 설정 초기화
+        }
+        if(nameEl) nameEl.style.display = "block"; // 숨겨졌던 이름태그 복구
+        
+        container.classList.remove('active'); 
+    }); 
+}
+
+function debounce(f, t) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => f.apply(this, args), t); }; }
+
+window.onload = init;
+</script>
+
+<style>
+    @media (max-width: 1024px) {
+        * { box-sizing: border-box !important; }
+        html, body { overflow-x: hidden !important; width: 100% !important; position: relative; height: auto; }
+        .container { padding: 0 8px !important; width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; display: block !important; }
+        .header-container { flex-direction: column; padding: 10px 5px; gap: 8px; text-align: center; }
+        .view-toggles { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; width: 100% !important; gap: 4px; }
+        .btn-view, .btn-guide { flex: 1 !important; padding: 12px 0 !important; font-size: 0.85rem !important; font-weight: 800 !important; white-space: nowrap; min-width: 0 !important; }
+        .view-section.active { display: flex !important; flex-direction: column !important; width: 100% !important; }
+        .left-panel, .right-panel { width: 100% !important; flex: none !important; }
+        /* 모바일 해상도에서도 매직코스트 5x4 배열 적용 */
+        .magic-dashboard { display: grid !important; grid-template-columns: repeat(5, 1fr) !important; width: 100% !important; gap: 4px !important; padding: 5px !important; }
+        .cost-slot { height: 50px !important; min-width: 0 !important; padding: 2px !important; }
+        .slot-val { font-size: 0.95rem !important; }
+        .slot-name { font-size: 0.65rem !important; }
+        .tabs-wrapper { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; width: 100% !important; }
+        .tab-btn { padding: 10px 0 !important; font-size: 0.85rem !important; width: 100% !important; }
+        .essence-header-panel { position: sticky !important; top: 0 !important; z-index: 1100 !important; background: #05080a !important; width: calc(100% + 16px) !important; margin: 0 -8px 15px -8px !important; padding: 10px 8px 15px 8px !important; border-bottom: 2px solid #1a3644 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        #essence-total-val { font-size: 3.5rem !important; margin-bottom: 12px !important; }
+        .essence-cards { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+        .essence-card { padding: 10px 2px !important; min-width: 0 !important; }
+        .essence-card-title { font-size: 0.75rem !important; }
+        .essence-card-val { font-size: 1.2rem !important; }
+        .essence-groups-container { display: flex !important; flex-direction: column !important; gap: 10px; padding-bottom: 80px; }
+        .essence-group-header { cursor: pointer; padding: 15px !important; background: rgba(17, 45, 59, 0.6); border: 1px solid #1a3644; border-radius: 8px; display: flex !important; align-items: center !important; justify-content: space-between !important; }
+        .btn-select-all { margin-left: auto !important; margin-right: 12px !important; padding: 6px 12px !important; font-size: 0.8rem !important; background: transparent !important; border: 1px solid rgba(0, 191, 255, 0.4) !important; color: #00bfff !important; min-width: 75px; flex-shrink: 0; }
+        .essence-group-header::after { content: '▼'; font-size: 0.7rem; color: #00bfff; opacity: 0.7; }
+        .essence-group-box.active .essence-group-header::after { transform: rotate(180deg); }
+        .essence-group-box .essence-sub-category, .essence-group-box .essence-unit-grid { display: none; }
+        .essence-group-box.active .essence-sub-category, .essence-group-box.active .essence-unit-grid { display: flex; }
+        #treeView { overflow-x: hidden !important; padding-bottom: 100px; }
+    }
+</style>
+
+<script>
+    (function() {
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-select-all')) { e.stopPropagation(); return; }
+            const header = e.target.closest('.essence-group-header');
+            if (header && window.innerWidth <= 1024) {
+                const box = header.closest('.essence-group-box');
+                box.classList.toggle('active');
+                if(box.classList.contains('active')) {
+                    setTimeout(() => {
+                        const stickyH = document.querySelector('.essence-header-panel').offsetHeight;
+                        const boxTop = box.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: boxTop - stickyH - 5, behavior: 'smooth' });
+                    }, 100);
+                }
+            }
+        });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+        document.addEventListener('selectstart', e => e.preventDefault());
+        window.addEventListener('keydown', function (e) {
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault(); return false;
+            }
+        });
+    })();
+</script>
+<style>
+    @media (max-width: 1024px) {
+        /* [1] 가로 스크롤 방지 및 기본 레이아웃 최적화 */
+        * { box-sizing: border-box !important; }
+        html, body { overflow-x: hidden !important; width: 100% !important; position: relative; height: auto; }
+        .container { 
+            padding: 0 8px !important; width: 100% !important; 
+            max-width: 100vw !important; overflow-x: hidden !important; display: block !important; 
+        }
+        .header-container { flex-direction: column; padding: 10px 5px; gap: 8px; text-align: center; }
+
+        /* [2] 상단 내비게이션: 1x3 한 줄 고정 */
+        .view-toggles { 
+            display: flex !important; flex-direction: row !important; 
+            flex-wrap: nowrap !important; width: 100% !important; gap: 4px; 
+        }
+        .btn-view, .btn-guide { 
+            flex: 1 !important; padding: 12px 0 !important; 
+            font-size: 0.85rem !important; font-weight: 800 !important; 
+            white-space: nowrap; min-width: 0 !important;
+        }
+
+        /* [3] 히든조합 레이아웃 복구 */
+        .view-section.active { display: flex !important; flex-direction: column !important; width: 100% !important; }
+        .left-panel, .right-panel { width: 100% !important; flex: none !important; }
+
+        /* 매직 코스트: PC와 동일한 6x3 유지 */
+        .magic-dashboard { 
+            display: grid !important; grid-template-columns: repeat(6, 1fr) !important; 
+            width: 100% !important; gap: 4px !important; padding: 5px !important; 
+        }
+        .cost-slot { height: 50px !important; min-width: 0 !important; padding: 2px !important; }
+        .slot-val { font-size: 0.95rem !important; }
+        .slot-name { font-size: 0.65rem !important; }
+
+        /* 카테고리 탭: 3열(3x2) 배치 */
+        .tabs-wrapper { 
+            display: grid !important; grid-template-columns: repeat(3, 1fr) !important; 
+            gap: 6px !important; width: 100% !important; 
+        }
+        .tab-btn { padding: 10px 0 !important; font-size: 0.85rem !important; width: 100% !important; }
+
+        /* [4] 일일정수 스코어보드 고정 (Sticky) */
+        .essence-header-panel { 
+            position: sticky !important; top: 0 !important; z-index: 1100 !important; 
+            background: #05080a !important; 
+            width: calc(100% + 16px) !important; margin: 0 -8px 15px -8px !important; 
+            padding: 10px 8px 15px 8px !important;
+            border-bottom: 2px solid #1a3644 !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+        }
+        #essence-total-val { font-size: 3.5rem !important; margin-bottom: 12px !important; }
+
+        /* 세부 정수 카드 1x3 배치 */
+        .essence-cards { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+        .essence-card { padding: 10px 2px !important; min-width: 0 !important; }
+        .essence-card-title { font-size: 0.75rem !important; }
+        .essence-card-val { font-size: 1.2rem !important; }
+
+        /* [5] 일일정수 그룹 아코디언 및 버튼 위치 */
+        .essence-groups-container { display: flex !important; flex-direction: column !important; gap: 10px; padding-bottom: 80px; }
+        .essence-group-header { 
+            cursor: pointer; padding: 15px !important; background: rgba(17, 45, 59, 0.6); 
+            border: 1px solid #1a3644; border-radius: 8px;
+            display: flex !important; align-items: center !important; justify-content: space-between !important;
+        }
+        /* 전체선택 버튼: 제목 우측 끝으로 이동 */
+        .btn-select-all { 
+            margin-left: auto !important; margin-right: 12px !important; 
+            padding: 6px 12px !important; font-size: 0.8rem !important;
+            background: transparent !important; border: 1px solid rgba(0, 191, 255, 0.4) !important;
+            color: #00bfff !important; min-width: 75px; flex-shrink: 0;
+        }
+        .essence-group-header::after { content: '▼'; font-size: 0.7rem; color: #00bfff; opacity: 0.7; }
+        .essence-group-box.active .essence-group-header::after { transform: rotate(180deg); }
+
+        /* 모바일에서는 기본 접힘 상태 */
+        .essence-group-box .essence-sub-category, .essence-group-box .essence-unit-grid { display: none; }
+        .essence-group-box.active .essence-sub-category, .essence-group-box.active .essence-unit-grid { display: flex; }
+
+        #treeView { overflow-x: hidden !important; padding-bottom: 100px; }
+    }
+</style>
+
+<script>
+    (function() {
+        // [아코디언 및 이벤트 제어]
+        document.addEventListener('click', function(e) {
+            // 전체선택 버튼 클릭 시 아코디언 토글 방지
+            if (e.target.classList.contains('btn-select-all')) {
+                e.stopPropagation();
+                return;
+            }
+            
+            // 헤더 클릭 시 아코디언 토글
+            const header = e.target.closest('.essence-group-header');
+            if (header && window.innerWidth <= 1024) {
+                const box = header.closest('.essence-group-box');
+                box.classList.toggle('active');
+                
+                // 펼칠 때 헤더가 스코어보드에 가려지지 않게 스크롤 보정
+                if(box.classList.contains('active')) {
+                    setTimeout(() => {
+                        const stickyH = document.querySelector('.essence-header-panel').offsetHeight;
+                        const boxTop = box.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: boxTop - stickyH - 5, behavior: 'smooth' });
+                    }, 100);
+                }
+            }
+        });
+
+        // [소스코드 보호 기능]
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+        document.addEventListener('selectstart', e => e.preventDefault());
+        window.addEventListener('keydown', function (e) {
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault(); return false;
+            }
+        });
+        const blocker = function() { setInterval(function() { debugger; }, 100); };
+        try { blocker(); } catch (e) {}
+    })();
+</script>
+</body>
+</html>
