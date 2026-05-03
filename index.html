@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개복디 넥서스</title>
+    <title>개복디 넥서스 </title>
     <script src="data.js"></script>
     <style>
-        /* ===================================================================
-           [1] CSS 변수 및 기본 설정
-           =================================================================== */
+        /* =========================================
+           [1] 올블랙 디자인 시스템 (CSS 변수)
+           ========================================= */
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
         :root {
@@ -26,9 +26,9 @@
             --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* ===================================================================
-           [2] 글로벌 스타일
-           =================================================================== */
+        /* =========================================
+           [2] 글로벌 스타일 설정
+           ========================================= */
         body { 
             background-color: var(--bg-base);
             color: var(--text-main); 
@@ -40,6 +40,7 @@
             letter-spacing: -0.02em;
         }
 
+        /* 풀 와이드 적용 */
         .container { 
             width: 100%; max-width: 100%; 
             padding: 20px 40px; box-sizing: border-box; 
@@ -51,13 +52,13 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* ===================================================================
-           [3] 헤더
-           =================================================================== */
+        /* =========================================
+           [3] 최상단 헤더
+           ========================================= */
         .glass-header {
             display: flex; align-items: center; justify-content: space-between; gap: 30px;
             background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(16px);
-            border: 1px solid var(--border-light);
+            border: 1px solid var(--border-light); border-bottom: 1px solid rgba(0,0,0,0.8);    
             border-radius: 100px; padding: 10px 15px 10px 30px; margin: 0 auto 30px auto; width: fit-content;
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8); z-index: 1000;
         }
@@ -72,30 +73,36 @@
         
         .btn-toggle-view { 
             background: linear-gradient(180deg, var(--accent), #0284C7); color: #fff; border: none; border-radius: 50px;
-            padding: 10px 24px; font-size: 0.95rem; cursor: pointer; font-weight: 700; transition: all 0.3s;
-            box-shadow: 0 4px 15px var(--accent-glow); font-family: var(--font-family);
+            padding: 10px 24px; font-size: 0.95rem; cursor: pointer; font-weight: 700; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.3); font-family: var(--font-family);
         }
-        .btn-toggle-view:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .btn-toggle-view:hover { 
+            transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.4); 
+            background: linear-gradient(180deg, #7DD3FC, var(--accent)); 
+        }
+        .btn-toggle-view:active { transform: translateY(1px); box-shadow: 0 2px 10px var(--accent-glow); }
 
-        /* ===================================================================
-           [4] 메인 레이아웃
-           =================================================================== */
-        .view-section { display: none; width: 100%; flex: 1; min-height: 0; animation: fadeIn 0.4s ease forwards; }
-        .view-section.active { display: grid; grid-template-columns: 1.1fr 1.3fr 1.1fr; gap: 20px; height: 100%; }
+        /* =========================================
+           [4] 메인 레이아웃 및 공통 패널 
+           ========================================= */
+        .view-section { display: none; width: 100%; flex: 1; min-height: 0; animation: fadeIn 0.4s ease forwards; height: 100%; }
+        /* 양옆 패널 비율 확대 */
+        .view-section.active { display: grid; grid-template-columns: 1.1fr 1.3fr 1.1fr; gap: 20px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .panel-col { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 20px; }
+        
         .card-panel {
-            background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; 
-            padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); 
-            display: flex; flex-direction: column; overflow: hidden; height: 100%; min-height: 0; 
+            background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; overflow: hidden; 
+            height: 100%; min-height: 0; 
         }
 
-        /* ===================================================================
-           [5] 검색 및 입력창
-           =================================================================== */
+        /* =========================================
+           [5] 뷰 1: 히든조합
+           ========================================= */
         .search-container { position: relative; width: 100%; display: flex; gap: 15px; flex-shrink: 0; }
-        .input-wrapper { position: relative; flex: 1; border-radius: 16px; background: var(--bg-base); border: 1px solid var(--border-light); }
+        .input-wrapper { position: relative; flex: 1; border-radius: 16px; background: var(--bg-base); border: 1px solid var(--border-light); transition: 0.3s; }
         .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
         
         .input-overlay-box { 
@@ -105,30 +112,25 @@
         }
         #highlightLayer { position: absolute; top: 0; left: 0; z-index: 1; color: var(--text-main); pointer-events: none; }
         #comboInput { position: absolute; top: 0; left: 0; z-index: 2; color: transparent; caret-color: var(--accent); outline: none; }
+        #comboInput::placeholder { color: var(--text-muted); font-weight: 600; }
         
         .btn-reset { 
             background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border-light); 
-            border-radius: 16px; padding: 0 30px; font-size: 1.1rem; cursor: pointer; font-weight: bold; height: 70px;
+            border-radius: 16px; padding: 0 30px; font-size: 1.1rem; cursor: pointer; font-weight: bold; transition: 0.2s; height: 70px;
         }
         .btn-reset:hover { background: rgba(255, 99, 132, 0.1); color: #FF6B6B; border-color: #FF6B6B; }
 
-        /* ===================================================================
-           [6] 매직 대시보드
-           =================================================================== */
         .magic-dashboard-container { margin-top: 15px; }
         .magic-dashboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; flex-shrink: 0; }
         .cost-slot { 
             background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 16px; 
-            text-align: center; height: 90px; display: flex; flex-direction: column; justify-content: center; transition: all 0.3s; 
+            text-align: center; height: 90px; display: flex; flex-direction: column; justify-content: center; transition: all 0.3s ease; 
         }
         .cost-slot.active { background: rgba(56, 189, 248, 0.05); border-color: var(--accent); box-shadow: inset 0 0 20px var(--accent-glow); }
         .cost-slot.active .slot-val { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
-        .slot-val { font-size: 1.8rem; font-weight: 900; color: var(--text-sub); line-height: 1.1; } 
+        .slot-val { font-size: 1.8rem; font-weight: 900; color: var(--text-sub); line-height: 1.1; transition: color 0.3s; } 
         .slot-name { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; } 
 
-        /* ===================================================================
-           [7] 검색 결과
-           =================================================================== */
         #searchResultList { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; min-height: 32px; }
         .result-item { 
             background: var(--bg-panel-hover); border: 1px solid var(--border-light); border-radius: 8px;
@@ -136,26 +138,21 @@
         }
         .result-item:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
 
-        /* ===================================================================
-           [8] 등급 필터
-           =================================================================== */
         .quick-tools-panel { margin-top: 15px; border-top: 1px solid var(--border-light); padding-top: 15px; flex-shrink: 0; }
         .quick-tools-header { font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
         .grade-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .grade-btn {
             background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 8px;
-            color: var(--text-sub); font-size: 0.85rem; font-weight: bold; padding: 10px 0; cursor: pointer; text-align: center;
+            color: var(--text-sub); font-size: 0.85rem; font-weight: bold; padding: 10px 0; cursor: pointer;
+            transition: 0.2s; text-align: center;
         }
         .grade-btn:hover { background: var(--bg-panel-hover); color: var(--text-main); }
 
-        /* ===================================================================
-           [9] 트리뷰
-           =================================================================== */
         #treeView { flex: 1; overflow-y: auto; height: 0; padding-right: 5px; }
         
         .analysis-card { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 16px; padding: 15px 20px; margin-bottom: 15px; }
-        .analysis-card h3 { margin: 0 0 15px 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
-        .tree-btn { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
+        .analysis-card h3 { margin: 0 0 15px 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;}
+        .tree-btn { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 12px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .tree-btn:hover { background: var(--text-sub); color: var(--bg-base); }
         
         .tree-ul { list-style: none; padding-left: 20px; margin: 8px 0 0 0; border-left: 2px solid var(--tree-line); }
@@ -166,21 +163,19 @@
         .unit-badge { 
             display: inline-flex; align-items: center; background: var(--bg-panel-hover); 
             border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 12px; 
-            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: 0.2s;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
         .unit-badge:hover { filter: brightness(1.2); transform: translateX(2px); }
         .toggle-mark { margin-left: 10px; font-size: 0.65rem; color: var(--text-muted); }
-        .bullet-recipe { color: var(--text-sub); font-size: 0.85rem; margin: 6px 0 0 5px; padding-left: 10px; }
+        .bullet-recipe { color: var(--text-sub); font-size: 0.85rem; margin: 6px 0 0 5px; padding-left: 10px; font-weight: 500;}
         .bullet-cost { color: var(--accent); font-size: 0.85rem; margin: 4px 0 0 5px; padding-left: 10px; font-weight: 700; }
 
-        /* ===================================================================
-           [10] 테이블
-           =================================================================== */
         #tablesContainer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
         .tabs-wrapper { display: flex; background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 12px; padding: 4px; margin-bottom: 15px; flex-shrink: 0; } 
         .tab-btn { 
             flex: 1; background: transparent; border: none; border-radius: 8px; padding: 8px 0; 
             color: var(--text-muted); font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: 0.3s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .tab-btn.active { background: var(--bg-panel); color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.5); border: 1px solid var(--border-light); }
         .tab-btn .unit-count { font-size: 0.75rem; font-weight: 500; opacity: 0.8; margin-top: 2px;} 
@@ -193,25 +188,26 @@
         td:first-child { border-left: 1px solid var(--border-light); border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-weight: 800; width: 35%;}
         td:last-child { border-right: 1px solid var(--border-light); border-top-right-radius: 8px; border-bottom-right-radius: 8px; color: var(--text-sub); }
 
-        /* ===================================================================
-           [11] 일일정수 뷰
-           =================================================================== */
+        /* =========================================
+           [6] 뷰 2: 일일정수
+           ========================================= */
         #view-essence { flex-direction: column; overflow-y: auto; display: none; gap: 20px; }
         #view-essence.active { display: flex; }
         
         .essence-top-banner { 
             background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 35px 30px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 25px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
         
         .essence-score-master { display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap; width: 100%; }
+
         .score-circle { 
             width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
             border: 2px dashed var(--accent); display: flex; flex-direction: column; align-items: center; justify-content: center;
             box-shadow: 0 0 25px var(--accent-glow);
         }
-        .score-circle span { font-size: 3.5rem; font-weight: 900; color: var(--text-main); line-height: 1; }
-        .score-circle label { font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-top: 5px; }
+        .score-circle span { font-size: 3.5rem; font-weight: 900; color: var(--text-main); line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        .score-circle label { font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
         .essence-sub-scores { display: flex; gap: 20px; }
         .sub-score-card { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 16px; padding: 15px 25px; min-width: 130px; text-align: center; }
@@ -221,7 +217,7 @@
 
         .btn-reset-essence { 
             background: rgba(255, 99, 132, 0.1); color: #FF6B6B; border: 1px solid rgba(255, 99, 132, 0.3); 
-            border-radius: 12px; padding: 15px 25px; font-size: 1rem; font-weight: 700; cursor: pointer; height: fit-content;
+            border-radius: 12px; padding: 15px 25px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.2s; height: fit-content;
         }
         .btn-reset-essence:hover { background: rgba(255, 99, 132, 0.2); box-shadow: 0 4px 15px rgba(255, 99, 132, 0.2); }
 
@@ -232,13 +228,13 @@
         .essence-guide-text strong { color: var(--accent); }
 
         .essence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .essence-group { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 25px; }
+        .essence-group { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .essence-group-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 15px; }
         .essence-group-title { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0; }
-        .btn-select-all { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; }
+        .btn-select-all { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: 0.2s; }
         .btn-select-all:hover { color: var(--text-main); background: var(--bg-panel-hover); }
         
-        .cat-title { font-size: 0.85rem; color: var(--accent); font-weight: 800; margin: 15px 0 8px 0; }
+        .cat-title { font-size: 0.85rem; color: var(--accent); font-weight: 800; margin: 15px 0 8px 0; text-transform: uppercase; letter-spacing: 1px; }
         .unit-check-list { display: flex; flex-direction: column; gap: 8px; }
         .unit-check-btn { 
             background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 10px; 
@@ -253,9 +249,9 @@
         .unit-check-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--text-main); }
         .unit-check-btn.active::before { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--bg-panel); }
 
-        /* ===================================================================
-           [12] 반응형
-           =================================================================== */
+        /* =========================================
+           [7] 모바일/태블릿 반응형
+           ========================================= */
         @media (max-width: 1200px) {
             body { height: auto; overflow: visible; }
             .container { padding: 15px; height: auto; }
@@ -263,39 +259,56 @@
             
             .view-section.active { display: flex; flex-direction: column; gap: 20px; height: auto; }
             
+            #view-combo > .panel-col { order: 1; height: auto; flex: none; }
+            #view-combo > .card-panel:nth-child(3) { order: 2; height: 600px; flex: none; } 
+            #view-combo > .card-panel:nth-child(2) { order: 3; min-height: 500px; height: auto; flex: none; }
+            
             .magic-dashboard { grid-template-columns: repeat(5, 1fr) !important; gap: 6px; }
             .cost-slot { height: 65px; }
             .slot-val { font-size: 1.3rem; }
-            .slot-name { font-size: 0.7rem; }
+            .slot-name { font-size: 0.7rem; margin-top: 2px; }
             
             .essence-grid { grid-template-columns: 1fr !important; gap: 15px; }
+            
             .input-overlay-box { height: 60px; font-size: 1.2rem; line-height: 60px; }
             .btn-reset { height: 60px; font-size: 1rem; }
         }
 
+        /* 600px 이하 추가 모바일 조정: 일일정수 스코어 1열 3칸 고정 */
         @media (max-width: 600px) {
-            .glass-header { flex-direction: column; padding: 15px 20px; gap: 15px; }
-            .essence-score-master { flex-direction: column; gap: 20px; }
-            .essence-sub-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
-            .sub-score-card { min-width: 0; padding: 10px 5px; }
+            .glass-header { flex-direction: column; padding: 15px 20px; gap: 15px; border-radius: 20px; }
+            
+            .essence-score-master { flex-direction: column; gap: 20px; width: 100%; }
+            .essence-sub-scores {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                width: 100%;
+            }
+            .sub-score-card {
+                min-width: 0; 
+                padding: 10px 5px; 
+            }
+            .sub-score-card .title { font-size: 0.75rem; letter-spacing: -0.5px; }
             .sub-score-card .value { font-size: 1.4rem; }
+            .sub-score-card .max { font-size: 0.8rem; }
+            
             .score-circle { width: 110px; height: 110px; }
             .score-circle span { font-size: 2.8rem; }
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false">
 
 <div class="container">
     <div class="glass-header">
         <div class="header-brand">
-            <h1 class="main-title">개복디 넥서스</h1>
+            <h1 class="main-title">개복디 넥서스 </h1>
             <p class="creator-info">제작자 회장 | 핸들값 3-S2-1-2461127</p>
         </div>
         <button id="btn-toggle-view" class="btn-toggle-view" onclick="toggleMainView()">일일정수 전환</button>
     </div>
 
-    <!-- ========== 뷰 1: 히든조합 ========== -->
     <div id="view-combo" class="view-section active">
         <div class="panel-col">
             <div class="card-panel" style="flex:none; height:auto;">
@@ -328,7 +341,6 @@
         </div>
     </div>
 
-    <!-- ========== 뷰 2: 일일정수 ========== -->
     <div id="view-essence" class="view-section">
         <div class="essence-top-banner">
             <div class="essence-score-master">
@@ -364,12 +376,7 @@
 </div>
 
 <script>
-// =========================================================================
-// [1] 전역 변수 및 초기화
-// =========================================================================
-
-const allUnits = [];
-const DOM = {};
+const allUnits = []; const DOM = {};
 const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
 
 const essenceMax = { coral: 0, aiur: 0, zerus: 0 };
@@ -378,45 +385,16 @@ const essenceClickState = {};
 let currentView = 1;
 
 function init() {
-    // DOM 요소 캐싱
     DOM.tablesContainer = document.getElementById("tablesContainer");
     DOM.magicDashboard = document.getElementById("magicDashboard");
     DOM.searchResultList = document.getElementById("searchResultList");
     DOM.treeView = document.getElementById("treeView");
     DOM.comboInput = document.getElementById("comboInput");
     DOM.highlightLayer = document.getElementById("highlightLayer");
-    
-    // 이벤트 바인딩
     DOM.comboInput.addEventListener("input", () => { updateHighlight(); debounceSearch(); });
     DOM.comboInput.addEventListener("scroll", () => { DOM.highlightLayer.scrollLeft = DOM.comboInput.scrollLeft; });
-    
-    // 데이터 로드 및 UI 렌더링
-    loadUnits();
-    renderDashboardAtoms();
-    renderTabs();
-    initEssenceData();
-    renderQuickFilters();
+    loadUnits(); renderDashboardAtoms(); renderTabs(); initEssenceData(); renderQuickFilters();
 }
-
-// =========================================================================
-// [2] 데이터 로드
-// =========================================================================
-
-function loadUnits() {
-    allUnitsData.forEach(item => {
-        allUnits.push({ 
-            ...item, 
-            key: clean(item.name),
-            sanitizedId: sanitizeId(item.name)
-        });
-    });
-    
-    console.log('[✓] 유닛 로드 완료:', allUnits.length, '개');
-}
-
-// =========================================================================
-// [3] 뷰 전환
-// =========================================================================
 
 function toggleMainView() {
     const btn = document.getElementById('btn-toggle-view');
@@ -433,372 +411,70 @@ function toggleMainView() {
     }
 }
 
-// =========================================================================
-// [4] 유틸리티 함수
-// =========================================================================
-
 function isLegend(name) { return unitGradeMap["레전드"].some(u => clean(u) === clean(name)); }
 function isHidden(name) { return unitGradeMap["히든"].some(u => clean(u) === clean(name)); }
 function isSuperHidden(name) { return unitGradeMap["슈퍼히든"].some(u => clean(u) === clean(name)); }
-
-function getUnitColor(name) {
-    const cName = clean(name.split(/[(\[▶▼]/)[0]);
-    for (const [grade, units] of Object.entries(unitGradeMap)) { 
-        if (units.some(u => clean(u) === cName)) return gradeColors[grade]; 
-    }
-    const unit = allUnits.find(u => u.key === cName);
-    return (unit && raceColors[unit.race]) ? raceColors[unit.race] : "var(--text-main)";
-}
-
-// =========================================================================
-// [5] 검색 및 하이라이트
-// =========================================================================
-
-function updateHighlight() {
-    const val = DOM.comboInput.value; 
-    if (!val) { DOM.highlightLayer.innerHTML = ""; return; }
-    
-    const safeVal = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const parts = safeVal.split(/([,\/]+)/);
-    const coloredParts = parts.map(part => {
-        if (/^[,\/]+$/.test(part)) return `<span style="color:var(--text-muted)">${part}</span>`;
-        const subParts = part.split('*');
-        let unitName = subParts[0];
-        let color = "var(--text-main)";
-        
-        if (unitName.trim().length > 0) {
-            const cleanName = clean(unitName);
-            let found = allUnits.find(u => u.key === cleanName || u.key.includes(cleanName));
-            if (found) color = getUnitColor(found.name);
-        }
-        
-        subParts[0] = `<span style="color:${color}">${unitName}</span>`;
-        return subParts.join('<span style="color:var(--text-muted)">*</span>');
-    });
-    
-    DOM.highlightLayer.innerHTML = coloredParts.join('');
-}
-
-// =========================================================================
-// [6] 등급 필터
-// =========================================================================
 
 function renderQuickFilters() {
     const container = document.getElementById('quickGradeButtons');
     const targetGrades = ["에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"];
     let html = '';
-    
     targetGrades.forEach(g => {
         html += `<button class="grade-btn" style="border-left: 4px solid ${gradeColors[g]};" onclick="showGradeUnits('${g}')">${g}</button>`;
     });
-    
     container.innerHTML = html;
 }
 
 function showGradeUnits(grade) {
-    DOM.comboInput.value = "";
-    updateHighlight();
+    DOM.comboInput.value = ""; updateHighlight();
     DOM.searchResultList.innerHTML = "";
     resetMagicDashboard(true);
-    
     const units = unitGradeMap[grade];
     if(!units) return;
     
-    let html = `<div class="analysis-card" style="border-color:${gradeColors[grade]};">
-        <h3 style="color:${gradeColors[grade]};">${grade} 등급 유닛 목록</h3>`;
-    
+    let html = `<div class="analysis-card" style="border-color:${gradeColors[grade]};"><h3 style="color:${gradeColors[grade]}; border-bottom-color:var(--border-light);">${grade} 등급 유닛 목록</h3><div style="display:flex; flex-direction:column; gap:8px; margin-top: 15px;">`;
     units.forEach((u, idx) => {
-        html += `<div style="padding: 10px; cursor: pointer; border-radius: 6px; color:${gradeColors[grade]}; font-weight: 800;" onclick="selectUnitFromAction('${u}')">${idx + 1}. ${u}</div>`;
+        html += `<div style="display:flex; align-items:center; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-panel); cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='var(--bg-panel-hover)'" onmouseout="this.style.background='var(--bg-panel)'" onclick="selectUnitFromAction('${u}')">
+            <span style="color:var(--text-sub); width: 35px; font-weight:bold; font-size: 1.1rem;">${idx + 1}.</span>
+            <span style="color:${gradeColors[grade]}; font-weight:800; font-size: 1.05rem;">${u}</span>
+        </div>`;
     });
-    
-    html += `</div>`;
+    html += `</div></div>`;
     DOM.treeView.innerHTML = html;
-}
 
-// =========================================================================
-// [7] 검색 (디바운싱)
-// =========================================================================
-
-const debounceSearch = debounce(() => {
-    const val = clean(DOM.comboInput.value);
-    DOM.searchResultList.innerHTML = "";
-    resetMagicDashboard(false);
-    
-    if (!val) return;
-    
-    const terms = val.split(/[,\/]/).map(t => t.trim()).filter(t => t !== "");
-    const multMap = {};
-    const exacts = [];
-    
-    terms.forEach(raw => {
-        let [t, c] = raw.split('*');
-        let p = clean(t);
-        let found = allUnits.find(u => u.key === p) || allUnits.find(u => u.key.includes(p));
-        if(found) { 
-            exacts.push(found.key); 
-            multMap[found.key] = parseInt(c) || 1; 
-        }
-    });
-    
-    // 검색 결과 표시
-    allUnits.filter(u => {
-        const searchWord = clean(terms[0].split('*')[0]);
-        return u.key.includes(searchWord);
-    }).slice(0, 15).forEach(u => {
-        const d = document.createElement("div");
-        d.className = "result-item";
-        d.innerText = u.name;
-        d.style.color = getUnitColor(u.name);
-        d.onclick = () => selectUnitFromAction(u.name);
-        DOM.searchResultList.appendChild(d);
-    });
-    
-    if (exacts.length && (val.includes(',') || val.includes('/') || val.includes('*'))) {
-        DOM.treeView.innerHTML = "";
-        analyzeUnits(exacts, multMap);
-    }
-}, 200);
-
-function debounce(f, t) { 
-    let timer; 
-    return (...args) => { 
-        clearTimeout(timer); 
-        timer = setTimeout(() => f.apply(this, args), t); 
-    }; 
-}
-
-// =========================================================================
-// [8] 유닛 분석
-// =========================================================================
-
-function processCostKeyword(rawName, amount, map) {
-    let matched = false;
-    const cName = clean(rawName);
-    
-    for (const conf of specialKeywordMap) {
-        if (conf.keys.some(k => cName.includes(clean(k)))) {
-            const val = conf.divider ? amount / conf.divider : amount;
-            if (conf.subKey) { 
-                map[conf.atom][conf.subKey] = (map[conf.atom][conf.subKey] || 0) + val; 
-            } else { 
-                map[conf.atom] = (map[conf.atom] || 0) + val; 
-            }
-            matched = true; 
-            break;
-        }
-    }
-    
-    if (!matched) {
-        const atom = dashboardAtoms.find(a => clean(a.name) === cName);
-        if (atom) { map[atom.name] = (map[atom.name] || 0) + amount; matched = true; }
-    }
-    
-    return matched;
-}
-
-function parseFixedCost(costStr, multiplier, map) {
-    if (!costStr || costStr === "정보 부족" || costStr === "미발견" || costStr === "없음") return;
-    
-    const parts = costStr.split(',');
-    parts.forEach(p => {
-        const match = p.match(/(.+)\[(\d+)\]/);
-        if (match) { 
-            processCostKeyword(match[1], parseInt(match[2]) * multiplier, map); 
-        } else { 
-            processCostKeyword(p, multiplier, map); 
-        }
-    });
-}
-
-function calculateRecursiveCost(name, m, map, visited = new Set(), depth = 0) {
-    if (depth > MAX_RECURSION_DEPTH) {
-        console.warn('[⚠️ 재귀 제한] 최대 깊이 초과:', name);
-        return;
-    }
-    
-    const pName = clean(name.split(/[(\[]/)[0]);
-    if (visited.has(pName)) {
-        console.warn('[⚠️ 순환 참조 감지]:', pName);
-        return;
-    }
-    
-    const curV = new Set(visited);
-    curV.add(pName);
-    
-    if (processCostKeyword(pName, m, map)) return;
-    
-    const u = allUnits.find(x => x.key === pName);
-    if (u && u.recipe) {
-        u.recipe.split(/[+,]/).forEach(part => {
-            const ingMatch = part.match(/([^(\[\]+]+)/);
-            if (ingMatch) {
-                const ingName = ingMatch[1].trim();
-                const cntMatch = part.match(/\[(\d+)\]/);
-                const cnt = cntMatch ? parseInt(cntMatch[1]) : 1;
-                calculateRecursiveCost(ingName, cnt * m, map, curV, depth + 1);
-            }
-        });
+    // 모바일 자동 스크롤 적용
+    if(window.innerWidth <= 1200) {
+        document.getElementById('treeView').scrollIntoView({ behavior: 'smooth' });
+    } else {
+        DOM.treeView.scrollTop = 0;
     }
 }
-
-function analyzeUnits(keys, mults = {}) {
-    resetMagicDashboard(false);
-    const totalMap = {};
-    
-    dashboardAtoms.forEach(a => {
-        if (a.name === "갓오타/메시브") {
-            totalMap[a.name] = { 갓오타: 0, 메시브: 0 };
-        } else {
-            totalMap[a.name] = 0;
-        }
-    });
-    
-    keys.forEach(k => {
-        const u = allUnits.find(x => x.key === k);
-        if(!u) return;
-        
-        const c = mults[k] || 1;
-        
-        if (u.cost && u.cost !== "정보 부족" && u.cost !== "미발견" && u.cost !== "없음") {
-            parseFixedCost(u.cost, c, totalMap);
-        } else {
-            calculateRecursiveCost(u.name, c, totalMap);
-        }
-        
-        DOM.treeView.innerHTML += `<div class="analysis-card"><h3><span style="color:${getUnitColor(u.name)};">${u.name}${c>1?' <span style="color:var(--text-sub)">×${c}</span>':''}</span></h3></div>`;
-    });
-    
-    // 대시보드 업데이트
-    dashboardAtoms.forEach(a => {
-        const val = totalMap[a.name];
-        const e = document.getElementById(`val-${a.name}`);
-        const container = document.getElementById(`val-container-${a.name}`);
-        const nameEl = container.querySelector('.slot-name');
-        
-        if (a.name === "갓오타/메시브") {
-            if (val.갓오타 > 0 || val.메시브 > 0) {
-                let html = "";
-                if (val.갓오타 > 0) html += `<div style="font-size:0.9rem; color:#F59E0B;">갓오타 ${Math.ceil(val.갓오타)}</div>`;
-                if (val.메시브 > 0) html += `<div style="font-size:0.9rem; color:#EF4444; margin-top:2px;">메시브 ${Math.ceil(val.메시브)}</div>`;
-                e.innerHTML = html;
-                if(nameEl) nameEl.style.display = 'none';
-                container.classList.add('active');
-            }
-        } else if (val > 0) {
-            e.innerText = Math.ceil(val);
-            if(nameEl) nameEl.style.display = 'block';
-            container.classList.add('active');
-        }
-    });
-}
-
-function selectUnitFromAction(name) {
-    DOM.comboInput.value = name;
-    updateHighlight();
-    DOM.searchResultList.innerHTML = "";
-    DOM.treeView.innerHTML = "";
-    analyzeUnits([clean(name)]);
-}
-
-function resetCombo() {
-    DOM.comboInput.value = "";
-    updateHighlight();
-    DOM.searchResultList.innerHTML = "";
-    DOM.treeView.innerHTML = "";
-    resetMagicDashboard(true);
-}
-
-// =========================================================================
-// [9] 대시보드
-// =========================================================================
-
-function renderDashboardAtoms() {
-    dashboardAtoms.forEach(a => {
-        const d = document.createElement("div");
-        d.className = `cost-slot ${a.class}`;
-        d.id = `val-container-${a.name}`;
-        d.innerHTML = `<div class="slot-val" id="val-${a.name}">0</div><div class="slot-name">${a.name}</div>`;
-        DOM.magicDashboard.appendChild(d);
-    });
-}
-
-function resetMagicDashboard(clearAll) {
-    dashboardAtoms.forEach(a => {
-        const container = document.getElementById(`val-container-${a.name}`);
-        const e = document.getElementById(`val-${a.name}`);
-        const nameEl = container.querySelector('.slot-name');
-        if(e) { e.innerHTML = "0"; e.style.display = ""; }
-        if(nameEl) nameEl.style.display = "block";
-        container.classList.remove('active');
-    });
-}
-
-// =========================================================================
-// [10] 테이블
-// =========================================================================
-
-function renderTabs() {
-    let h = `<div class="tabs-wrapper">`;
-    rawData.forEach((cat, idx) => {
-        h += `<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">
-                <span>${cat.category}</span>
-                <span class="unit-count">${cat.items.length}</span>
-              </button>`;
-    });
-    h += `</div><div id="tabContent" class="tab-content-area"></div>`;
-    DOM.tablesContainer.innerHTML = h;
-    selectTab(0);
-}
-
-function selectTab(idx) {
-    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-        if(i === idx) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
-    
-    let h = `<table><tbody>`;
-    rawData[idx].items.forEach((item, i) => {
-        h += `<tr onclick="selectUnitFromAction('${item.name}')"><td style="color:${getUnitColor(item.name)}; cursor:pointer;">${i+1}. ${item.name}</td><td>${item.cost}</td></tr>`;
-    });
-    h += `</tbody></table>`;
-    
-    const contentArea = document.getElementById('tabContent');
-    contentArea.innerHTML = h;
-    contentArea.scrollTop = 0;
-}
-
-// =========================================================================
-// [11] 일일정수
-// =========================================================================
 
 function initEssenceData() {
-    essenceUnitsMap.coral = [];
-    essenceUnitsMap.aiur = [];
-    essenceUnitsMap.zerus = [];
-    essenceUnitsMap.hybrid = [];
-    
-    allUnits.forEach(item => {
-        const unitName = item.name;
-        essenceClickState[unitName] = false;
-        
-        let targetGroup = null;
-        if (item.category === "테바" || item.category === "테메") targetGroup = "coral";
-        else if (item.category === "토바" || item.category === "토메") targetGroup = "aiur";
-        else if (item.category === "저그중립") targetGroup = "zerus";
-        else if (item.category === "혼종") targetGroup = "hybrid";
-        
-        if (targetGroup) {
-            if (targetGroup !== "hybrid" && isLegend(unitName)) return;
-            essenceUnitsMap[targetGroup].push({ name: unitName, category: item.category });
+    essenceUnitsMap.coral = []; essenceUnitsMap.aiur = []; essenceUnitsMap.zerus = []; essenceUnitsMap.hybrid = [];
+    rawData.forEach(cat => {
+        cat.items.forEach(item => {
+            const unitName = item.name; essenceClickState[unitName] = false;
+            let targetGroup = null;
+            if (cat.category === "테바" || cat.category === "테메") targetGroup = "coral";
+            else if (cat.category === "토바" || cat.category === "토메") targetGroup = "aiur";
+            else if (cat.category === "저그중립") targetGroup = "zerus";
+            else if (cat.category === "혼종") targetGroup = "hybrid";
+            if (targetGroup) {
+                if (targetGroup !== "hybrid" && isLegend(unitName)) return; 
+                essenceUnitsMap[targetGroup].push({ name: unitName, category: cat.category, isSuper: isSuperHidden(unitName) });
+            }
+        });
+    });
+    const superHiddenCheck = (u) => u.isSuper ? 1 : 0;
+    const hybridLength = essenceUnitsMap.hybrid.length;
+    ["coral", "aiur", "zerus", "hybrid"].forEach(group => {
+        essenceUnitsMap[group].sort((a, b) => superHiddenCheck(a) - superHiddenCheck(b));
+        if(group !== "hybrid") {
+            essenceMax[group] = essenceUnitsMap[group].length + hybridLength; 
+            document.getElementById(`max-${group}`).innerText = `/${essenceMax[group]}`;
         }
     });
-    
-    const hybridLength = essenceUnitsMap.hybrid.length;
-    ["coral", "aiur", "zerus"].forEach(group => {
-        essenceMax[group] = essenceUnitsMap[group].length + hybridLength;
-        document.getElementById(`max-${group}`).innerText = `/${essenceMax[group]}`;
-    });
-    
     renderEssenceGroups();
 }
 
@@ -810,16 +486,15 @@ function renderEssenceGroups() {
         { id: 'zerus', title: '제루스', data: essenceUnitsMap.zerus },
         { id: 'hybrid', title: '혼종', data: essenceUnitsMap.hybrid }
     ];
-    
     let html = '';
+    const isMobile = window.innerWidth <= 1200;
     
     groupConfigs.forEach(g => {
-        const displayStyle = window.innerWidth <= 1200 ? 'none' : 'block';
-        const icon = window.innerWidth <= 1200 ? '▼' : '▲';
-        
+        const displayStyle = isMobile ? 'none' : 'block';
+        const icon = isMobile ? '▼' : '▲';
         html += `<div class="essence-group">
             <div class="essence-group-header" onclick="toggleEssenceGroup('${g.id}')" style="cursor:pointer;">
-                <h3 class="essence-group-title">${g.title} <span id="es-icon-${g.id}" style="font-size:0.8rem; margin-left:8px;">${icon}</span></h3>
+                <h3 class="essence-group-title">${g.title} <span id="es-icon-${g.id}" style="font-size:0.8rem; margin-left:8px; color:var(--text-muted);">${icon}</span></h3>
                 <button class="btn-select-all" onclick="event.stopPropagation(); toggleAllEssence('${g.id}')">전체선택</button>
             </div>
             <div id="es-content-${g.id}" class="essence-content" style="display:${displayStyle};">`;
@@ -828,26 +503,22 @@ function renderEssenceGroups() {
         categories.forEach(cat => {
             const catUnits = g.data.filter(u => u.category === cat);
             if(catUnits.length === 0) return;
-            
             html += `<div class="cat-title">${cat}</div><div class="unit-check-list">`;
-            catUnits.forEach(uObj => {
-                const uColor = getUnitColor(uObj.name);
-                html += `<div class="unit-check-btn" id="es-btn-${clean(uObj.name)}" onclick="toggleEssence('${uObj.name}')"><span style="color:${uColor}; font-weight:800;">${uObj.name}</span></div>`;
+            catUnits.forEach((uObj) => {
+                const unitName = uObj.name;
+                const uColor = getUnitColor(unitName);
+                html += `<div class="unit-check-btn" id="es-btn-${clean(unitName)}" onclick="toggleEssence('${unitName}')"><span style="color:${uColor}; font-weight:800;">${unitName}</span></div>`;
             });
             html += `</div>`;
         });
-        
         html += `</div></div>`;
     });
-    
-    container.innerHTML = html;
-    updateEssenceCalculation();
+    container.innerHTML = html; updateEssenceCalculation();
 }
 
 function toggleEssenceGroup(groupId) {
     const content = document.getElementById(`es-content-${groupId}`);
     const icon = document.getElementById(`es-icon-${groupId}`);
-    
     if (content.style.display === 'none') {
         content.style.display = 'block';
         icon.innerText = '▲';
@@ -858,29 +529,19 @@ function toggleEssenceGroup(groupId) {
 }
 
 function toggleAllEssence(groupId) {
-    const units = essenceUnitsMap[groupId];
-    const allSelected = units.every(u => essenceClickState[u.name]);
+    const units = essenceUnitsMap[groupId]; const allSelected = units.every(u => essenceClickState[u.name]);
     const newState = !allSelected;
-    
     units.forEach(u => {
-        essenceClickState[u.name] = newState;
-        const btn = document.getElementById(`es-btn-${clean(u.name)}`);
-        if (btn) {
-            if(newState) btn.classList.add('active');
-            else btn.classList.remove('active');
-        }
+        essenceClickState[u.name] = newState; const btn = document.getElementById(`es-btn-${clean(u.name)}`);
+        if (btn) { if(newState) btn.classList.add('active'); else btn.classList.remove('active'); }
     });
-    
     updateEssenceCalculation();
 }
 
 function toggleEssence(unitName) {
     essenceClickState[unitName] = !essenceClickState[unitName];
     const btn = document.getElementById(`es-btn-${clean(unitName)}`);
-    
-    if(essenceClickState[unitName]) btn.classList.add('active');
-    else btn.classList.remove('active');
-    
+    if(essenceClickState[unitName]) btn.classList.add('active'); else btn.classList.remove('active');
     updateEssenceCalculation();
 }
 
@@ -897,28 +558,295 @@ function resetAllEssence() {
 
 function updateEssenceCalculation() {
     let baseCounts = { coral: 0, aiur: 0, zerus: 0, hybrid: 0 };
-    
     essenceUnitsMap.coral.forEach(u => { if(essenceClickState[u.name]) baseCounts.coral++; });
     essenceUnitsMap.aiur.forEach(u => { if(essenceClickState[u.name]) baseCounts.aiur++; });
     essenceUnitsMap.zerus.forEach(u => { if(essenceClickState[u.name]) baseCounts.zerus++; });
     essenceUnitsMap.hybrid.forEach(u => { if(essenceClickState[u.name]) baseCounts.hybrid++; });
-    
-    const actualCoral = baseCounts.coral + baseCounts.hybrid;
-    const actualAiur = baseCounts.aiur + baseCounts.hybrid;
-    const actualZerus = baseCounts.zerus + baseCounts.hybrid;
-    
-    document.getElementById('val-coral').innerText = actualCoral;
-    document.getElementById('val-aiur').innerText = actualAiur;
-    document.getElementById('val-zerus').innerText = actualZerus;
+    const actualCoral = baseCounts.coral + baseCounts.hybrid; const actualAiur = baseCounts.aiur + baseCounts.hybrid; const actualZerus = baseCounts.zerus + baseCounts.hybrid;
+    document.getElementById('val-coral').innerText = actualCoral; document.getElementById('val-aiur').innerText = actualAiur; document.getElementById('val-zerus').innerText = actualZerus;
     document.getElementById('essence-total-val').innerText = actualCoral + actualAiur + actualZerus;
 }
 
-// =========================================================================
-// [12] 초기화
-// =========================================================================
+function loadUnits() {
+    rawData.forEach(cat => cat.items.forEach(item => {
+        if (item.name === "혼종뫼비우스" && item.cost && !item.cost.includes("갓오브타임")) { item.cost += ",갓오브타임[1]"; }
+        if (item.name === "제우스폭격기" && item.cost && !item.cost.includes("메시브")) { item.cost += ",메시브디제스터[1]"; }
+        allUnits.push({ ...item, key: clean(item.name), category: cat.category });
+    }));
+    hiddenUnits.forEach(u => {
+        const exist = allUnits.find(e => e.key === clean(u.name));
+        if (!exist) allUnits.push({ ...u, key: clean(u.name), category: "히든" }); else if (u.recipe) exist.recipe = u.recipe;
+    });
+}
+
+function getUnitColor(name) {
+    const cName = clean(name.split(/[(\[▶▼]/)[0]);
+    for (const [grade, units] of Object.entries(unitGradeMap)) { if (units.some(u => clean(u) === cName)) return gradeColors[grade]; }
+    const unit = allUnits.find(u => u.key === cName);
+    return (unit && raceColors[unit.category]) ? raceColors[unit.category] : "var(--text-main)";
+}
+
+function updateHighlight() {
+    const val = DOM.comboInput.value; if (!val) { DOM.highlightLayer.innerHTML = ""; return; }
+    const safeVal = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const parts = safeVal.split(/([,\/]+)/);
+    const coloredParts = parts.map(part => {
+        if (/^[,\/]+$/.test(part)) return `<span style="color:var(--text-muted)">${part}</span>`;
+        const subParts = part.split('*'); let unitName = subParts[0]; let color = "var(--text-main)";
+        if (unitName.trim().length > 0) {
+            const cleanName = clean(unitName);
+            const ali = { "아몬":"아몬", "불새":"불새케리건", "노바":"비밀작전노바", "아둔":"아둔의창", "나루드":"나루드", "초월체":"초월체" };
+            let searchKey = ali[cleanName] ? clean(ali[cleanName]) : cleanName;
+            let found = allUnits.find(u => u.key === searchKey || u.key.includes(searchKey));
+            if (found) color = getUnitColor(found.name);
+        }
+        subParts[0] = `<span style="color:${color}">${unitName}</span>`;
+        return subParts.join('<span style="color:var(--text-muted)">*</span>');
+    });
+    DOM.highlightLayer.innerHTML = coloredParts.join('');
+}
+
+function processCostKeyword(rawName, amount, map) {
+    let matched = false; const cName = clean(rawName);
+    for (const conf of specialKeywordMap) {
+        if (conf.keys.some(k => cName.includes(clean(k)))) {
+            const val = conf.divider ? amount / conf.divider : amount;
+            if (conf.subKey) { map[conf.atom][conf.subKey] += val; } else { map[conf.atom] = (map[conf.atom] || 0) + val; }
+            matched = true; break;
+        }
+    }
+    if (!matched) {
+        const atom = dashboardAtoms.find(a => clean(a.name) === cName);
+        if (atom) { map[atom.name] = (map[atom.name] || 0) + amount; matched = true; }
+    }
+    return matched;
+}
+
+function parseFixedCost(costStr, multiplier, map) {
+    if (!costStr || costStr === "정보 부족" || costStr === "미발견" || costStr === "없음") return;
+    const parts = costStr.split(',');
+    parts.forEach(p => {
+        const match = p.match(/(.+)\[(\d+)\]/);
+        if (match) { processCostKeyword(match[1], parseInt(match[2]) * multiplier, map); } 
+        else { processCostKeyword(p, multiplier, map); }
+    });
+}
+
+function calculateRecursiveCost(name, m, map, visited = new Set()) {
+    const pName = clean(name.split(/[(\[]/)[0]); 
+    if (visited.has(pName)) return;
+    const curV = new Set(visited); curV.add(pName);
+
+    if (processCostKeyword(pName, m, map)) { return; }
+    
+    const u = allUnits.find(x => x.key === pName);
+    if (u && u.recipe) {
+        u.recipe.split(/[+,]/).forEach(part => {
+            const ingMatch = part.match(/([^(\[\]+]+)/);
+            if (ingMatch) {
+                const ingName = ingMatch[1].trim(); const cntMatch = part.match(/\[(\d+)\]/);
+                const cnt = cntMatch ? parseInt(cntMatch[1]) : 1;
+                calculateRecursiveCost(ingName, cnt * m, map, curV);
+            } else { calculateRecursiveCost(part.trim(), m, map, curV); }
+        });
+    }
+}
+
+function analyzeUnits(keys, mults = {}) {
+    resetMagicDashboard(false); const totalMap = {}; 
+    dashboardAtoms.forEach(a => { 
+        if (a.name === "갓오타/메시브") totalMap[a.name] = { 갓오타: 0, 메시브: 0 }; else totalMap[a.name] = 0; 
+    });
+    
+    if (keys.length === 1) {
+        const targetUnit = allUnits.find(x => x.key === keys[0]);
+        if (targetUnit && (isLegend(targetUnit.name) || isHidden(targetUnit.name))) {
+            const parents = allUnits.filter(u => {
+                const isTargetGrade = isHidden(u.name) || isSuperHidden(u.name);
+                return isTargetGrade && u.name !== targetUnit.name && u.recipe && u.recipe.includes(targetUnit.name);
+            });
+
+            if (parents.length > 0) {
+                let parentHtml = `<div class="analysis-card" style="border-color: var(--accent); background: rgba(56, 189, 248, 0.05);">
+                    <h3 style="color: var(--accent); border-bottom-color: rgba(56,189,248,0.2);">🚀 상위 조합 가능 유닛 (계보)</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">`;
+                parents.forEach(p => {
+                    parentHtml += `<div class="unit-badge" style="color:${getUnitColor(p.name)}; border-color: rgba(255,255,255,0.1);" onclick="selectUnitFromAction('${p.name}')">${p.name}</div>`;
+                });
+                parentHtml += `</div></div>`;
+                DOM.treeView.innerHTML += parentHtml;
+            }
+        }
+    }
+
+    keys.forEach(k => {
+        const u = allUnits.find(x => x.key === k); if(!u) return;
+        const c = mults[k] || 1;
+        if (u.cost && u.cost !== "정보 부족" && u.cost !== "미발견" && u.cost !== "없음") parseFixedCost(u.cost, c, totalMap); 
+        else calculateRecursiveCost(u.name, c, totalMap);
+        DOM.treeView.innerHTML += `<div class="analysis-card"><h3><span style="color:${getUnitColor(u.name)}; text-shadow:0 0 10px rgba(255,255,255,0.1);">${u.name}${c>1?' <span style="color:var(--text-muted);font-size:0.9rem;">x'+c+'</span>':''}</span><button class="tree-btn" data-expanded="false" onclick="toggleSingleTree(this)">전체 펼치기</button></h3><ul class="tree-ul root-ul">${buildTree(u.key, new Set(), true)}</ul></div>`;
+    });
+    
+    dashboardAtoms.forEach(a => {
+        const val = totalMap[a.name]; const e = document.getElementById(`val-${a.name}`); 
+        const container = document.getElementById(`val-container-${a.name}`);
+        const nameEl = container.querySelector('.slot-name');
+
+        if (a.name === "갓오타/메시브") {
+            if (val.갓오타 > 0 || val.메시브 > 0) {
+                let html = "";
+                if (val.갓오타 > 0) html += `<div style="font-size:0.9rem; line-height:1.2; color:#F59E0B;">갓오타 ${Math.ceil(val.갓오타)}</div>`;
+                if (val.메시브 > 0) html += `<div style="font-size:0.9rem; line-height:1.2; color:#EF4444; margin-top:2px;">메시브 ${Math.ceil(val.메시브)}</div>`;
+                e.innerHTML = html;
+                if(nameEl) nameEl.style.display = 'none'; 
+                container.classList.add('active'); 
+            }
+        } else if (val > 0) { 
+            e.innerText = Math.ceil(val); 
+            if(nameEl) nameEl.style.display = 'block';
+            container.classList.add('active'); 
+        }
+    });
+}
+
+function buildTree(key, visited = new Set(), isRoot = false) {
+    const u = allUnits.find(x => x.key === key);
+    if (!u) return `<li class="tree-li"><div class="unit-badge">${key}</div></li>`;
+    if (visited.has(key)) return `<li class="tree-li"><div class="unit-badge" style="color:var(--text-muted); background:var(--bg-base);">${u.name} (중복)</div></li>`;
+    const newV = new Set(visited); newV.add(key);
+    const dStyle = isRoot ? 'block' : 'none'; const mark = dStyle === 'block' ? '▼' : '▶'; let ch = '';
+    if (u.recipe) {
+        u.recipe.split(/[+,]/).forEach(part => {
+            const childNameMatch = part.match(/^([^(\[\]+]+)/);
+            const childName = childNameMatch ? clean(childNameMatch[1]) : clean(part);
+            const target = allUnits.find(x => x.key === childName);
+            if (target && target.key !== u.key) ch += buildTree(target.key, newV, false);
+        });
+    }
+    const isRedundant = u.recipe && u.cost && clean(u.recipe).replace(/\+/g, ',') === clean(u.cost).replace(/\+/g, ',');
+    return `<li class="tree-li">
+        <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">
+            ${u.name}${ch ? `<span class="toggle-mark">${mark}</span>` : ''}
+        </div>
+        ${u.recipe ? `<div class="bullet-recipe" style="display:${dStyle};">재료: ${u.recipe}</div>` : ''}
+        ${(u.cost && !isRedundant) ? `<div class="bullet-cost" style="display:${dStyle};">매직: ${u.cost}</div>` : ''}
+        ${ch ? `<ul class="tree-ul" style="display:${dStyle};">${ch}</ul>` : ''}
+    </li>`;
+}
+
+const debounceSearch = debounce(() => {
+    const val = clean(DOM.comboInput.value); DOM.searchResultList.innerHTML = ""; resetMagicDashboard(false); if (!val) return;
+    const terms = val.split(/[,\/]/).map(t => t.trim()).filter(t => t !== ""); const multMap = {}; const exacts = [];
+    const ali = { "아몬":"아몬", "불새":"불새케리건", "노바":"비밀작전노바", "아둔":"아둔의창", "나루드":"나루드", "초월체":"초월체" };
+    
+    terms.forEach(raw => {
+        let [t, c] = raw.split('*'); let p = clean(t);
+        let found = allUnits.find(u => u.key === p) || allUnits.find(u => u.key.includes(p));
+        let k = ali[p] ? clean(ali[p]) : (found || {}).key;
+        if(k) { exacts.push(k); multMap[k] = parseInt(c) || 1; }
+    });
+    
+    allUnits.filter(u => {
+        const searchWord = clean(terms[0].split('*')[0]);
+        if (searchWord === "데하카") return u.name === "데하카"; 
+        return u.key.includes(searchWord);
+    }).slice(0, 15).forEach(u => {
+        const d = document.createElement("div"); d.className = "result-item"; d.innerText = u.name; d.style.color = getUnitColor(u.name); 
+        d.onclick = () => selectUnitFromAction(u.name); DOM.searchResultList.appendChild(d);
+    });
+    
+    if (exacts.length && (val.includes(',') || val.includes('/') || val.includes('*'))) { DOM.treeView.innerHTML = ""; analyzeUnits(exacts, multMap); }
+}, 200);
+
+function selectUnitFromAction(name) {
+    DOM.comboInput.value = name; updateHighlight(); DOM.searchResultList.innerHTML = ""; DOM.treeView.innerHTML = ""; analyzeUnits([clean(name)]);
+    if(window.innerWidth <= 1200) document.getElementById('treeView').scrollIntoView({ behavior: 'smooth' }); else DOM.treeView.scrollTop = 0;
+}
+
+function renderTabs() {
+    let h = `<div class="tabs-wrapper">`;
+    rawData.forEach((cat, idx) => { 
+        h += `<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">
+                <span>${cat.category}</span>
+                <span class="unit-count">${cat.items.length}</span>
+              </button>`; 
+    });
+    h += `</div><div id="tabContent" class="tab-content-area"></div>`;
+    DOM.tablesContainer.innerHTML = h; selectTab(0);
+}
+
+function selectTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => { if(i === idx) btn.classList.add('active'); else btn.classList.remove('active'); });
+    let h = `<table><tbody>`;
+    rawData[idx].items.forEach((item, i) => { h += `<tr onclick="selectUnitFromAction('${item.name}')"><td style="color:${getUnitColor(item.name)}; cursor:pointer;">${i+1}. ${item.name}</td><td style="cursor:pointer;">${item.recipe}</td></tr>`; });
+    h += `</tbody></table>`;
+    const contentArea = document.getElementById('tabContent'); contentArea.innerHTML = h; contentArea.scrollTop = 0;
+}
+
+function toggleTreeNode(el) { 
+    const p = el.closest('.tree-li'); 
+    const r = p.querySelector(':scope > .bullet-recipe'); 
+    const c = p.querySelector(':scope > .bullet-cost'); 
+    const t = p.querySelector(':scope > .tree-ul'); 
+    const m = el.querySelector('.toggle-mark'); 
+    if(t) t.style.display = (t.style.display === 'none' ? 'block' : 'none'); 
+    if(r) r.style.display = (r.style.display === 'none' ? 'block' : 'none'); 
+    if(c) c.style.display = (c.style.display === 'none' ? 'block' : 'none'); 
+    if(m) m.innerText = (m.innerText === '▶' ? '▼' : '▶'); 
+}
+
+function toggleSingleTree(btn) {
+    const card = btn.closest('.analysis-card'); const newState = !(btn.getAttribute('data-expanded') === 'true');
+    const displayStyle = newState ? 'block' : 'none'; const markChar = newState ? '▼' : '▶';
+    card.querySelectorAll('.tree-ul:not(.root-ul)').forEach(el => el.style.display = displayStyle);
+    card.querySelectorAll('.bullet-recipe').forEach(el => el.style.display = displayStyle);
+    card.querySelectorAll('.bullet-cost').forEach(el => el.style.display = displayStyle); 
+    card.querySelectorAll('.toggle-mark').forEach(el => el.innerText = markChar);
+    btn.setAttribute('data-expanded', newState); btn.innerText = newState ? '전체 접기' : '전체 펼치기';
+}
+
+function resetCombo() { DOM.comboInput.value = ""; updateHighlight(); DOM.searchResultList.innerHTML = ""; DOM.treeView.innerHTML = ""; resetMagicDashboard(true); }
+
+function renderDashboardAtoms() { 
+    dashboardAtoms.forEach(a => { 
+        const d = document.createElement("div"); 
+        d.className = `cost-slot ${a.class}`; 
+        d.id = `val-container-${a.name}`; 
+        d.innerHTML = `<div class="slot-val" id="val-${a.name}">0</div><div class="slot-name">${a.name}</div>`; 
+        DOM.magicDashboard.appendChild(d); 
+    }); 
+}
+
+function resetMagicDashboard(clearAll) { 
+    dashboardAtoms.forEach(a => { 
+        const container = document.getElementById(`val-container-${a.name}`);
+        const e = document.getElementById(`val-${a.name}`); 
+        const nameEl = container.querySelector('.slot-name');
+        if(e) { e.innerHTML = "0"; e.style.display = ""; }
+        if(nameEl) nameEl.style.display = "block"; 
+        container.classList.remove('active'); 
+    }); 
+}
+
+function debounce(f, t) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => f.apply(this, args), t); }; }
 
 window.onload = init;
 </script>
 
+<script>
+    /* 보안 스크립트 */
+    (function() {
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+        document.addEventListener('selectstart', e => e.preventDefault());
+        window.addEventListener('keydown', function (e) {
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault(); return false;
+            }
+        });
+        const blocker = function() { setInterval(function() { debugger; }, 100); };
+        try { blocker(); } catch (e) {}
+    })();
+</script>
 </body>
 </html>
