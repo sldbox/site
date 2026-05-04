@@ -4,402 +4,391 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>개복디 넥서스</title>
+    
+    <!-- [1] PC/모바일 브라우저 탭 및 북마크 아이콘 설정 -->
+    <script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;ri=AAIUVAARY29tLmdvb2dsZS5DaHJvbWUA2Gh0dHBzOi8vY29udHJpYnV0aW9uLnVzZXJjb250ZW50Lmdvb2dsZS5jb20vZG93bmxvYWQ%2FYz1DZ3hpWVhKa1gzTjBiM0poWjJVU1R4SU1jbVZ4ZFdWemRGOWtZWFJoR2o4S01EazRPVFkwWVRBeE5qZzVNems1Wmprd01EQTJOVEV3TVRneU1EQXpOVFF4TURZMll6UmpNekl4WlRBMk1UTmpPQklMRWdjUThkQ1RvY2dkR0FFJmZpbGVuYW1lPWluZGV4Lmh0bWwmb3BpPTEwMzEzNTA1MA"></script><link rel="icon" href="https://github.com/sldbox/site/icon.png" type="image/png">
+    <link rel="shortcut icon" href="https://github.com/sldbox/site/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://github.com/sldbox/site/icon.png">
 
-<!-- 모든 브라우저 공용 (Favicon) -->
-<link rel="icon" href="https://sldbox.github.io/site/icon.png" type="image/png">
-
-<!-- 아이폰/아이패드용 (Apple Touch Icon) -->
-<link rel="apple-touch-icon" href="https://sldbox.github.io/site/icon.png">
-
-<!-- 안드로이드/크롬용 (Manifest 설정 대용) -->
-<link rel="icon" sizes="192x192" href="https://sldbox.github.io/site/icon.png">
-
-    <!-- [1] 검색 엔진용 기본 설명 -->
-    <meta name="description" content="개복디 넥서스">
-
-      <!-- logo.png - 작은사이즈 -->
-    <meta property="og:title" content="개복디 넥서스">
-    <meta property="og:description" content="히든조합 & 일일정수 계산기">
+    <!-- [2] SNS/메신저(카톡, 디스코드 등) 링크 공유 시 표시될 정보 설정 -->
+    <meta name="description" content="개복디 넥서스 - 개인복권디펜스 유닛 조합 & 일일정수 계산기">
+    <meta property="og:title" content="개복디 넥서스 - MATRIX HUD">
+    <meta property="og:description" content="히든 조합 계보 시뮬레이션 및 일일 정수 계산기">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sldbox.github.io/site/">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=5">
-    
-    <!-- logo.png - 큰사이즈 -->
+    <meta property="og:image" content="https://github.com/sldbox/site/logo.png">
     <meta property="og:image:width" content="800">
     <meta property="og:image:height" content="400">
+    
+    <!-- 트위터 공유 최적화 -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=5">
+    <meta name="twitter:title" content="개복디 넥서스">
+    <meta name="twitter:description" content="유닛 조합 & 일일정수 계산기">
+    <meta name="twitter:image" content="https://github.com/sldbox/site/logo.png">
 
     <style>
-        /* =========================================================
-           [0] 폰트 및 전역 CSS 변수
-        ========================================================= */
+        /* 폰트 불러오기 */
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        /* =========================================================
+           [ 1. 색상 및 기본 테마 설정 (CSS 변수) ]
+        ========================================================= */
         :root {
-            --bg-base: #000000;
-            --bg-panel: #0A0A0A;
-            --bg-panel-hover: #141414;
-            --accent: #38BDF8;
-            --accent-glow: rgba(56,189,248,0.3);
-            --text-main: #F8FAFC;
-            --text-sub: #94A3B8;
-            --text-muted: #52525B;
-            --border-light: rgba(255,255,255,0.12);
-            --tree-line: #27272A;
-            --font: 'Pretendard', -apple-system, sans-serif;
-        }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg-base); color: var(--text-main); font-family: var(--font); user-select: none; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; letter-spacing: -0.02em; }
-        
-        /* =========================================================
-           [0-1] 시네마틱 인트로 CSS
-        ========================================================= */
-        #splash-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000000; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease;
-        }
-        .splash-title {
-            font-size: 5.5rem; font-weight: 900; color: #ffffff; letter-spacing: 0.05em;
-            text-shadow: 0 0 20px var(--accent), 0 0 50px var(--accent-glow), 0 0 80px rgba(56,189,248,0.2);
-            opacity: 0;
-            animation: cinematicTitle 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-        }
-        .splash-access {
-            margin-top: 10px; font-size: 1.5rem; color: var(--accent); letter-spacing: 0.5em; font-weight: 800;
-            opacity: 0;
-            animation: cinematicFadeIn 1.5s ease forwards 0.8s;
-        }
-        .splash-creator {
-            margin-top: 40px; font-size: 1.1rem; color: var(--text-sub); letter-spacing: 0.4em; font-weight: 600;
-            opacity: 0;
-            animation: cinematicFadeIn 1.5s ease forwards 2.5s;
-        }
-        @keyframes cinematicTitle {
-            0% { opacity: 0; transform: scale(1.3); filter: blur(12px); }
-            100% { opacity: 1; transform: scale(1); filter: blur(0); }
-        }
-        @keyframes cinematicFadeIn {
-            0% { opacity: 0; transform: translateY(15px); filter: blur(5px); }
-            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        @media(max-width: 768px) {
-            .splash-title { font-size: 3rem; }
-            .splash-access { font-size: 1rem; }
-            .splash-creator { font-size: 0.8rem; letter-spacing: 0.2em; }
-        }
-
-        /* 컨테이너 페이드인 효과 추가 */
-        .container { 
-            width: 100%; max-width: 100%; padding: 20px 32px; box-sizing: border-box; display: flex; flex-direction: column; height: 100%; 
-            opacity: 0; transform: scale(0.98); transition: opacity 1s ease, transform 1s ease;
-        }
-        .container.visible { opacity: 1; transform: scale(1); }
-
-        /* =========================================================
-           [1] 최상단 통합 글로벌 헤더 (검색 + 제목 + 버튼)
-        ========================================================= */
-        .global-unified-header {
-            display: grid;
-            grid-template-columns: 1fr 1.8fr 1fr; /* 중앙 검색창 영역 확장 */
-            gap: 18px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-light);
-            border-radius: 20px;
-            padding: 14px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            margin-bottom: 16px;
-            flex-shrink: 0;
-            width: 100%;
-        }
-        
-        .global-unified-header .header-left { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 100%; padding: 0 24px; box-sizing: border-box; }
-        .global-unified-header .header-center { display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; }
-        .global-unified-header .header-right { display: flex; justify-content: flex-end; align-items: center; width: 100%; padding: 0 24px; box-sizing: border-box; }
-
-        /* 좌측 메인 타이틀 자동 전환 (시네마틱 효과) */
-        .animated-title-container { display: grid; place-items: center start; height: 32px; width: 100%; margin-bottom: 2px; }
-        .main-title { grid-area: 1 / 1; font-size: 1.55rem; font-weight: 800; line-height: 1.2; white-space: nowrap; }
-        .main-title.text-1 {
-            color: transparent; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; background-clip: text;
-            animation: titleTransition1 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .main-title.text-2 {
-            color: var(--accent); font-family: monospace; letter-spacing: 0.15em; text-shadow: 0 0 12px var(--accent-glow); opacity: 0;
-            animation: titleTransition2 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        @keyframes titleTransition1 {
-            0%, 42% { opacity: 1; filter: blur(0); transform: scale(1); }
-            48%, 94% { opacity: 0; filter: blur(5px); transform: scale(1.03); }
-            100% { opacity: 1; filter: blur(0); transform: scale(1); }
-        }
-        @keyframes titleTransition2 {
-            0%, 42% { opacity: 0; filter: blur(5px); transform: scale(0.97); }
-            48%, 94% { opacity: 1; filter: blur(0); transform: scale(1); }
-            100% { opacity: 0; filter: blur(5px); transform: scale(0.97); }
-        }
-        
-        .creator-info { font-size: 0.85rem; color: var(--text-sub); margin: 0; font-weight: 600; }
-
-        /* 헤더 내 중앙 검색창 스타일 (사이즈 확대) */
-        .header-search-container { display: flex; gap: 12px; width: 100%; max-width: 800px; transition: opacity 0.3s ease; }
-        .header-search-container .input-wrapper { flex: 1; position: relative; border-radius: 12px; background: var(--bg-base); border: 1px solid var(--border-light); transition: .3s; }
-        .header-search-container .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-        .header-search-container .input-overlay-box { width: 100%; height: 56px; box-sizing: border-box; font-size: 1.25rem; font-weight: 700; padding: 0 20px; line-height: 56px; white-space: pre; overflow-x: auto; overflow-y: hidden; border: none; background: transparent; scrollbar-width: none; color: var(--text-main); font-family: var(--font); }
-        #highlightLayer { position: absolute; top: 0; left: 0; z-index: 1; color: var(--text-main); pointer-events: none; }
-        #comboInput { position: absolute; top: 0; left: 0; z-index: 2; color: transparent; caret-color: var(--accent); outline: none; }
-        #comboInput::placeholder { color: var(--text-muted); font-weight: 600; font-size: 1.1rem; }
-        .header-search-container .btn-reset { background: rgba(255,255,255,.05); color: var(--text-main); border: 1px solid var(--border-light); border-radius: 12px; padding: 0 28px; font-size: 1.05rem; cursor: pointer; font-weight: bold; transition: .2s; height: 56px; white-space: nowrap; }
-        .header-search-container .btn-reset:hover { background: rgba(255,99,132,.1); color: #FF6B6B; border-color: #FF6B6B; }
-
-        /* 우측 버튼 (사이즈 확대) */
-        .btn-toggle-view { background: linear-gradient(180deg, var(--accent), #0284C7); color: #fff; border: none; border-radius: 50px; padding: 14px 36px; font-size: 1.1rem; cursor: pointer; font-weight: 700; transition: all .3s; box-shadow: 0 4px 15px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.3); font-family: var(--font); white-space: nowrap; }
-        .btn-toggle-view:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-
-        /* =========================================================
-           [2] 뷰 레이아웃
-        ========================================================= */
-        .view-section { display: none; width: 100%; flex: 1; min-height: 0; animation: fadeIn .4s ease forwards; }
-        .view-section.active { display: grid; grid-template-columns: 1.1fr 1.3fr 1.1fr; gap: 18px; }
-        #view-essence.active { display: grid; grid-template-columns: 1.3fr 1.1fr; gap: 18px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
-
-        .panel-col { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-        .card-panel { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; height: 100%; min-height: 0; }
-
-        /* =========================================================
-           [3] 빠른 검색 및 매직 코스트 (좌측 레이어)
-        ========================================================= */
-        .quick-tools-panel { border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 16px; flex-shrink: 0; }
-        .quick-tools-header { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--text-sub); }
-        .grade-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .grade-btn { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-sub); font-size: 1.15rem; font-weight: bold; padding: 16px 0; cursor: pointer; transition: .2s; text-align: center; }
-        .grade-btn:hover { background: var(--bg-panel-hover); color: var(--text-main); border-color: var(--text-muted); transform: translateY(-2px); }
-
-        .magic-dashboard-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .magic-dashboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; flex: 1; }
-        .cost-slot { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 16px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; transition: all .3s ease; }
-        .cost-slot.active { background: rgba(56,189,248,.05); border-color: var(--accent); box-shadow: inset 0 0 20px var(--accent-glow); }
-        .cost-slot.active .slot-val { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
-        .slot-val { font-size: 2rem; font-weight: 900; color: var(--text-sub); line-height: 1.1; transition: color .3s; }
-        .slot-name { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-top: 5px; }
-
-        /* =========================================================
-           [4] 중앙 계보 트리 레이어
-        ========================================================= */
-        .tree-scroll-container { flex: 1; overflow-y: auto; height: 0; padding-right: 4px; }
-        .analysis-card { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 14px; padding: 15px 19px; margin-bottom: 14px; }
-        .analysis-card h3 { margin: 0 0 14px 0; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 11px; }
-        .tree-btn { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 12px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: .2s; }
-        .tree-btn:hover { background: var(--text-sub); color: var(--bg-base); }
-        
-        .tree-ul { list-style: none; padding-left: 24px; margin: 8px 0 0 0; border-left: 2px solid var(--tree-line); display: block; }
-        .tree-ul.root-ul { border-left: none; margin-left: 0; padding-left: 0; }
-        .tree-li { position: relative; margin: 11px 0 0 0; }
-        .tree-li::before { content: ""; position: absolute; top: 14px; left: -24px; width: 18px; height: 2px; background: var(--tree-line); border-radius: 2px; }
-        .tree-node-wrapper { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-        
-        .unit-badge { display: inline-flex; align-items: center; background: var(--bg-panel-hover); border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 13px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: .2s; box-shadow: 0 2px 5px rgba(0,0,0,.5); white-space: nowrap; }
-        .unit-badge:hover { filter: brightness(1.2); transform: translateX(2px); }
-        .toggle-mark { margin-left: 8px; font-size: 0.65rem; color: var(--text-muted); }
-        .bullet-recipe { color: var(--text-sub); font-size: 0.85rem; margin: 6px 0 0 4px; padding-left: 9px; font-weight: 500; }
-        .bullet-cost { color: var(--accent); font-size: 0.85rem; margin: 4px 0 0 4px; padding-left: 9px; font-weight: 700; }
-
-        /* =========================================================
-           [5] 우측 도감 탭 및 카드 UI
-        ========================================================= */
-        #tablesContainer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-        
-        .tabs-wrapper { display: flex; background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 12px; padding: 4px; margin-bottom: 14px; flex-shrink: 0; justify-content: space-around; }
-        .tab-btn { flex: 1; background: transparent; border: none; border-radius: 8px; padding: 12px 0; color: var(--text-muted); font-weight: 700; cursor: pointer; font-size: 1rem; transition: .3s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .tab-btn.active { color: var(--accent); }
-        .tab-btn .unit-count { font-size: 0.85rem; font-weight: 500; margin-top: 4px; color: inherit; opacity: 0.8; }
-        
-        .tab-content-area { flex: 1; overflow-y: auto; height: 0; padding-right: 4px; }
-        
-        .unit-list-card { display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
-        .unit-list-card:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
-        .unit-list-name { flex: 0 0 40%; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
-        .unit-list-recipe { flex: 1; font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; word-break: keep-all; }
-
-        /* =========================================================
-           [6] 일일정수 UI
-        ========================================================= */
-        .essence-left-col { display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 4px; }
-        .essence-right-col { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 22px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; }
-        
-        .essence-top-banner { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 32px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,.8); flex-shrink: 0; width: 100%; }
-        .essence-score-master { display: flex; align-items: center; justify-content: center; width: 100%; flex-wrap: wrap; gap: 40px; }
-        .essence-score-left-wrap { display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap; }
-        
-        .score-circle { width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); border: 2px dashed var(--accent); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 25px var(--accent-glow); flex-shrink: 0; }
-        .score-circle span { font-size: 3.5rem; font-weight: 900; color: var(--text-main); line-height: 1; }
-        .score-circle label { font-size: 0.85rem; color: var(--accent); font-weight: 800; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .essence-sub-scores { display: flex; gap: 18px; align-items: center; }
-        .sub-score-card { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 16px; width: 140px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .sub-score-card .title { font-size: 0.9rem; color: var(--text-sub); font-weight: 800; margin-bottom: 6px; }
-        .sub-score-card .value { font-size: 2.2rem; font-weight: 900; line-height: 1; }
-        .sub-score-card .max { font-size: 1rem; color: var(--text-muted); font-weight: 600; }
-        
-        .btn-reset-essence { background: rgba(255,99,132,.08); color: #FF6B6B; border: 1px solid rgba(255,99,132,.3); border-radius: 16px; padding: 0 28px; height: 140px; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
-        .btn-reset-essence:hover { background: rgba(255,99,132,.2); }
-        
-        .essence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: start; }
-        .essence-group { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 18px; padding: 20px; width: 100%; box-sizing: border-box; }
-        .essence-group-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 10px; }
-        .essence-group-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; }
-        
-        .es-grade-header { font-size: 0.8rem; font-weight: 800; padding: 8px 4px 5px 2px; margin-top: 12px; border-bottom: 1px solid; }
-        .btn-select-all { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: .2s; }
-        .btn-select-all:hover { color: var(--text-main); background: var(--bg-panel-hover); }
-        .unit-check-list { display: flex; flex-direction: column; gap: 8px; }
-        .unit-check-btn { background: var(--bg-base); border: 1px solid var(--border-light); border-radius: 10px; padding: 11px 15px; cursor: pointer; font-size: 0.95rem; font-weight: 700; color: var(--text-sub); transition: all .2s; display: flex; align-items: center; gap: 12px; }
-        .unit-check-btn::before { content: ''; display: block; width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--text-muted); transition: .2s; background: var(--bg-panel); flex-shrink: 0; }
-        .unit-check-btn:hover { background: var(--bg-panel-hover); color: var(--text-main); }
-        .unit-check-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--text-main); }
-        .unit-check-btn.active::before { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--bg-panel); }
-
-        /* 스크롤바 */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* =========================================================
-           [7] 반응형 모바일 (미디어 쿼리)
-        ========================================================= */
-        @media(max-width:1400px){
-            .essence-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media(max-width:1200px){
-            body { height: auto; overflow: visible; }
-            .container { padding: 12px; height: auto; }
+            --bg-void: #000000;         
+            --bg-panel: #0a0a0a;        
             
-            .global-unified-header { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
-            .global-unified-header .header-left { align-items: center; padding: 0; }
-            .global-unified-header .header-center, .global-unified-header .header-right { width: 100%; justify-content: center; padding: 0; }
-            .animated-title-container { place-items: center center; margin-bottom: 6px; }
+            --accent-main: #00FF41;     
+            --accent-dim: #008F11;      
+            --border-tech: rgba(0, 255, 65, 0.3); 
+            
+            /* 등급별 텍스트 색상 */
+            --gr-매직: #87CEEB; --gr-레어: #FBBF24; --gr-에픽: #FB923C; --gr-유니크: #EF4444;
+            --gr-헬: #EC4899; --gr-레전드: #A78BFA; --gr-히든: #34D399; --gr-슈퍼히든: #FFD700;
 
-            .view-section.active, #view-essence.active { display: flex; flex-direction: column; gap: 16px; height: auto; }
-            .panel-col { height: auto; flex: none; }
-            .card-panel { height: auto; }
-            #view-combo .card-panel:nth-child(2) { height: 500px; flex: none; }
-            .essence-left-col { overflow: visible; padding-right: 0; }
-            .essence-right-col { height: 500px; flex: none; }
-            .magic-dashboard { grid-template-columns: repeat(5, 1fr) !important; }
+            --text-main: #E2E8F0;       
+            --text-sub: #94A3B8;        
+            --text-muted: #475569;      
+            
+            --font-body: 'Pretendard', sans-serif;
+            --font-mono: monospace;     
         }
-        @media(max-width:768px){
-            .essence-grid { grid-template-columns: 1fr; }
-            .essence-score-master, .essence-score-left-wrap { flex-direction: column; gap: 20px; align-items: center; }
-            .essence-sub-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
-            .sub-score-card, .btn-reset-essence { width: 100%; height: 100px; }
-            .score-circle { width: 120px; height: 120px; }
-            .btn-reset-essence { padding: 0; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-void); color: var(--text-main);
+            font-family: var(--font-body); user-select: none;
+            height: 100vh; display: flex; flex-direction: column;
+            overflow-y: hidden; overflow-x: auto; 
         }
+
+        /* =========================================================
+           [ 2. 인트로 애니메이션 설정 ]
+        ========================================================= */
+        #matrix-intro {
+            position: fixed; inset: 0; z-index: 10000; background: var(--bg-void);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease; cursor: pointer;
+        }
+        #matrixCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.2; pointer-events: none; }
+        .intro-terminal {
+            position: relative; z-index: 10; font-family: var(--font-mono); color: var(--accent-main); font-size: 1.3rem;
+            width: 600px; max-width: 90vw; display: flex; flex-direction: column; align-items: flex-start; margin: 0 auto;
+            background: rgba(0,0,0,0.8); padding: 30px; border: 1px solid var(--accent-dim);
+        }
+        .intro-line {
+            overflow: hidden; white-space: nowrap; margin-bottom: 10px;
+            border-right: .15em solid transparent; width: max-content; display: none;
+        }
+        /* 인트로 로딩설정 3초 - animation: loadProgress 3s linear forwards; */
+        .intro-line.typing { display: block; border-right-color: var(--accent-main); animation: typing 0.4s steps(20, end) forwards, blink-caret 0.4s step-end infinite; }
+        .intro-line.done { display: block; border-right-color: transparent; animation: none; }
+        .loading-bar-container { width: 100%; height: 6px; background: rgba(0,255,65,0.1); margin-top: 25px; position: relative; overflow: hidden; border-radius: 3px; }
+        .loading-bar { height: 100%; background: var(--accent-main); width: 0%; animation: loadProgress 3s linear forwards; }
+        #loading-percent { margin-top: 10px; align-self: flex-end; font-size: 1.5rem; font-weight: 700; color: var(--accent-main); }
+        .skip-hint { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; color: var(--text-sub); opacity: 0.7; }
+
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--accent-main); } }
+        @keyframes loadProgress { 0% { width: 0%; } 100% { width: 100%; } }
+
+        .matrix-title-anim {
+            display: inline-block; overflow: hidden; white-space: nowrap; border-right: 0.15em solid var(--accent-main);
+            animation: typing 1.5s steps(20, end) forwards, blink-caret 0.75s step-end infinite;
+        }
+
+        /* =========================================================
+           [ 3. 상단 헤더 & 검색창 ]
+        ========================================================= */
+        .tactical-header {
+            flex-shrink: 0; height: 80px; background: #050505; border-bottom: 1px solid var(--border-tech);
+            display: flex; justify-content: center; align-items: center; padding: 0 24px; position: relative; z-index: 50;
+        }
+        .header-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; max-width: 1600px; gap: 20px; }
+        .brand-title { grid-column: 1; justify-self: start; font-size: 1.6rem; font-weight: 900; color: var(--accent-main); letter-spacing: 0.05em; white-space: nowrap; }
+        .header-search { grid-column: 2; justify-self: center; width: 600px; max-width: 100%; display: flex; gap: 8px; align-items: center; }
+        .header-dummy-right { grid-column: 3; }
+
+        .search-input-wrapper { flex: 1; position: relative; background: #000; border: 1px solid var(--border-tech); border-radius: 4px; transition: 0.3s; height: 48px; }
+        .search-input-wrapper:focus-within { border-color: var(--accent-main); }
+        .search-overlay {
+            width: 100%; height: 48px; box-sizing: border-box; padding: 0 16px; line-height: 48px; font-size: 1.05rem; font-weight: 600;
+            border: none; background: transparent; color: var(--text-main); white-space: pre; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+        }
+        #highlightLayer { position: absolute; inset: 0; z-index: 1; color: var(--text-main); pointer-events: none; }
+        #comboInput { position: absolute; inset: 0; z-index: 2; color: transparent; caret-color: var(--accent-main); outline: none; }
+        #comboInput::placeholder { color: var(--text-muted); font-size: 0.95rem; font-weight: 400; }
+
+        .btn-tech {
+            background: rgba(0,255,65,0.05); color: var(--accent-main); border: 1px solid var(--border-tech);
+            border-radius: 4px; padding: 0 24px; height: 48px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        }
+        .btn-tech:hover { background: var(--accent-main); color: #000; }
+
+        .search-suggestions {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-panel); border: 1px solid var(--accent-dim);
+            max-height: 350px; overflow-y: auto; z-index: 100; display: none; border-radius: 4px;
+        }
+        .search-suggestions.visible { display: block; }
+        .suggestion-item { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(0,255,65,0.1); font-size: 0.95rem; }
+        .suggestion-item:hover, .suggestion-item.focused { background: rgba(0,255,65,0.2); border-left: 3px solid var(--accent-main); }
+
+        /* =========================================================
+           [ 4. 메인 대시보드 레이아웃 ]
+        ========================================================= */
+        .main-dashboard {
+            display: grid; grid-template-columns: 40fr 35fr 35fr; grid-template-rows: min-content 1fr;
+            gap: 16px; padding: 16px 24px; flex: 1; min-height: 0; width: 100%; min-width: 1024px; 
+            opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .main-dashboard.visible { opacity: 1; transform: translateY(0); }
+
+        .codex-panel { grid-column: 1; grid-row: 1 / 3; }
+        .tree-panel { grid-column: 2; grid-row: 1 / 3; }
+        .essence-panel { grid-column: 3; grid-row: 1; }
+        .magic-panel { grid-column: 3; grid-row: 2; }
+
+        .hud-panel { background: var(--bg-panel); border: 1px solid #1a1a1a; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .hud-panel::before { content: ""; position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--accent-dim); }
+        .panel-header { padding: 14px 18px; border-bottom: 1px solid #1a1a1a; font-weight: 800; font-size: 1rem; color: var(--accent-main); background: rgba(0,255,65,0.03); flex-shrink: 0; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; min-height: 0; scrollbar-width: thin; }
+
+        /* =========================================================
+           [ 5. 패널 내부요소 디자인 ]
+        ========================================================= */
+        .codex-tabs { display: flex; gap: 6px; margin-bottom: 14px; background: rgba(0,0,0,0.5); padding: 6px; flex-shrink: 0; border-radius: 4px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .codex-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { flex: 1; min-width: 85px; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; font-weight: 800; padding: 12px 0; cursor: pointer; transition: 0.2s; border-radius: 4px; }
+        .tab-btn:hover { background: rgba(0,255,65,0.05); color: var(--text-main); }
+        .tab-btn.active { background: var(--accent-dim); color: #fff; }
+
+        #tabContent { flex: 1; overflow-y: auto; padding-right: 4px; }
+        .unit-list-card { display: flex; flex-direction: column; padding: 16px; background: rgba(0,0,0,0.6); border: 1px solid #1a1a1a; margin-bottom: 8px; cursor: pointer; transition: 0.2s; border-radius: 4px; border-left: 3px solid transparent; }
+        .unit-list-card:hover { border-color: #333; background: #111; }
+        .unit-list-card.active { border-left-color: var(--accent-main); background: rgba(0,255,65,0.08); border-color: rgba(0,255,65,0.3); }
+        .unit-list-card .title-row { font-weight: 800; font-size: 1.1rem; margin-bottom: 8px; display: flex; align-items: center; }
+        .unit-list-card .recipe-row { font-size: 0.9rem; color: var(--text-sub); line-height: 1.6; word-break: keep-all; white-space: normal; }
+
+        .empty-hud { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
+        .analysis-card { background: rgba(0,0,0,0.4); border: 1px solid #222; border-left: 3px solid var(--accent-main); padding: 20px; margin-bottom: 16px; border-radius: 4px; }
+        .analysis-card h3 { font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .tree-ul { list-style: none; padding-left: 28px; margin-top: 12px; border-left: 1px dashed #444; }
+        .tree-ul.root-ul { border-left: none; padding-left: 0; }
+        .tree-li { position: relative; margin-top: 12px; }
+        .tree-li::before { content: ""; position: absolute; top: 16px; left: -28px; width: 22px; height: 1px; background: #444; }
+        .root-ul > .tree-li::before { display: none; }
+        .tree-node-wrapper { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .unit-badge { background: #111; border: 1px solid #333; padding: 8px 16px; font-size: 1.1rem; font-weight: 800; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        .unit-badge:hover { border-color: var(--accent-main); filter: brightness(1.2); }
+        .bullet-recipe { color: var(--text-sub); font-size: 0.95rem; padding-left: 10px; margin-top: 8px; border-left: 2px solid #333; margin-left: 16px; }
+        .bullet-cost { color: var(--accent-main); font-size: 0.95rem; padding-left: 10px; margin-top: 6px; font-weight: 700; border-left: 2px solid var(--accent-dim); margin-left: 16px; }
+
+        /* 정수 패널 가로 1줄 통합 디자인 */
+        .essence-row { display: flex; gap: 8px; width: 100%; margin-bottom: 0; flex-shrink: 0; }
+        .score-circle { flex: 1; background: #050505; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 0; min-width: 0; }
+        .score-circle.total { border-color: var(--accent-main); background: rgba(0,255,65,0.05); }
+        .score-circle.total .val { color: var(--accent-main); }
+        .score-circle .val { font-size: 1.6rem; font-weight: 900; line-height: 1; font-family: var(--font-mono); }
+        .score-circle label { font-size: 0.8rem; color: var(--text-sub); margin-top: 6px; font-weight: 700; white-space: nowrap; }
+
+        .magic-panel .panel-content { display: flex; flex-direction: column; padding: 16px; }
+        .magic-grid { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; gap: 10px; }
+        .cost-slot { background: #050505; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; height: 100%; min-height: 70px; }
+        .cost-slot.active { background: rgba(0,255,65,0.08); border-color: var(--accent-dim); }
+        .cost-slot .val { font-size: 1.5rem; font-weight: 800; color: var(--text-muted); font-family: var(--font-mono); }
+        .cost-slot.active .val { color: var(--accent-main); }
+        .cost-slot .name { font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; font-weight: 600; text-align: center; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
+
+        @media(max-width: 768px) {
+            body { overflow-x: hidden; overflow-y: auto; }
+            .main-dashboard { min-width: 100%; display: flex; flex-direction: column; }
+            .header-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+            .header-search { width: 100%; }
+            
+            /* 모바일 가로 정렬 유지 및 크기 축소 */
+            .essence-row { gap: 4px; }
+            .score-circle { padding: 10px 0; }
+            .score-circle .val { font-size: 1.3rem; }
+            .score-circle label { font-size: 0.7rem; }
+            
+            .essence-panel { order: 1; flex: none; }
+            .magic-panel { order: 2; flex: none; min-height: 450px; }
+            .codex-panel { order: 3; flex: none; min-height: 600px; }
+            .tree-panel { order: 4; flex: none; min-height: 600px; }
+
+            /* 종족 탭 모바일 자동 줄바꿈 최적화 (3개씩 2줄 배치) */
+            .codex-tabs { flex-wrap: wrap; white-space: normal; overflow-x: hidden; }
+            .tab-btn { flex: 1 1 calc(33.333% - 6px); min-width: auto; padding: 10px 0; font-size: 0.95rem; }
+        }
+
+        /* =========================================================
+           [ 6. 사용방법 모달 팝업 디자인 ]
+        ========================================================= */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--bg-panel); border: 1px solid var(--accent-main); border-radius: 6px;
+            width: 700px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,255,65,0.2); transform: translateY(-20px); transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header {
+            padding: 20px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,65,0.05);
+        }
+        .modal-header h2 { font-size: 1.4rem; color: var(--accent-main); margin: 0; font-weight: 800; }
+        .btn-close {
+            background: transparent; border: none; color: var(--text-muted); font-size: 2rem;
+            cursor: pointer; line-height: 1; transition: 0.2s;
+        }
+        .btn-close:hover { color: #EF4444; }
+        .modal-body { padding: 24px; overflow-y: auto; color: var(--text-main); font-size: 1rem; }
+        .guide-section { margin-bottom: 24px; border-left: 3px solid var(--accent-dim); padding-left: 16px; background: rgba(0,0,0,0.3); padding-top: 12px; padding-bottom: 12px; border-radius: 0 4px 4px 0; }
+        .guide-section h3 { color: var(--text-main); font-size: 1.15rem; margin-bottom: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .guide-section h3::before { content: "■"; color: var(--accent-main); font-size: 0.8rem; }
+        .guide-section ul { list-style: none; padding: 0; margin: 0; }
+
+        /* 텍스트 줄바꿈 문제 해결을 위해 li CSS 구조 변경 */
+        .guide-section li { 
+            margin-bottom: 10px; 
+            color: var(--text-sub); 
+            font-size: 0.95rem; 
+            position: relative;
+            padding-left: 14px; 
+            line-height: 1.6;
+            word-break: keep-all; 
+        }
+        .guide-section li::before { 
+            content: "-"; 
+            color: var(--accent-dim); 
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .guide-highlight { color: var(--accent-main); font-weight: 700; }
     </style>
 </head>
 <body oncontextmenu="return false">
-
-<!-- [인트로] 시네마틱 스플래시 스크린 -->
-<div id="splash-screen">
-    <div class="splash-title">개복디 넥서스</div>
-    <div class="splash-access">DATA BASE</div>
-    <div class="splash-creator">ACCESS GRANTED</div>
+<div id="matrix-intro">
+    <canvas id="matrixCanvas"></canvas>
+    <div class="intro-terminal">
+        <div id="intro-line1" class="intro-line">> 개복디 넥서스 연결 중...</div>
+        <div id="intro-line2" class="intro-line">> 데이터베이스 확인 중...</div>
+        <div id="intro-line3" class="intro-line">> 접근 허가됨.</div>
+        <div class="loading-bar-container"><div class="loading-bar"></div></div>
+        <div id="loading-percent">0%</div>
+        <div class="skip-hint">[ 화면을 클릭하여 스킵 ]</div>
+    </div>
 </div>
 
-<div class="container">
+<header class="tactical-header">
+    <div class="header-inner">
+        <div class="brand-title"><span class="matrix-title-anim" id="mainTitleAnim">개복디 넥서스</span></div>
+        <div class="header-search">
+            <div class="search-input-wrapper">
+                <input type="text" id="comboInput" class="search-overlay" placeholder="유닛 검색 (예: 불새, 아몬, 테라*2)" autocomplete="off" spellcheck="false">
+                <div id="highlightLayer" class="search-overlay"></div>
+                <div class="search-suggestions" id="searchSuggestions"></div>
+            </div>
+            <button class="btn-tech" onclick="resetAll()">초기화</button>
+            <button class="btn-tech" onclick="openHelpModal()">사용방법</button>
+        </div>
+        <div class="header-dummy-right"></div>
+    </div>
+</header>
 
-    <!-- [최상단 통합 글로벌 헤더] -->
-    <div class="global-unified-header">
-        <div class="header-left">
-            <div class="animated-title-container">
-                <span class="main-title text-1">개복디 넥서스</span>
-                <span class="main-title text-2">히든조합&일일정수</span>
-            </div>
-            <p class="creator-info">제작자 회장 | 핸들값 3-S2-1-2461127</p>
-        </div>
-        <div class="header-center">
-            <div class="header-search-container" id="header-search-block">
-                <div class="input-wrapper">
-                    <input type="text" id="comboInput" class="input-overlay-box" placeholder="유닛명*수량 (예: 타이커스*8)" autocomplete="off" spellcheck="false">
-                    <div id="highlightLayer" class="input-overlay-box"></div>
-                </div>
-                <button class="btn-reset" onclick="resetCombo()">초기화</button>
-            </div>
-        </div>
-        <div class="header-right">
-            <button id="btn-toggle-view" class="btn-toggle-view" onclick="toggleMainView()">일일정수</button>
+<div class="main-dashboard" id="mainDashboard">
+    <div class="hud-panel codex-panel">
+        <div class="panel-header"><span>유닛 도감 데이터베이스</span></div>
+        <div class="panel-content" style="padding: 16px;">
+            <div class="codex-tabs"></div>
+            <div id="tabContent"></div>
         </div>
     </div>
 
-    <!-- ===== 히든 조합 뷰 ===== -->
-    <div id="view-combo" class="view-section active">
-        <!-- 1. 왼쪽 빠른검색 / 대시보드 레이어 -->
-        <div class="panel-col">
-            <div class="card-panel" style="flex:1; display:flex; flex-direction:column;">
-                
-                <div class="quick-tools-panel">
-                    <div class="quick-tools-header">빠른 등급 검색 필터</div>
-                    <div class="grade-buttons" id="quickGradeButtons"></div>
-                </div>
-                
-                <div class="magic-dashboard-container">
-                    <div class="magic-dashboard" id="magicDashboard"></div>
-                </div>
+    <div class="hud-panel tree-panel">
+        <div class="panel-header"><span>계보 및 조합 트리 시뮬레이션</span></div>
+        <div class="panel-content" id="treeView">
+            <div class="empty-hud">
+                <div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div>
+                <div style="font-size:0.95rem; opacity:0.6; margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div>
             </div>
-        </div>
-        
-        <!-- 2. 중앙 계보 트리 레이어 -->
-        <div class="card-panel" id="treeScrollPanel">
-            <div id="treeView" class="tree-scroll-container">
-                <div style="color:var(--text-muted);text-align:center;margin-top:80px;font-size:1rem;font-weight:600;">유닛명을 검색 & 빠른 필터 에서 유닛명 선택시<br>등급 목록 및 계보 보기 가 표시됩니다.</div>
-            </div>
-        </div>
-        
-        <!-- 3. 우측 도감 카드 레이어 -->
-        <div class="card-panel">
-            <div id="tablesContainer"></div>
         </div>
     </div>
 
-    <!-- ===== 일일 정수 뷰 ===== -->
-    <div id="view-essence" class="view-section">
-        <div class="essence-left-col">
-            <div class="essence-top-banner">
-                <div class="essence-score-master">
-                    <div class="essence-score-left-wrap">
-                        <div class="score-circle">
-                            <span id="essence-total-val">0</span>
-                            <label>Total</label>
-                        </div>
-                        <div class="essence-sub-scores">
-                            <div class="sub-score-card">
-                                <div class="title">코랄의 정수</div>
-                                <div><span class="value" id="val-coral">0</span><span class="max" id="max-coral">/0</span></div>
-                            </div>
-                            <div class="sub-score-card">
-                                <div class="title">아이어의 정수</div>
-                                <div><span class="value" id="val-aiur">0</span><span class="max" id="max-aiur">/0</span></div>
-                            </div>
-                            <div class="sub-score-card">
-                                <div class="title">제루스의 정수</div>
-                                <div><span class="value" id="val-zerus">0</span><span class="max" id="max-zerus">/0</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn-reset-essence" onclick="resetAllEssence()">초기화 (전체선택 해제)</button>
-                </div>
+    <div class="hud-panel essence-panel">
+        <div class="panel-header"><span>일일 정수 카운터</span></div>
+        <div class="panel-content" style="padding: 16px;">
+            <div class="essence-row">
+                <div class="score-circle total"><div class="val" id="essence-total-val">0</div><label>총합</label></div>
+                <div class="score-circle"><div class="val" id="val-coral">0</div><label style="color:#FF6B6B;">코랄</label></div>
+                <div class="score-circle"><div class="val" id="val-aiur">0</div><label style="color:#FBBF24;">아이어</label></div>
+                <div class="score-circle"><div class="val" id="val-zerus">0</div><label style="color:#A855F7;">제루스</label></div>
             </div>
-            <div class="essence-grid" id="essenceGroupsContainer"></div>
         </div>
-        
-        <div class="essence-right-col">
-            <div id="essenceTreeView" class="tree-scroll-container">
-                <div style="color:var(--text-muted);text-align:center;margin-top:80px;font-size:1rem;font-weight:600;">유닛명을 클릭하면<br>해당 유닛의 계보가 표시됩니다.</div>
+    </div>
+
+    <div class="hud-panel magic-panel">
+        <div class="panel-header"><span>매직 코스트 산출 매트릭스</span></div>
+        <div class="panel-content">
+            <div class="magic-grid" id="magicDashboard"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 사용방법 모달 팝업 구조 -->
+<div class="modal-overlay" id="helpModal" onclick="closeHelpModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>개복디 넥서스 사용 가이드</h2>
+            <button class="btn-close" onclick="closeHelpModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="guide-section">
+                <h3>유닛 검색 및 자동완성</h3>
+                <ul>
+                    <li>유닛 이름, 초성, 별명(예: 불새)을 검색창에 직접 입력하여 찾을 수 있습니다.</li>
+                    <li><span class="guide-highlight">유닛명*숫자</span> (예: 테라*2) 형식으로 입력하면 여러 유닛을 한 번에 추가 및 계산합니다.</li>
+                </ul>
+            </div>
+            <div class="guide-section">
+                <h3>유닛 도감 데이터베이스 (좌측)</h3>
+                <ul>
+                    <li>종족별 탭을 눌러 해당 카테고리의 모든 유닛 조합법을 확인합니다.</li>
+                    <li>목록은 <span class="guide-highlight">총 필요 비용(Cost)이 비싼 순서</span>로 자동 정렬되어 노출됩니다. (슈퍼히든 등급은 예외로 최상단 고정)</li>
+                    <li>유닛을 클릭하면 중앙 및 우측 패널의 계산기에 즉시 데이터가 반영됩니다.</li>
+                </ul>
+            </div>
+            <div class="guide-section">
+                <h3>계보 및 조합 트리 시뮬레이션 (중앙)</h3>
+                <ul>
+                    <li>선택한 유닛을 만들기 위한 하위 재료가 트리 형태로 상세히 펼쳐집니다.</li>
+                    <li><span class="guide-highlight">모두 펼치기/접기</span> 버튼으로 복잡한 계보를 한눈에 파악할 수 있습니다.</li>
+                    <li>단일 유닛을 선택할 경우, 해당 유닛을 재료로 사용하는 <span class="guide-highlight">상위 조합 가능 유닛</span>을 추천 목록에 표시해 줍니다.</li>
+                </ul>
+            </div>
+            <div class="guide-section">
+                <h3>일일 정수 카운터 (우측 상단)</h3>
+                <ul>
+                    <li><span class="guide-highlight">좌측 유닛 도감에서 직접 클릭하여 선택한 유닛</span>에 한해서만 1일 1회 정수(1점)가 오릅니다.</li>
+                    <li>검색창에서 '유닛명*숫자'를 입력하여 코스트를 계산하더라도, 정수 카운터는 함께 오르지 않도록 분리되어 있습니다.</li>
+                    <li>도감에서 유닛을 클릭하면 이름 옆에 <span style="color:var(--accent-main); font-weight:800;">[정수확보]</span> 태그가 표시되어 획득 여부를 쉽게 파악할 수 있습니다.</li>
+                </ul>
+            </div>
+            <div class="guide-section">
+                <h3>매직 코스트 산출 매트릭스 (우측 하단)</h3>
+                <ul>
+                    <li>선택한 최종 유닛들을 제작하기 위해 필요한 <span class="guide-highlight">가장 기초적인 매직 등급 유닛(전쟁광, 스파르타 등)의 총 요구 개수</span>를 역산하여 보여줍니다.</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -407,230 +396,108 @@
 
 <script>
 /* ========================================================================
-   [ DB ] 데이터베이스 및 설정
+   [ SECTION 1 : 기본 설정값 및 변수 정의 ]
 ======================================================================== */
-const raceColors = {
-    "매직":"#ffffff","테란바이오닉":"#4ea8de","테란메카닉":"#e07a5f",
-    "토스바이오닉":"#f4d03f","토스메카닉":"#48c9b0","저그중립":"#af7ac5","혼종":"#f39c12"
+const gradeColorsRaw = {
+    "매직":"#87CEEB", "레어":"#FBBF24", "에픽":"#FB923C", "유니크":"#EF4444",
+    "헬":"#EC4899", "레전드":"#A78BFA", "히든":"#34D399", "슈퍼히든":"#FFD700"
 };
-
-const gradeColors = {
-    "매직":"#87ceeb","레어":"#ffff00","에픽":"#ff8c00","유니크":"#ff0000",
-    "헬":"#ff69b4","레전드":"#A78BFA","히든":"#58d68d","슈퍼히든":"#ffd700"
-};
-
 const GRADE_ORDER = ["매직","레어","에픽","유니크","헬","레전드","히든","슈퍼히든"];
+const IGNORE_PARSE_RECIPES = ["미발견", "없음", "", "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"];
 
-// 예외적으로 파싱을 건너뛰고 텍스트 그대로 표시할 특수 조건 텍스트들
-const IGNORE_PARSE_RECIPES = [
-    "미발견",
-    "없음",
-    "",
-    "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"
+const dashboardAtoms = [
+    {name:"전쟁광"},{name:"스파르타중대"},{name:"암흑광전사"},{name:"암흑파수기"},{name:"원시바퀴"},
+    {name:"저격수"},{name:"코브라"},{name:"암흑고위기사"},{name:"암흑추적자"},{name:"변종가시지옥"},
+    {name:"망치경호대"},{name:"공성파괴단"},{name:"암흑집정관"},{name:"암흑불멸자"},{name:"원시히드라리스크"},
+    {name:"땅거미지뢰"},{name:"자동포탑"},{name:"우르사돈[암]"},{name:"우르사돈[수]"},{name:"갓오타/메시브"}
 ];
 
 const specialKeywordMap = [
-    {keys:["자동포탑"],atom:"자동포탑"},
-    {keys:["잠복"],atom:"잠복"},
-    {keys:["지뢰","시체매"],atom:"땅거미지뢰",divider:12},
-    {keys:["우르사돈[암]","우르사돈암"],atom:"우르사돈[암]"},
-    {keys:["우르사돈[수]","우르사돈수"],atom:"우르사돈[수]"},
-    {keys:["메시브","디제스터"],atom:"갓오타/메시브",subKey:"메시브"},
-    {keys:["갓오브타임","갓오타"],atom:"갓오타/메시브",subKey:"갓오타"}
+    {keys:["자동포탑"], atom:"자동포탑"}, {keys:["잠복"], atom:"잠복"},
+    {keys:["지뢰","시체매"], atom:"땅거미지뢰", divider:12},
+    {keys:["우르사돈[암]","우르사돈암"], atom:"우르사돈[암]"}, {keys:["우르사돈[수]","우르사돈수"], atom:"우르사돈[수]"},
+    {keys:["메시브","디제스터"], atom:"갓오타/메시브", subKey:"메시브"}, {keys:["갓오브타임","갓오타"], atom:"갓오타/메시브", subKey:"갓오타"}
 ];
 
-const dashboardAtoms = [
-    {name:"전쟁광",class:"r-t1"},{name:"스파르타중대",class:"r-t2"},{name:"암흑광전사",class:"r-p1"},{name:"암흑파수기",class:"r-p2"},{name:"원시바퀴",class:"r-z1"},
-    {name:"저격수",class:"r-t1"},{name:"코브라",class:"r-t2"},{name:"암흑고위기사",class:"r-p1"},{name:"암흑추적자",class:"r-p2"},{name:"변종가시지옥",class:"r-z1"},
-    {name:"망치경호대",class:"r-t1"},{name:"공성파괴단",class:"r-t2"},{name:"암흑집정관",class:"r-p1"},{name:"암흑불멸자",class:"r-p2"},{name:"원시히드라리스크",class:"r-z1"},
-    {name:"땅거미지뢰",class:"r-special"},{name:"자동포탑",class:"r-special"},{name:"우르사돈[암]",class:"r-special"},{name:"우르사돈[수]",class:"r-special"},{name:"갓오타/메시브",class:"r-special"}
-];
+const UNIT_ALIASES = {
+    "불새":"불새케리건","아몬":"아몬","나루드":"나루드","비작노":"비밀작전노바","초월":"초월체",
+    "테라":"테라트론","아둔":"아둔의창","토시":"가브리엘토시","타이커스":"타이커스핀들레이",
+    "이곤":"이곤스텟먼","스텟먼":"이곤스텟먼","워필드":"워필드장군","탈란":"탈란다르",
+    "테사":"테사다르","카락":"카락스","알라":"알라라크","셀렌":"셀렌디스","모선":"모선핵",
+    "원케":"원시케리건","토라":"토라스크","데하카":"데하카","아포":"아포칼리스크",
+    "공허분":"공허분쇄자","사라":"사라케리건","유물":"유물","네메":"혼종네메시스",
+    "스투":"스투코프","짐레":"짐레이너","오딘":"오딘","고르곤":"고르곤전투순양함"
+};
 
-const unitDatabase = [
-  // ── 테란바이오닉 (테바) ──
-  {name:"전쟁광",        grade:"매직",  category:"테바",recipe:"",cost:""},
-  {name:"저격수",        grade:"매직",  category:"테바",recipe:"",cost:""},
-  {name:"망치경호대",    grade:"매직",  category:"테바",recipe:"",cost:""},
-  {name:"죽음의머리",    grade:"레어",  category:"테바",recipe:"전쟁광[1]+망치경호대[1]",cost:"전쟁광[1],망치경호대[1]"},
-  {name:"악령",          grade:"레어",  category:"테바",recipe:"저격수[1]+망치경호대[1]",cost:"저격수[1],망치경호대[1]"},
-  {name:"짐레이너",      grade:"에픽",  category:"테바",recipe:"죽음의머리[1]+악령[1]",cost:"전쟁광[1],저격수[1],망치경호대[2]"},
-  {name:"스투코프",      grade:"유니크",category:"테바",recipe:"짐레이너[1]+케리건[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"노바",          grade:"헬",    category:"테바",recipe:"스투코프[2]+혼종파멸자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
-  {name:"특공대레이너",  grade:"레전드",category:"테바",recipe:"노바[1]+워필드장군[1]",cost:"전쟁광[4],저격수[8],망치경호대[12],암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
-  {name:"가브리엘토시",  grade:"히든",  category:"테바",recipe:"악령[2]+망치경호대[3]",cost:"저격수[2],망치경호대[5]"},
-  {name:"광부",          grade:"히든",  category:"테바",recipe:"도우미(500킬↑)[1]+타우렌화장실[1]",cost:"전쟁광[4],암흑불멸자[4],도우미[1]"},
-  {name:"로리스완",      grade:"히든",  category:"테바",recipe:"자치령불곰[2]+낮까마귀[1]+자동포탑[1]",cost:"전쟁광[8],망치경호대[6],낮까마귀[1],자동포탑[5]"},
-  {name:"마일스블레이즈루이스",grade:"히든",category:"테바",recipe:"프로메테우스중대(X,90%↑)+자치령불곰[2]+빨정관(10킬이상)[1]",cost:"암흑집정관[4],전쟁광[8],망치경호대[6]저격수[4],망치경호대[10],스파르타중대[4]"},
-  {name:"멀록해병",      grade:"히든",  category:"테바",recipe:"죽음의머리[3]+라바사우르스(잠복)[2]",cost:"전쟁광[3],망치경호대[3],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"워필드장군",    grade:"히든",  category:"테바",recipe:"스투코프[1]+악령[4]",cost:"전쟁광[1],저격수[5],망치경호대[6],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"이곤스텟먼",    grade:"히든",  category:"테바",recipe:"멀록해병[1]+타우렌화장실[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"자치령불곰",    grade:"히든",  category:"테바",recipe:"타우렌우주해병[2]+망치경호대[3]",cost:"전쟁광[4],망치경호대[3]"},
-  {name:"타우렌우주해병",grade:"히든",  category:"테바",recipe:"전쟁광(SS↑)[2]",cost:"전쟁광[2]"},
-  {name:"타우렌화장실",  grade:"히든",  category:"테바",recipe:"타우렌우주해병[2]+말살자[1]",cost:"전쟁광[4],암흑불멸자[4]"},
-  {name:"타이커스핀들레이",grade:"히든",category:"테바",recipe:"로리스완(X↑)[1]+이곤스텟먼(X↑)[1]",cost:"전쟁광[15],망치경호대[9],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2],자동포탑[5]"},
-  {name:"프로메테우스중대",grade:"히든",category:"테바",recipe:"가브리엘토시(SSS↑)[2]+스파르타중대[4]",cost:"저격수[4],망치경호대[10],스파르타중대[4]"},
-  {name:"비밀작전노바",  grade:"슈퍼히든",category:"테바",recipe:"특공대레이너(SXD,300%↑,300킬↑)[1]+타이커스핀들레이(SXD,300%↑,300킬↑)[1]+오메가리스크(X↑,150%↑)[2]",cost:"전쟁광[19],저격수[8],망치경호대[21],암흑광전사[5],암흑고위기사[5],암흑집정관[10],원시바퀴[15],변종가시지옥[13],원시히드라리스크[28],자동포탑[5]"},
+const TAB_CATEGORIES = [{key:"테바",label:"테바"},{key:"테메",label:"테메"},{key:"토바",label:"토바"},{key:"토메",label:"토메"},{key:"저그중립",label:"저그중립"},{key:"혼종",label:"혼종"}];
 
-  // ── 테란메카닉 (테메) ──
-  {name:"스파르타중대",  grade:"매직",  category:"테메",recipe:"",cost:""},
-  {name:"코브라",        grade:"매직",  category:"테메",recipe:"",cost:""},
-  {name:"공성파괴단",    grade:"매직",  category:"테메",recipe:"",cost:""},
-  {name:"검은망치",      grade:"레어",  category:"테메",recipe:"스파르타중대[1]+공성파괴단[1]",cost:"스파르타중대[1],공성파괴단[1]"},
-  {name:"A.R.E.S",       grade:"레어",  category:"테메",recipe:"코브라[1]+공성파괴단[1]",cost:"코브라[1],공성파괴단[1]"},
-  {name:"대천사",        grade:"에픽",  category:"테메",recipe:"검은망치[1]+A.R.E.S[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2]"},
-  {name:"오딘",          grade:"유니크",category:"테메",recipe:"대천사[2]",cost:"코브라[2],스파르타중대[2],공성파괴단[4]"},
-  {name:"히페리온",      grade:"헬",    category:"테메",recipe:"오딘[2]+공허포격기[1]",cost:"코브라[5],스파르타중대[5],공성파괴단[10],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"고르곤전투순양함",grade:"레전드",category:"테메",recipe:"히페리온[1]+과학선[1]",cost:"코브라[11],스파르타중대[7],공성파괴단[18],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"과학선",        grade:"히든",  category:"테메",recipe:"오딘[1]+A.R.E.S[4]",cost:"코브라[6],스파르타중대[2],공성파괴단[8]"},
-  {name:"낮까마귀",      grade:"히든",  category:"테메",recipe:"땅거미지뢰[2]+투견[3]+통기레쓰[1]",cost:"시체매-지뢰매설[24],코브라[3],스파르타중대[6],암흑광전사[2]"},
-  {name:"대천사전투기",  grade:"히든",  category:"테메",recipe:"대천사(SSS↑)[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8]"},
-  {name:"드라켄레이저천공기",grade:"히든",category:"테메",recipe:"공성파괴단[3]+A.R.E.S[2]",cost:"코브라[2],공성파괴단[5]"},
-  {name:"땅거미지뢰",    grade:"히든",  category:"테메",recipe:"거미지뢰(시체매로매설)[12]",cost:"시체매-지뢰매설[12]"},
-  {name:"아우구스트그라드의자랑",grade:"히든",category:"테메",recipe:"고르곤전투순양함(남은강화횟수0,1000킬)[1]+검은망치(SSS)[4]",cost:"코브라[11],스파르타중대[11],공성파괴단[22],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"제우스폭격기",  grade:"히든",  category:"테메",recipe:"해적주력함(Lv11)[1]+폭격기(Lv11)[1]+메시브디제스터(스킬사용)[1]",cost:"스파르타중대[21],코브라[22],공성파괴단[34],암흑광전사[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2],시체매-지뢰매설[24],메시브디제스터[1]"},
-  {name:"창공의분노",    grade:"히든",  category:"테메",recipe:"대천사전투기(한계돌파3↑,500킬↑)[1]+분노수호자(X↑)[1]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
-  {name:"통기레쓰",      grade:"히든",  category:"테메",recipe:"코브라[3]+암흑광전사[2]",cost:"코브라[3],암흑광전사[2]"},
-  {name:"투견",          grade:"히든",  category:"테메",recipe:"스파르타중대(SS↑)[2]",cost:"스파르타중대[2]"},
-  {name:"폭격기",        grade:"히든",  category:"테메",recipe:"낮까마귀(X↑)[1]+과학선(X↑)[1]",cost:"시체매-지뢰매설[24],코브라[9],스파르타중대[8],공성파괴단[8],암흑광전사[2]"},
-  {name:"핵의원천",      grade:"히든",  category:"테메",recipe:"타우렌화장실[1]+통기레쓰[2]+빨정관[1]",cost:"전쟁광[4],코브라[6],암흑광전사[4],암흑집정관[4],암흑불멸자[4]"},
-  {name:"해적주력함",    grade:"히든",  category:"테메",recipe:"대천사전투기[2]+히페리온(X↑,90%↑)[1]",cost:"코브라[13],스파르타중대[13],공성파괴단[26],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"테라트론",      grade:"슈퍼히든",category:"테메",recipe:"고르곤전투순양함(SXD,300%↑,300킬↑)[1]+해적주력함(SXD,300%↑,300킬↑)[1]+로리스완(XD↑)[2]",cost:"전쟁광[16],망치경호대[12],코브라[24],스파르타중대[20],공성파괴단[44],암흑파수기[2],암흑추적자[2],암흑불멸자[4],자동포탑[10]"},
+/* ========================================================================
+   [ SECTION 2 : 상태 관리 및 유틸리티 함수 ]
+======================================================================== */
+const unitMap = new Map(); 
+const activeUnits = new Map(); 
+const essenceUnits = new Set(); // 도감 클릭(정수 획득) 상태 독립 추적
+const DOM = {}; 
 
-  // ── 토스바이오닉 (토바) ──
-  {name:"암흑광전사",    grade:"매직",  category:"토바",recipe:"",cost:""},
-  {name:"암흑고위기사",  grade:"매직",  category:"토바",recipe:"",cost:""},
-  {name:"암흑집정관",    grade:"매직",  category:"토바",recipe:"",cost:""},
-  {name:"광전사석상",    grade:"레어",  category:"토바",recipe:"암흑광전사[1]+암흑집정관[1]",cost:"암흑광전사[1],암흑집정관[1]"},
-  {name:"정화자사도",    grade:"레어",  category:"토바",recipe:"암흑고위기사[1]+암흑집정관[1]",cost:"암흑고위기사[1],암흑집정관[1]"},
-  {name:"제라툴",        grade:"에픽",  category:"토바",recipe:"광전사석상[1]+정화자사도[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
-  {name:"혼종파멸자",    grade:"유니크",category:"토바",recipe:"제라툴[1]+짐레이너[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
-  {name:"보라준",        grade:"헬",    category:"토바",recipe:"혼종파멸자[2]+혼종약탈자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[3],암흑고위기사[3],암흑집정관[6]"},
-  {name:"아르타니스",    grade:"레전드",category:"토바",recipe:"보라준[1]+테사다르[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[4],암흑고위기사[8],암흑집정관[12],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"라사라",        grade:"히든",  category:"토바",recipe:"빨정관[1]+광전사석상[3]",cost:"암흑광전사[3],암흑집정관[7]"},
-  {name:"말라쉬",        grade:"히든",  category:"토바",recipe:"알라라크(XD↑,200%↑)[1]+드라켄레이저천공기(알라라크죽이기)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[2],공성파괴단[5],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
-  {name:"백인대장",      grade:"히든",  category:"토바",recipe:"암흑기사(SSS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
-  {name:"빨정관",        grade:"히든",  category:"토바",recipe:"암흑집정관[4]",cost:"암흑집정관[4]"},
-  {name:"승천자",        grade:"히든",  category:"토바",recipe:"파수병[2]+광전사석상[2]",cost:"암흑광전사[6],암흑고위기사[4],암흑집정관[2]"},
-  {name:"알라라크",      grade:"히든",  category:"토바",recipe:"피의사냥꾼[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
-  {name:"암흑기사",      grade:"히든",  category:"토바",recipe:"암흑고위기사(SS↑)[1]+암흑광전사(SS↑)[1]",cost:"암흑고위기사[1],암흑광전사[1]"},
-  {name:"카락스",        grade:"히든",  category:"토바",recipe:"승천자[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[13],암흑고위기사[9],암흑집정관[6]"},
-  {name:"탈란다르",      grade:"히든",  category:"토바",recipe:"카락스(X↑,90%↑)[1]+알라라크(X↑,90%↑)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[22],암흑고위기사[22],암흑집정관[12]"},
-  {name:"테사다르",      grade:"히든",  category:"토바",recipe:"혼종파멸자[1]+정화자사도[4]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[5],암흑집정관[6]"},
-  {name:"파수병",        grade:"히든",  category:"토바",recipe:"암흑기사(SS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
-  {name:"피의사냥꾼",    grade:"히든",  category:"토바",recipe:"백인대장[2]+정화자사도[2]",cost:"암흑광전사[4],암흑고위기사[6],암흑집정관[2]"},
-  {name:"아몬",          grade:"슈퍼히든",category:"토바",recipe:"탈란다르(SXD,300%↑,300킬↑)[1]+아르타니스(SXD,300%↑,300킬↑)[1]+탈다림폭풍함(XD↑)[2]",cost:"전쟁광[5],저격수[5],망치경호대[10],암흑광전사[26],암흑고위기사[30],암흑집정관[40],암흑파수기[8],암흑불멸자[20],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-
-  // ── 토스메카닉 (토메) ──
-  {name:"암흑파수기",    grade:"매직",  category:"토메",recipe:"",cost:""},
-  {name:"암흑추적자",    grade:"매직",  category:"토메",recipe:"",cost:""},
-  {name:"암흑불멸자",    grade:"매직",  category:"토메",recipe:"",cost:""},
-  {name:"선동자",        grade:"레어",  category:"토메",recipe:"암흑추적자[1]+암흑불멸자[1]",cost:"암흑추적자[1],암흑불멸자[1]"},
-  {name:"교란기",        grade:"레어",  category:"토메",recipe:"암흑파수기[1]+암흑불멸자[1]",cost:"암흑파수기[1],암흑불멸자[1]"},
-  {name:"거신",          grade:"에픽",  category:"토메",recipe:"교란기[1]+선동자[1]",cost:"암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"공허포격기",    grade:"유니크",category:"토메",recipe:"대천사[1]+거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"분노수호자",    grade:"유니크",category:"토메",recipe:"거신[2]",cost:"암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
-  {name:"공허의구도자",  grade:"헬",    category:"토메",recipe:"분노수호자[2]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[5],암흑추적자[5],암흑불멸자[10]"},
-  {name:"셀렌디스",      grade:"레전드",category:"토메",recipe:"공허의구도자[1]+정화자거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[11],암흑불멸자[18]"},
-  {name:"동력기",        grade:"히든",  category:"토메",recipe:"암흑파수기(SS↑)[2]",cost:"암흑파수기[2]"},
-  {name:"말살자",        grade:"히든",  category:"토메",recipe:"암흑불멸자[4]",cost:"암흑불멸자[4]"},
-  {name:"모선핵",        grade:"히든",  category:"토메",recipe:"차원분광기[1]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[3],암흑추적자[1],암흑불멸자[6]"},
-  {name:"모한다르",      grade:"히든",  category:"토메",recipe:"정화자거신(X↑)[1]+공허포격기[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
-  {name:"정화모선",      grade:"히든",  category:"토메",recipe:"분노수호자[2]+모선핵[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[5],암흑불멸자[14]"},
-  {name:"정화자감시자",  grade:"히든",  category:"토메",recipe:"정화모선(Lv11,남은강화횟수0회,스킬사용)[3]",cost:"코브라[3],스파르타중대[3],공성파괴단[6],암흑파수기[21],암흑추적자[15],암흑불멸자[42]"},
-  {name:"정화자거신",    grade:"히든",  category:"토메",recipe:"분노수호자[1]+선동자[4]",cost:"암흑파수기[2],암흑추적자[6],암흑불멸자[8]"},
-  {name:"차원분광기",    grade:"히든",  category:"토메",recipe:"말살자[1]+동력기[1]",cost:"암흑파수기[2],암흑불멸자[4]"},
-  {name:"케이다린초석",  grade:"히든",  category:"토메",recipe:"선동자(SSS↑)[9]",cost:"암흑추적자[9],암흑불멸자[9]"},
-  {name:"탈다림모선",    grade:"히든",  category:"토메",recipe:"정화모선(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[5],암흑불멸자[24]"},
-  {name:"탈다림폭풍함",  grade:"히든",  category:"토메",recipe:"폭풍함[2]+빨정관[2]",cost:"암흑집정관[8],암흑파수기[4],암흑불멸자[10]"},
-  {name:"폭풍함",        grade:"히든",  category:"토메",recipe:"교란기[2]+암흑불멸자[3]",cost:"암흑파수기[2],암흑불멸자[5]"},
-  {name:"하늘군주",      grade:"히든",  category:"토메",recipe:"셀렌디스(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[11],암흑불멸자[28]"},
-  {name:"아둔의창",      grade:"슈퍼히든",category:"토메",recipe:"셀렌디스(SXD,300%↑,300킬↑)[1]+탈다림모선(SXD,300%↑,300킬↑)[1]+카락스(X↑,150%↑)[2]",cost:"전쟁광[2],저격수[2],망치경호대[4],코브라[2],스파르타중대[2],공성파괴단[4],암흑광전사[26],암흑고위기사[18],암흑집정관[20],암흑파수기[18],암흑추적자[16],암흑불멸자[42]"},
-
-  // ── 저그중립 ──
-  {name:"원시바퀴",      grade:"매직",  category:"저그중립",recipe:"",cost:""},
-  {name:"변종가시지옥",  grade:"매직",  category:"저그중립",recipe:"",cost:""},
-  {name:"원시히드라리스크",grade:"매직",category:"저그중립",recipe:"",cost:""},
-  {name:"브루탈리스크",  grade:"레어",  category:"저그중립",recipe:"변종가시지옥[1]+원시히드라리스크[1]",cost:"변종가시지옥[1],원시히드라리스크[1]"},
-  {name:"라바사우르스",  grade:"레어",  category:"저그중립",recipe:"원시바퀴[1]+원시히드라리스크[1]",cost:"원시바퀴[1],원시히드라리스크[1]"},
-  {name:"케리건",        grade:"에픽",  category:"저그중립",recipe:"브루탈리스크[1]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"혼종약탈자",    grade:"유니크",category:"저그중립",recipe:"케리건[1]+제라툴[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"거대괴수",      grade:"헬",    category:"저그중립",recipe:"혼종약탈자[2]+스투코프[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
-  {name:"아토실로프",    grade:"헬",    category:"저그중립",recipe:"우르사돈[암][2]",cost:"우르사돈[암][2]"},
-  {name:"테이스틀로프",  grade:"헬",    category:"저그중립",recipe:"우르사돈[수][2]",cost:"우르사돈[수][2]"},
-  {name:"원시케리건",    grade:"레전드",category:"저그중립",recipe:"거대괴수[1]+크레이스[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[3],암흑고위기사[3],암흑집정관[6],원시바퀴[4],변종가시지옥[8],원시히드라리스크[12]"},
-  {name:"고름바퀴",      grade:"히든",  category:"저그중립",recipe:"원시바퀴[3]+암흑추적자[2]",cost:"원시바퀴[3],암흑추적자[2]"},
-  {name:"군단숙주",      grade:"히든",  category:"저그중립",recipe:"변종가시지옥(SS↑)[2]",cost:"변종가시지옥[2]"},
-  {name:"데하카",        grade:"히든",  category:"저그중립",recipe:"데하카고치[1]+퀸(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[3],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"데하카고치",    grade:"히든",  category:"저그중립",recipe:"데하카의오른팔[1]+이곤스텟먼(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"데하카의오른팔",grade:"히든",  category:"저그중립",recipe:"100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]",cost:"없음"},
-  {name:"땅굴파괴자",    grade:"히든",  category:"저그중립",recipe:"아토실로프(X↑,200%↑,Lv7)[4]",cost:"우르사돈[암][8]"},
-  {name:"무리군주",      grade:"히든",  category:"저그중립",recipe:"퀸[2]+크레이스[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"살모사",        grade:"히든",  category:"저그중립",recipe:"퀸[1]+일벌레(SS↑)[3]",cost:"원시바퀴[2],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"수호군주",      grade:"히든",  category:"저그중립",recipe:"살모사(X↑)[1]+군단숙주(잠복)[2]",cost:"원시바퀴[2],변종가시지옥[8],원시히드라리스크[3]"},
-  {name:"아포칼리스크",  grade:"히든",  category:"저그중립",recipe:"오메가리스크(X↑,90%↑,100킬↑)[2]+오딘(10킬↑)[1]",cost:"스파르타중대[2],코브라[2],공성파괴단[4],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[10],변종가시지옥[10],원시히드라리스크[20]"},
-  {name:"알렉산더",      grade:"히든",  category:"저그중립",recipe:"포식귀[1]+수호군주[1]+히페리온(풀강화)[1]+스투코프(SXD)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],스파르타중대[5],코브라[5],공성파괴단[10],암흑파수기[1],암흑추적자[3],암흑불멸자[2],원시바퀴[8],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"오메가리스크",  grade:"히든",  category:"저그중립",recipe:"혼종약탈자[2]+케리건[3]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[5],변종가시지옥[5],원시히드라리스크[10]"},
-  {name:"일벌레",        grade:"히든",  category:"저그중립",recipe:"원시바퀴(잠복)[1]+원시히드라리스크(잠복)[2]",cost:"원시바퀴[1],원시히드라리스크[2]"},
-  {name:"크레이스",      grade:"히든",  category:"저그중립",recipe:"혼종약탈자[1]+브루탈리스크[4]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[5],원시히드라리스크[6]"},
-  {name:"토라스크",      grade:"히든",  category:"저그중립",recipe:"오메가리스크(X↑,90%↑)[1]+고름바퀴[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10]"},
-  {name:"포식귀",        grade:"히든",  category:"저그중립",recipe:"살모사[1]+고름바퀴(X↑)[1]",cost:"암흑추적자[2],원시바퀴[5],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"포자주둥이",    grade:"히든",  category:"저그중립",recipe:"일벌레(미니성큰스킬사용,히든성소배치)SSS↑)[12]",cost:"원시바퀴[8],원시히드라리스크[4]"},
-  {name:"퀸",            grade:"히든",  category:"저그중립",recipe:"군단숙주[2]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[4],원시히드라리스크[1]"},
-  {name:"하이브리드로프",grade:"히든",  category:"저그중립",recipe:"아토실로프(Lv7)[1]+테이스틀로프(Lv7)[1]",cost:"우르사돈[암][2],우르사돈[수][2]"},
-  {name:"불새케리건",    grade:"슈퍼히든",category:"저그중립",recipe:"원시케리건(SXD,300%↑,300킬↑)[1]+토라스크(SXD,300%↑,300킬↑)[1]+낮까마귀(X↑,150%↑)[2]",cost:"시체매-지뢰매설[48],전쟁광[1],저격수[1],망치경호대[2],코브라[6],스파르타중대[12],암흑광전사[9],암흑고위기사[5],암흑집정관[10],암흑추적자[4],원시바퀴[15],변종가시지옥[13],원시히드라리스크[22]"},
-  {name:"초월체",        grade:"슈퍼히든",category:"저그중립",recipe:"하이브리드로프(SXD↑,300%↑,Lv7)[2]+테사다르(XD↑)[1]+크레이스(XD↑)[1]+과학선(XD↑)[1]+정화자거신(XD↑)[1]+워필드장군(XD↑)[1]",cost:"전쟁광[2],저격수[6],망치경호대[8],코브라[6],스파르타중대[2],공성파괴단[8],암흑광전사[2],암흑고위기사[6],암흑집정관[8],암흑파수기[2],암흑추적자[6],암흑불멸자[8],원시바퀴[2],변종가시지옥[6],원시히드라리스크[8],우르사돈[암][4],우르사돈[수][4]"},
-
-  // ── 혼종 ──
-  {name:"공허분쇄자",    grade:"히든",  category:"혼종",recipe:"혼종네메시스(XD↑,200%↑,11Lv)[1]+파멸자(XD↑,200%↑,11Lv)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[3],암흑고위기사[11],암흑집정관[14],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"사라케리건",    grade:"히든",  category:"혼종",recipe:"노바(X↑,90%↑)[1]+원시케리건(X↑,90%↑)[1]",cost:"전쟁광[4],저격수[4],망치경호대[8],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[6],변종가시지옥[10],원시히드라리스크[16]"},
-  {name:"아몬의젤나가피조물",grade:"히든",category:"혼종",recipe:"젤나가피조물(RXD)[1]+파멸자(XD↑)[1]",cost:"시체매-지뢰매설[8],전쟁광[1],저격수[1],망치경호대[2],코브라[17],스파르타중대[16],공성파괴단[24],암흑광전사[15],암흑고위기사[9],암흑집정관[6],암흑파수기[12],암흑추적자[20],암흑불멸자[32]"},
-  {name:"유물",          grade:"히든",  category:"혼종",recipe:"유물조각[5]",cost:"유물조각[5]"},
-  {name:"젤나가피조물",  grade:"히든",  category:"혼종",recipe:"카락스(XD↑)[1]+모한다르(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[4],스파르타중대[4],공성파괴단[8],암흑광전사[13],암흑고위기사[9],암흑집정관[6],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
-  {name:"티라노조르",    grade:"히든",  category:"혼종",recipe:"토라스크(XD↑)[1]+테이스틀로프(X↑)[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10],우르사돈[수][4]"},
-  {name:"파멸자",        grade:"히든",  category:"혼종",recipe:"모한다르(X↑,90%↑)[1]+폭격기(X↑,90%↑)[1]",cost:"시체매-지뢰매설[24],코브라[13],스파르타중대[12],공성파괴단[16],암흑광전사[2],암흑파수기[6],암흑추적자[10],암흑불멸자[14]"},
-  {name:"혼종네메시스",  grade:"히든",  category:"혼종",recipe:"무리군주(X↑,90%↑)[1]+테사다르(X↑)[2]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[6],암흑집정관[8],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"혼종뫼비우스",  grade:"히든",  category:"혼종",recipe:"해적주력함(X↑,한계돌파3↑)[1]+탈다림모선(X↑,한계돌파3↑)[1]+갓오브타임(스킬사용)[1]",cost:"코브라[14],스파르타중대[14],공성파괴단[28],암흑집정관[8],암흑파수기[12],암흑추적자[6],암흑불멸자[26],갓오브타임[1]"},
-  {name:"혼종베히모스",  grade:"히든",  category:"혼종",recipe:"알라라크(X↑,90%↑)[1]+워필드장군(X↑)[2]",cost:"전쟁광[3],저격수[11],망치경호대[14],암흑고위기사[13],암흑광전사[9],암흑집정관[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
-  {name:"혼종종언자",    grade:"히든",  category:"혼종",recipe:"사라케리건(XD↑,200%↑,Lv11)[1]+혼종베히모스(XD↑,200%↑,Lv11)[1]",cost:"전쟁광[7],저격수[15],망치경호대[22],암흑광전사[13],암흑고위기사[17],암흑집정관[14],원시바퀴[8],변종가시지옥[12],원시히드라리스크[20]"},
-  {name:"나루드",        grade:"슈퍼히든",category:"혼종",recipe:"공허분쇄자(SXD,300%↑,300~999kill)[2]+사라케리건(X↑,150%↑)[2]",cost:"전쟁광[12],저격수[12],망치경호대[24],코브라[26],스파르타중대[24],공성파괴단[32],암흑광전사[18],암흑고위기사[30],암흑집정관[44],암흑파수기[12],암흑추적자[20],암흑불멸자[32],원시바퀴[18],변종가시지옥[46],원시히드라리스크[48],시체매-지뢰매설[48]"}
-];
-
-const TAB_CATEGORIES = [
-  {key:"테바",  label:"테바"},{key:"테메",  label:"테메"},
-  {key:"토바",  label:"토바"},{key:"토메",  label:"토메"},
-  {key:"저그중립",label:"저그중립"},{key:"혼종",  label:"혼종"}
-];
-
-const unitMap = new Map();
 const clean = s => s ? s.replace(/\s+/g,'').toLowerCase() : '';
 
 function getUnitColor(name){
-    const cName = clean(name.split(/[(\[▶▼]/)[0]);
+    const cName = clean(String(name).split(/[(\[▶▼]/)[0]);
     const u = unitMap.get(cName);
-    if(u && gradeColors[u.grade]) return gradeColors[u.grade];
-    if(u && raceColors[u.category]) return raceColors[u.category];
+    if(u && gradeColorsRaw[u.grade]) return gradeColorsRaw[u.grade];
     return "var(--text-main)";
 }
 
-/* ========================================================================
-   [ 태그 생성 함수 ]
-======================================================================== */
 function gradeTag(grade){
     const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'H',슈퍼히든:'S'};
-    return `<span style="color:${gradeColors[grade]||'#fff'}; font-weight: 800;">[${short[grade]||grade}]</span>`;
+    return `<span style="color:${gradeColorsRaw[grade]||'#fff'}; font-family:var(--font-mono);">[${short[grade]||grade}]</span>`;
+}
+
+function debounce(f,t){let timer; return(...args)=>{clearTimeout(timer);timer=setTimeout(()=>f.apply(this,args),t);};}
+
+function findUnit(input){
+    if(!input) return null; const ckey = clean(input); if(!ckey) return null;
+    if(UNIT_ALIASES[input.trim()]) return unitMap.get(clean(UNIT_ALIASES[input.trim()]));
+    if(UNIT_ALIASES[ckey]) return unitMap.get(clean(UNIT_ALIASES[ckey]));
+    if(unitMap.get(ckey)) return unitMap.get(ckey);
+    
+    const allUnits = [...unitMap.values()];
+    const startsWith = allUnits.filter(u => clean(u.name).startsWith(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
+    if(startsWith.length) return startsWith[0];
+    
+    const includes = allUnits.filter(u => clean(u.name).includes(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
+    if(includes.length) return includes[0];
+    return null;
+}
+
+function findAllMatchingUnits(input, limit=8){
+    if(!input || !input.trim()) return [];
+    const ckey = clean(input); const allUnits = [...unitMap.values()];
+    const found = new Set(); const result = [];
+    
+    Object.entries(UNIT_ALIASES).forEach(([alias, target]) => {
+        if(clean(alias).startsWith(ckey) || clean(alias) === ckey){
+            const u = unitMap.get(clean(target));
+            if(u && !found.has(u.name)){ found.add(u.name); result.push({unit:u, alias:alias}); }
+        }
+    });
+    
+    allUnits.forEach(u => { if(!found.has(u.name) && clean(u.name).startsWith(ckey)){ found.add(u.name); result.push({unit:u, alias:null}); } });
+    allUnits.forEach(u => { if(!found.has(u.name) && clean(u.name).includes(ckey)){ found.add(u.name); result.push({unit:u, alias:null}); } });
+    result.sort((a,b) => GRADE_ORDER.indexOf(b.unit.grade) - GRADE_ORDER.indexOf(a.unit.grade));
+    return result.slice(0, limit);
 }
 
 /* ========================================================================
-   [ 로직 ] 코스트 계산
+   [ SECTION 3 : 코스트(비용) 파싱 및 산출 로직 ]
 ======================================================================== */
 function processCostKeyword(rawName, amount, map){
-    let matched = false;
-    const cName = clean(rawName);
+    let matched = false; const cName = clean(rawName);
     for(const conf of specialKeywordMap){
         if(conf.keys.some(k => cName.includes(clean(k)))){
             const val = conf.divider ? amount/conf.divider : amount;
             if(conf.subKey){ if(!map[conf.atom]) map[conf.atom]={갓오타:0,메시브:0}; map[conf.atom][conf.subKey]+=val; }
-            else { map[conf.atom]=(map[conf.atom]||0)+val; }
+            else map[conf.atom]=(map[conf.atom]||0)+val;
             matched=true; break;
         }
     }
@@ -642,623 +509,637 @@ function processCostKeyword(rawName, amount, map){
 }
 
 function parseFixedCost(costStr, multiplier, map){
-    if(!costStr||["정보 부족","미발견","없음",""].includes(costStr)) return;
+    if(!costStr || ["정보 부족","미발견","없음",""].includes(costStr)) return;
     costStr.split(',').forEach(p=>{
         const m = p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
-        if(m){ processCostKeyword(m[1].trim(), parseFloat(m[2])*multiplier, map); }
-        else { processCostKeyword(p.trim(), multiplier, map); }
+        if(m) processCostKeyword(m[1].trim(), parseFloat(m[2])*multiplier, map);
+        else processCostKeyword(p.trim(), multiplier, map);
     });
 }
 
 function calculateRecursiveCost(name, m, map, visited=new Set()){
     const pName = clean(name.split(/[(\[]/)[0]);
-    if(visited.has(pName)) return;
-    const curV=new Set(visited); curV.add(pName);
+    if(visited.has(pName)) return; const curV=new Set(visited); curV.add(pName);
     if(processCostKeyword(pName, m, map)) return;
     
     const u = unitMap.get(pName);
-    
-    // IGNORE_PARSE_RECIPES에 해당하는 텍스트는 쪼개서 파싱하지 않도록 차단
     if(u && u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)){
         u.recipe.split('+').forEach(part=>{
             const match=part.trim().match(/^([^(\[]+)/);
             if(match){
-                const ingName=match[1].trim();
-                const cntMatch=part.match(/\[(\d+)\]/);
-                const cnt=cntMatch?parseInt(cntMatch[1]):1;
-                const childU = unitMap.get(clean(ingName));
-                if(childU && childU.cost && !["정보 부족","미발견","없음",""].includes(childU.cost)){
-                    parseFixedCost(childU.cost, cnt*m, map);
-                } else {
-                    calculateRecursiveCost(ingName, cnt*m, map, curV);
-                }
-            } else {
-                calculateRecursiveCost(part.trim(), m, map, curV);
-            }
+                const ingName=match[1].trim(); const cntMatch=part.match(/\[(\d+)\]/);
+                const cnt=cntMatch?parseInt(cntMatch[1]):1; const childU = unitMap.get(clean(ingName));
+                if(childU && childU.cost && !["정보 부족","미발견","없음",""].includes(childU.cost)) parseFixedCost(childU.cost, cnt*m, map);
+                else calculateRecursiveCost(ingName, cnt*m, map, curV);
+            } else calculateRecursiveCost(part.trim(), m, map, curV);
         });
     }
+}
+
+function calculateTotalCostScore(costStr) {
+    if (!costStr || costStr === "정보 부족" || costStr === "미발견" || costStr === "없음") return 0;
+    let total = 0;
+    const regex = /\[(\d+(?:\.\d+)?)\]/g;
+    let match;
+    while ((match = regex.exec(costStr)) !== null) {
+        total += parseFloat(match[1]);
+    }
+    return total;
 }
 
 /* ========================================================================
-   [ 계보 트리 렌더링 ] 
+   [ SECTION 4 : 화면(UI) 업데이트 로직 ]
 ======================================================================== */
-function buildTree(key, visited=new Set(), isRoot=false, conditionStr='', depth=0){
-    const u = unitMap.get(key);
-    if(!u) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge">${key}</div><span style="color:var(--text-sub);font-size:0.8rem;font-weight:600;">${conditionStr}</span></div></li>`;
+function toggleUnitSelection(name){
+    const cName = clean(name);
     
-    if(visited.has(key)) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);background:var(--bg-base);">${u.name} (중복)</div><span style="color:var(--text-sub);font-size:0.8rem;font-weight:600;">${conditionStr}</span></div></li>`;
+    // 1. 도감 클릭 시 일일 정수 리스트 토글
+    if(essenceUnits.has(cName)) essenceUnits.delete(cName);
+    else essenceUnits.add(cName);
     
-    const newV=new Set(visited); newV.add(key);
-    let ch='';
+    // 2. 기존 코스트 계산기 로직
+    if(activeUnits.has(cName)) activeUnits.delete(cName);
+    else activeUnits.set(cName, 1);
     
-    // IGNORE_PARSE_RECIPES에 해당하는 경우 하위 트리 탐색을 건너뜀
-    if(u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)){
-        u.recipe.split('+').forEach(part=>{
-            const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
-            if(match) {
-                const childName = clean(match[1]);
-                const cond = match[2] ? `(${match[2]})` : '';
-                const cnt = match[3] ? `[${match[3]}]` : '';
-                const combinedCond = `${cond}${cnt}`;
-
-                const target=unitMap.get(childName);
-                if(target && target.key!==u.key) {
-                    ch+=buildTree(target.key||childName, newV, false, combinedCond, depth+1);
-                } else {
-                    ch+=`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);">${match[1].trim()}</div><span style="color:var(--text-sub);font-size:0.85rem;font-weight:600;">${combinedCond}</span></div></li>`;
-                }
-            } else {
-                const childName=clean(part);
-                const target=unitMap.get(childName);
-                if(target && target.key!==u.key) ch+=buildTree(target.key||childName, newV, false, '', depth+1);
-            }
-        });
-    }
-    
-    const ulStyle = depth === 0 ? 'block' : 'none'; 
-    const mark = depth === 0 ? '▼' : '▶'; 
-    const bulletDisplay = depth === 0 ? 'block' : 'none';
-    const isRedundant = u.recipe && u.cost && clean(u.recipe).replace(/\+/g,',')===clean(u.cost).replace(/\+/g,',');
-    
-    // 재료(recipe) 텍스트는 IGNORE 조건 중에서도 "미발견", "없음", ""이 아니면 출력하도록 허용
-    return `<li class="tree-li">
-        <div class="tree-node-wrapper">
-            <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">
-                ${u.name}${ch?`<span class="toggle-mark">${mark}</span>`:''}
-            </div>
-            ${conditionStr ? `<span style="color:var(--text-sub);font-size:0.85rem;font-weight:600;">${conditionStr}</span>` : ''}
-        </div>
-        ${(u.recipe && !["미발견","없음",""].includes(u.recipe)) ? `<div class="bullet-recipe" style="display:${bulletDisplay};">재료: ${u.recipe}</div>`:''}
-        ${(u.cost&&!isRedundant&&!["미발견","없음",""].includes(u.cost))?`<div class="bullet-cost" style="display:${bulletDisplay};">매직: ${u.cost}</div>`:''}
-        ${ch?`<ul class="tree-ul ${isRoot ? 'root-ul' : ''}" style="display:${ulStyle};">${ch}</ul>`:''}
-    </li>`;
+    updateAllPanels();
+    updateSearchBarFromState();
 }
 
-function toggleAllTree(btn) {
-    const card = btn.closest('.analysis-card');
-    let isExpanded = btn.getAttribute('data-expanded') === 'true';
+function updateSearchBarFromState() {
+    const searchArr = [];
+    activeUnits.forEach((count, key) => {
+        let u = unitMap.get(key);
+        if(u) searchArr.push(count > 1 ? `${u.name}*${count}` : u.name);
+    });
+    DOM.comboInput.value = searchArr.join(", ");
+    updateHighlight();
+}
 
-    if (isExpanded) {
-        const rootNode = card.querySelector('.tree-ul.root-ul > .tree-li');
-        if (rootNode) {
-            const firstLevelUl = rootNode.querySelector(':scope > .tree-ul');
-            if (firstLevelUl) {
-                firstLevelUl.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'none');
-                firstLevelUl.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'none');
-                firstLevelUl.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▶');
-            }
+function updateAllPanels() {
+    renderTreeAndMagic();
+    updateEssence();
+    refreshCodexHighlight();
+}
+
+// 일일 정수 산출 로직 (검색 수량 무시, 도감 클릭 기반 1일 1회)
+function updateEssence() {
+    let counts = {coral:0, aiur:0, zerus:0, hybrid:0};
+    essenceUnits.forEach(key => { 
+        let u = unitMap.get(key);
+        if(u && ["히든", "슈퍼히든"].includes(u.grade)) {
+            if(["테바", "테메"].includes(u.category)) counts.coral += 1;
+            else if(["토바", "토메"].includes(u.category)) counts.aiur += 1;
+            else if(u.category === "저그중립") counts.zerus += 1;
+            else if(u.category === "혼종") counts.hybrid += 1;
         }
-        btn.innerText = '전체펼치기';
-    } else {
-        card.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'block');
-        card.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'block');
-        card.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▼');
-        btn.innerText = '전체접기';
-    }
-    btn.setAttribute('data-expanded', !isExpanded);
-}
-
-function toggleTreeNode(el){
-    const p=el.closest('.tree-li');
-    const r=p.querySelector(':scope>.bullet-recipe');
-    const c=p.querySelector(':scope>.bullet-cost');
-    const t=p.querySelector(':scope>.tree-ul');
-    const m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');
-    if(t) t.style.display=(t.style.display==='none'?'block':'none');
-    if(r) r.style.display=(r.style.display==='none'?'block':'none');
-    if(c) c.style.display=(c.style.display==='none'?'block':'none');
-    if(m) m.innerText=(m.innerText==='▶'?'▼':'▶');
-}
-
-/* ========================================================================
-   [ 중앙 분석 화면 ] 계보 생성 호출
-======================================================================== */
-const DOM = {};
-let currentView = 1;
-
-function analyzeUnits(keys, mults={}, targetContainer = null){
-    const isMainView = !targetContainer || targetContainer.id === 'treeView';
-    if(!targetContainer) targetContainer = DOM.treeView;
-
-    if(isMainView) resetMagicDashboard(false);
-    
-    const totalMap={};
-    dashboardAtoms.forEach(a=>{
-        if(a.name==="갓오타/메시브") totalMap[a.name]={갓오타:0,메시브:0};
-        else totalMap[a.name]=0;
     });
     
-    let htmlBuffer = ''; 
+    const coralTotal = counts.coral + counts.hybrid;
+    const aiurTotal = counts.aiur + counts.hybrid;
+    const zerusTotal = counts.zerus + counts.hybrid;
+    const allTotal = coralTotal + aiurTotal + zerusTotal;
+
+    document.getElementById('val-coral').innerText = coralTotal;
+    document.getElementById('val-aiur').innerText = aiurTotal;
+    document.getElementById('val-zerus').innerText = zerusTotal;
+    document.getElementById('essence-total-val').innerText = allTotal;
+}
+
+// 도감 좌측 패널 하이라이트 동기화 (정수확보 라벨 추가)
+function refreshCodexHighlight() {
+    document.querySelectorAll('.unit-list-card').forEach(card => {
+        let name = clean(card.dataset.name);
+        
+        if(activeUnits.has(name)) card.classList.add('active');
+        else card.classList.remove('active');
+        
+        let titleRow = card.querySelector('.title-row');
+        let essenceSpan = titleRow.querySelector('.essence-label');
+        if(essenceUnits.has(name)) {
+            if(!essenceSpan) titleRow.insertAdjacentHTML('beforeend', `<span class="essence-label" style="font-size:0.85rem; color:var(--accent-main); font-weight:800; margin-left:6px;">[정수확보]</span>`);
+        } else {
+            if(essenceSpan) essenceSpan.remove();
+        }
+    });
+}
+
+function renderTreeAndMagic(){
+    resetMagicDashboard();
+    if(activeUnits.size === 0) {
+        DOM.treeView.innerHTML = `<div class="empty-hud"><div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div><div style="font-size:0.95rem;opacity:0.6;margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div></div>`;
+        return;
+    }
+
+    const totalMap = {};
+    dashboardAtoms.forEach(a => { if(a.name === "갓오타/메시브") totalMap[a.name] = {갓오타:0, 메시브:0}; else totalMap[a.name] = 0; });
     
-    if(keys.length===1 && isMainView){
+    let htmlBuffer = ''; 
+    const keys = Array.from(activeUnits.keys());
+
+    if(keys.length === 1){
         const targetU = unitMap.get(keys[0]);
-        if(targetU && (targetU.grade==="레전드"||targetU.grade==="히든"||targetU.grade==="헬"||targetU.grade==="슈퍼히든")){
-            const parents = unitDatabase.filter(u=>{
-                const isHigher = ["히든","슈퍼히든"].includes(u.grade);
-                return isHigher && u.name!==targetU.name && u.recipe && u.recipe.includes(targetU.name);
-            });
-            if(parents.length>0){
-                parents.sort((a,b)=>GRADE_ORDER.indexOf(a.grade)-GRADE_ORDER.indexOf(b.grade));
-                htmlBuffer += `<div class="analysis-card" style="border-color:var(--accent);background:rgba(56,189,248,.05);">
-                    <h3 style="color:var(--accent);border-bottom-color:rgba(56,189,248,.2);">🚀 상위 조합 가능 유닛 (계보)</h3>
-                    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;">`;
-                parents.forEach(p=>{
-                    htmlBuffer += `<div class="unit-badge" style="color:${getUnitColor(p.name)};border-color:rgba(255,255,255,.1);" onclick="selectUnitFromAction('${p.name}')">${p.name}</div>`;
-                });
+        if(targetU && ["레전드","히든","헬","슈퍼히든"].includes(targetU.grade)){
+            const parents = unitDatabase.filter(u => ["히든","슈퍼히든"].includes(u.grade) && u.name !== targetU.name && u.recipe && u.recipe.includes(targetU.name));
+            if(parents.length > 0){
+                parents.sort((a,b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
+                htmlBuffer += `<div class="analysis-card" style="border-left-color:#FBBF24;">
+                    <h3 style="color:#FBBF24;border-bottom-color:rgba(251,191,36,0.2);">> 상위 조합 가능</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">`;
+                parents.forEach(p => { htmlBuffer += `<div class="unit-badge" style="color:${getUnitColor(p.name)};" onclick="toggleUnitSelection('${p.name}')">${p.name}</div>`; });
                 htmlBuffer += `</div></div>`;
             }
         }
     }
     
-    keys.forEach((k)=>{
-        const u=unitMap.get(k); if(!u) return;
-        const c=mults[k]||1;
-        
-        if(u.cost && !["정보 부족","미발견","없음",""].includes(u.cost)){
-            parseFixedCost(u.cost, c, totalMap);
-        } else {
-            calculateRecursiveCost(u.name, c, totalMap);
-        }
+    keys.forEach(k => {
+        const u = unitMap.get(k); if(!u) return; const c = activeUnits.get(k) || 1;
+        if(u.cost && !["정보 부족","미발견","없음",""].includes(u.cost)) parseFixedCost(u.cost, c, totalMap);
+        else calculateRecursiveCost(u.name, c, totalMap);
         
         htmlBuffer += `<div class="analysis-card" id="card-${k}">
             <h3>
-                <span style="color:${getUnitColor(u.name)};text-shadow:0 0 10px rgba(255,255,255,.1);">${u.name}${c>1?` <span style="color:var(--text-muted);font-size:.9rem;">x${c}</span>`:''}</span>
-                <button class="tree-btn" data-expanded="false" onclick="toggleAllTree(this)">전체펼치기</button>
+                <span style="color:${getUnitColor(u.name)};">${u.name}${c > 1 ? ` <span style="color:var(--text-sub);font-size:0.9rem;">x${c}</span>` : ''}</span>
+                <button class="btn-tech" style="padding:4px 12px;font-size:0.75rem;height:auto;" data-expanded="false" onclick="toggleAllTree(this)">모두 펼치기</button>
             </h3>
-            <div class="lazy-tree-container" style="display:block;">
+            <div style="display:block;">
                 <ul class="tree-ul root-ul" style="display:block;">${buildTree(k, new Set(), true, '', 0)}</ul>
             </div>
         </div>`;
     });
     
-    targetContainer.innerHTML = htmlBuffer;
+    DOM.treeView.innerHTML = htmlBuffer;
     
-    if(isMainView) {
-        dashboardAtoms.forEach(a=>{
-            const val=totalMap[a.name];
-            const e=document.getElementById(`val-${a.name}`);
-            const container=document.getElementById(`val-container-${a.name}`);
-            const nameEl=container.querySelector('.slot-name');
-            if(a.name==="갓오타/메시브"){
-                if(val.갓오타>0||val.메시브>0){
-                    let html="";
-                    if(val.갓오타>0) html+=`<div style="font-size:.9rem;line-height:1.2;color:#F59E0B;">갓오타 ${Math.ceil(val.갓오타)}</div>`;
-                    if(val.메시브>0) html+=`<div style="font-size:.9rem;line-height:1.2;color:#EF4444;margin-top:2px;">메시브 ${Math.ceil(val.메시브)}</div>`;
-                    e.innerHTML=html; if(nameEl) nameEl.style.display='none'; container.classList.add('active');
-                }
-            } else if(val>0){
-                e.innerText=Math.ceil(val); if(nameEl) nameEl.style.display='block'; container.classList.add('active');
+    dashboardAtoms.forEach(a => {
+        const val = totalMap[a.name];
+        const container = document.getElementById(`val-container-${a.name}`);
+        if(!container) return;
+        const e = container.querySelector('.val'); const nameEl = container.querySelector('.name');
+        if(a.name === "갓오타/메시브"){
+            if(val.갓오타 > 0 || val.메시브 > 0){
+                let html = "";
+                if(val.갓오타 > 0) html += `<div style="font-size:0.9rem;color:#FBBF24;">갓오타 ${Math.ceil(val.갓오타)}</div>`;
+                if(val.메시브 > 0) html += `<div style="font-size:0.9rem;color:#EF4444;">메시브 ${Math.ceil(val.메시브)}</div>`;
+                e.innerHTML = html; nameEl.style.display = 'none'; container.classList.add('active');
+            }
+        } else if(val > 0){
+            e.innerText = Math.ceil(val); nameEl.style.display = 'block'; container.classList.add('active');
+        }
+    });
+}
+
+function buildTree(key, visited=new Set(), isRoot=false, conditionStr='', depth=0){
+    const u = unitMap.get(key);
+    if(!u) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge">${key}</div><span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span></div></li>`;
+    if(visited.has(key)) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);background:rgba(0,0,0,0.5);">${u.name} (중복)</div><span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span></div></li>`;
+    
+    const newV=new Set(visited); newV.add(key); let ch='';
+    if(u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)){
+        u.recipe.split('+').forEach(part=>{
+            const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
+            if(match) {
+                const childName = clean(match[1]); const cond = match[2] ? `(${match[2]})` : ''; const cnt = match[3] ? `[${match[3]}]` : '';
+                const combinedCond = `${cond}${cnt}`; const target = unitMap.get(childName);
+                if(target && target.key !== u.key) ch += buildTree(target.key||childName, newV, false, combinedCond, depth+1);
+                else ch += `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);">${match[1].trim()}</div><span style="color:var(--text-sub);font-size:0.9rem;">${combinedCond}</span></div></li>`;
+            } else {
+                const childName = clean(part); const target = unitMap.get(childName);
+                if(target && target.key !== u.key) ch += buildTree(target.key||childName, newV, false, '', depth+1);
             }
         });
     }
+    const ulStyle = depth === 0 ? 'block' : 'none'; const mark = depth === 0 ? '▼' : '▶'; const bulletDisplay = depth === 0 ? 'block' : 'none';
+    const isRedundant = u.recipe && u.cost && clean(u.recipe).replace(/\+/g,',') === clean(u.cost).replace(/\+/g,',');
+    
+    return `<li class="tree-li">
+        <div class="tree-node-wrapper">
+            <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">${u.name}${ch ? `<span class="toggle-mark" style="margin-left:6px;font-size:0.7rem;color:var(--accent-main)">${mark}</span>` : ''}</div>
+            ${conditionStr ? `<span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span>` : ''}
+        </div>
+        ${(u.recipe && !["미발견","없음",""].includes(u.recipe)) ? `<div class="bullet-recipe" style="display:${bulletDisplay};">조합: ${u.recipe}</div>` : ''}
+        ${(u.cost && !isRedundant && !["미발견","없음",""].includes(u.cost)) ? `<div class="bullet-cost" style="display:${bulletDisplay};">비용: ${u.cost}</div>` : ''}
+        ${ch ? `<ul class="tree-ul ${isRoot ? 'root-ul' : ''}" style="display:${ulStyle};">${ch}</ul>` : ''}
+    </li>`;
+}
+
+function toggleAllTree(btn){
+    const card = btn.closest('.analysis-card'); let isExpanded = btn.getAttribute('data-expanded') === 'true';
+    if(isExpanded){
+        const rootNode = card.querySelector('.tree-ul.root-ul > .tree-li');
+        if(rootNode){
+            const firstLevelUl = rootNode.querySelector(':scope > .tree-ul');
+            if(firstLevelUl){
+                firstLevelUl.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'none');
+                firstLevelUl.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'none');
+                firstLevelUl.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▶');
+            }
+        }
+        btn.innerText = '모두 펼치기';
+    } else {
+        card.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'block');
+        card.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'block');
+        card.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▼');
+        btn.innerText = '모두 접기';
+    }
+    btn.setAttribute('data-expanded', !isExpanded);
+}
+function toggleTreeNode(el){
+    const p = el.closest('.tree-li');
+    const r = p.querySelector(':scope>.bullet-recipe'); const c = p.querySelector(':scope>.bullet-cost');
+    const t = p.querySelector(':scope>.tree-ul'); const m = p.querySelector(':scope>.tree-node-wrapper .toggle-mark');
+    if(t) t.style.display = (t.style.display === 'none' ? 'block' : 'none');
+    if(r) r.style.display = (r.style.display === 'none' ? 'block' : 'none');
+    if(c) c.style.display = (c.style.display === 'none' ? 'block' : 'none');
+    if(m) m.innerText = (m.innerText === '▶' ? '▼' : '▶');
 }
 
 /* ========================================================================
-   [ 검색 동작 ]
+   [ SECTION 5 : 검색 및 자동완성 시스템 ]
 ======================================================================== */
 function updateHighlight(){
-    const val=DOM.comboInput.value;
-    if(!val){DOM.highlightLayer.innerHTML="";return;}
-    const safeVal=val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const parts=safeVal.split(/([,\/]+)/);
-    const coloredParts=parts.map(part=>{
+    const val = DOM.comboInput.value;
+    if(!val){ DOM.highlightLayer.innerHTML = ""; return; }
+    const parts = val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').split(/([,\/]+)/);
+    const colored = parts.map(part => {
         if(/^[,\/]+$/.test(part)) return `<span style="color:var(--text-muted)">${part}</span>`;
-        const subParts=part.split('*'); let unitName=subParts[0]; let color="var(--text-main)";
-        if(unitName.trim().length>0){
-            const found=findUnit(clean(unitName));
-            if(found) color=getUnitColor(found.name);
+        const subParts = part.split('*'); let unitName = subParts[0]; let color = "var(--text-main)";
+        if(unitName.trim().length > 0){
+            const found = findUnit(unitName.trim());
+            if(found) color = getUnitColor(found.name);
         }
-        subParts[0]=`<span style="color:${color}">${unitName}</span>`;
+        subParts[0] = `<span style="color:${color}">${unitName}</span>`;
         return subParts.join('<span style="color:var(--text-muted)">*</span>');
     });
-    DOM.highlightLayer.innerHTML=coloredParts.join('');
+    DOM.highlightLayer.innerHTML = colored.join('');
 }
 
-function findUnit(ckey){
-    const aliases={"아몬":"아몬","불새":"불새케리건","노바":"노바","아둔":"아둔의창","나루드":"나루드","초월체":"초월체"};
-    const searchKey=aliases[ckey]?clean(aliases[ckey]):ckey;
-    return unitMap.get(searchKey) || [...unitMap.values()].find(u=>u.key===searchKey||clean(u.name)===searchKey);
+const debounceSearch = debounce(() => {
+    const val = DOM.comboInput.value.trim();
+    activeUnits.clear();
+    if(val){ 
+        const terms = val.split(/[,\/]/).map(t => t.trim()).filter(t => t !== "");
+        terms.forEach(raw => {
+            let [t, c] = raw.split('*'); let found = findUnit(t.trim());
+            if(found){ activeUnits.set(clean(found.name), parseInt(c) || 1); }
+        });
+    }
+    updateAllPanels();
+}, 300);
+
+function resetAll(){
+    activeUnits.clear();
+    essenceUnits.clear(); // 정수 초기화
+    DOM.comboInput.value = ""; updateHighlight(); hideSuggestions(); 
+    DOM.treeView.innerHTML = `<div class="empty-hud"><div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div><div style="font-size:0.95rem;opacity:0.6;margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div></div>`;
+    resetMagicDashboard(); updateAllPanels(); DOM.comboInput.focus();
 }
 
-const debounceSearch = debounce(()=>{
-    const val=clean(DOM.comboInput.value);
-    resetMagicDashboard(false); DOM.treeView.innerHTML=""; 
-    if(!val) return;
-    
-    const terms=val.split(/[,\/]/).map(t=>t.trim()).filter(t=>t!=="");
-    const multMap={}; const exacts=[];
-    const aliases={"아몬":"아몬","불새":"불새케리건","노바":"노바","아둔":"아둔의창","나루드":"나루드","초월체":"초월체"};
-    terms.forEach(raw=>{
-        let [t,c]=raw.split('*'); let p=clean(t);
-        let searchKey=aliases[p]?clean(aliases[p]):p;
-        let found=unitMap.get(searchKey)||[...unitMap.values()].find(u=>clean(u.name)===searchKey);
-        if(found){ exacts.push(clean(found.name)); multMap[clean(found.name)]=parseInt(c)||1; }
+let suggestionsState = {focused: -1, items: []};
+function updateSuggestions(){
+    const val = DOM.comboInput.value; const lastTerm = val.split(/[,\/]/).pop().split('*')[0].trim();
+    if(!lastTerm){ hideSuggestions(); return; }
+    const matches = findAllMatchingUnits(lastTerm, 8);
+    if(!matches.length){ hideSuggestions(); return; }
+    let html = '';
+    matches.forEach((m, idx) => {
+        const u = m.unit; const aliasInfo = m.alias && clean(m.alias) !== clean(u.name) ? `<span style="font-size:0.8rem;color:var(--accent-main);font-style:italic;">[${m.alias}]</span>` : '';
+        html += `<div class="suggestion-item" data-idx="${idx}" data-name="${u.name}" onclick="pickSuggestion('${u.name}')">
+            <span style="font-weight:700;color:${getUnitColor(u.name)};flex:1;">${u.name} ${aliasInfo}</span>
+            <span style="font-family:var(--font-mono);font-size:0.8rem;color:${gradeColorsRaw[u.grade]};border:1px solid;padding:2px 6px;border-radius:2px;">${u.grade}</span>
+        </div>`;
     });
-    
-    if(exacts.length) analyzeUnits(exacts, multMap);
-}, 400);
+    DOM.suggestions.innerHTML = html; DOM.suggestions.classList.add('visible');
+    suggestionsState.focused = -1; suggestionsState.items = matches;
+}
 
-function selectUnitFromAction(name){
-    DOM.comboInput.value=name; updateHighlight();
-    DOM.treeView.innerHTML="";
-    
-    analyzeUnits([clean(name)]);
-    
-    if(window.innerWidth<=1200) document.getElementById('treeScrollPanel').scrollIntoView({behavior:'smooth'});
-    else DOM.treeView.scrollTop=0;
+function hideSuggestions(){ DOM.suggestions.classList.remove('visible'); suggestionsState.focused = -1; suggestionsState.items = []; }
+
+function pickSuggestion(name){
+    const val = DOM.comboInput.value; const parts = val.split(/([,\/])/);
+    if(parts.length){
+        const lastPart = parts[parts.length-1]; const starIdx = lastPart.indexOf('*');
+        if(starIdx >= 0) parts[parts.length-1] = name + lastPart.substring(starIdx);
+        else parts[parts.length-1] = name;
+        DOM.comboInput.value = parts.join('');
+    } else DOM.comboInput.value = name;
+    updateHighlight(); hideSuggestions(); DOM.comboInput.focus(); debounceSearch();
+}
+
+function handleSuggestionKey(e){
+    if(!DOM.suggestions.classList.contains('visible')) return;
+    const items = DOM.suggestions.querySelectorAll('.suggestion-item'); if(!items.length) return;
+    if(e.key === 'ArrowDown'){ e.preventDefault(); suggestionsState.focused = Math.min(suggestionsState.focused + 1, items.length - 1); items.forEach((it, i) => it.classList.toggle('focused', i === suggestionsState.focused)); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); suggestionsState.focused = Math.max(suggestionsState.focused - 1, -1); items.forEach((it, i) => it.classList.toggle('focused', i === suggestionsState.focused)); }
+    else if(e.key === 'Enter'){ if(suggestionsState.focused >= 0){ e.preventDefault(); pickSuggestion(items[suggestionsState.focused].dataset.name); } else hideSuggestions(); }
+    else if(e.key === 'Escape') hideSuggestions();
 }
 
 /* ========================================================================
-   [ 우측 도감 탭 UI ]
+   [ SECTION 6 : 도감 탭 (비용 정렬) 및 초기화 로직 ]
 ======================================================================== */
 function renderTabs(){
-    let h=`<div class="tabs-wrapper">`;
-    const countGrades = ["레전드", "히든", "슈퍼히든"];
-    TAB_CATEGORIES.forEach((cat,idx)=>{
-        const cnt=unitDatabase.filter(u=>u.category===cat.key && countGrades.includes(u.grade)).length;
-        h+=`<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">
-            <span>${cat.label}</span><span class="unit-count">${cnt}</span>
-        </button>`;
+    let h = ``;
+    TAB_CATEGORIES.forEach((cat, idx) => {
+        const count = unitDatabase.filter(u => u.category === cat.key && ["슈퍼히든","히든","레전드"].includes(u.grade)).length;
+        h += `<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">
+            ${cat.label} <span style="font-size:0.8rem; opacity:0.7;">(${count})</span>
+        </button>`; 
     });
-    h+=`</div><div id="tabContent" class="tab-content-area"></div>`;
-    DOM.tablesContainer.innerHTML=h; selectTab(0);
+    document.querySelector('.codex-tabs').innerHTML = h; selectTab(0);
 }
 
 function selectTab(idx){
-    document.querySelectorAll('.tab-btn').forEach((btn,i)=>{
-        if(i===idx) btn.classList.add('active'); else btn.classList.remove('active');
-    });
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === idx));
     const catKey = TAB_CATEGORIES[idx].key;
-
-    const superItems  = unitDatabase.filter(u=>u.category===catKey && u.grade==="슈퍼히든");
-    const hiddenItems = unitDatabase.filter(u=>u.category===catKey && u.grade==="히든");
-    const legendItems = unitDatabase.filter(u=>u.category===catKey && u.grade==="레전드");
-
-    const combined = [...superItems, ...hiddenItems, ...legendItems];
-
-    let h = '<div style="margin-top: 8px;">';
     
-    combined.forEach((item) => {
-        const nameColor = gradeColors[item.grade] || '#fff';
+    let items = unitDatabase.filter(u => u.category === catKey && ["슈퍼히든","히든","레전드"].includes(u.grade));
+    
+    items.sort((a,b) => {
+        if (a.grade === "슈퍼히든" && b.grade !== "슈퍼히든") return -1;
+        if (b.grade === "슈퍼히든" && a.grade !== "슈퍼히든") return 1;
         
-        h += `<div class="unit-list-card" onclick="selectUnitFromAction('${item.name}')">
-            <div class="unit-list-name" style="color: ${nameColor};">
-                ${gradeTag(item.grade)} ${item.name}
+        let costA = calculateTotalCostScore(a.cost);
+        let costB = calculateTotalCostScore(b.cost);
+        return costB - costA;
+    });
+
+    let h = '<div>';
+    items.forEach(item => {
+        let isActive = activeUnits.has(clean(item.name)) ? 'active' : '';
+        let totalCost = calculateTotalCostScore(item.cost);
+        let costLabel = totalCost > 0 ? ` <span style="font-size:0.85rem; color:var(--text-sub); font-weight:normal;">[총비용: ${totalCost}]</span>` : '';
+        
+        h += `<div class="unit-list-card ${isActive}" data-name="${item.name}" onclick="toggleUnitSelection('${item.name}')">
+            <div class="title-row" style="color:${getUnitColor(item.name)};">
+                ${gradeTag(item.grade)} ${item.name}${costLabel}
             </div>
-            <div class="unit-list-recipe">${item.recipe||'-'}</div>
+            <div class="recipe-row">${item.recipe || '정보 없음'}</div>
         </div>`;
     });
-    h += '</div>';
-
-    const contentArea = document.getElementById('tabContent');
-    contentArea.innerHTML = h;
-    contentArea.scrollTop = 0;
+    h += '</div>'; document.getElementById('tabContent').innerHTML = h;
+    refreshCodexHighlight(); 
 }
 
-/* ========================================================================
-   [ 빠른 검색 필터 UI 제어 ]
-======================================================================== */
-function renderQuickFilters(){
-    const container=document.getElementById('quickGradeButtons');
-    const targetGrades=["매직","레어","에픽","유니크","헬","레전드","히든","슈퍼히든"];
-    let html='';
-    targetGrades.forEach(g=>{
-        html+=`<button class="grade-btn" style="border-left:4px solid ${gradeColors[g]};" onclick="showGradeUnits('${g}')">${g}</button>`;
-    });
-    container.innerHTML=html;
-}
-
-function showGradeUnits(grade){
-    const units=unitDatabase.filter(u=>u.grade===grade)
-        .sort((a,b)=>{
-            if(a.category === b.category) return a.name.localeCompare(b.name);
-            return a.category.localeCompare(b.category);
-        });
-    if(!units.length) return;
-    
-    let html=`<div class="analysis-card" style="border-color:${gradeColors[grade]}; background:var(--bg-panel); box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-        <h3 style="color:${gradeColors[grade]}; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border-light);">
-            ${grade} 등급 목록 <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-left:6px;">(클릭 시 계보 표시)</span>
-        </h3>
-        <div style="display:flex;flex-direction:column;gap:6px;">`;
-        
-    units.forEach((u,idx)=>{
-        html+=`<div style="display:flex;align-items:center;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:var(--bg-base);cursor:pointer;transition:.2s;"
-            onmouseover="this.style.background='var(--bg-panel-hover)'" onmouseout="this.style.background='var(--bg-base)'"
-            onclick="selectUnitFromAction('${u.name}')">
-            <span style="color:var(--text-sub);width:40px;font-weight:bold;font-size:.95rem;">${gradeTag(grade)}</span>
-            <span style="color:${gradeColors[grade]};font-weight:800;font-size:1rem;margin-left:8px;">${u.name}</span>
-            <span style="margin-left:auto;color:var(--text-muted);font-size:.85rem;">${u.category}</span>
-        </div>`;
-    });
-    html+=`</div></div>`;
-    
-    DOM.treeView.innerHTML = html;
-    DOM.treeView.scrollTop = 0;
-    
-    resetMagicDashboard(true);
-}
-
-/* ========================================================================
-   [ 대시보드 렌더링 ]
-======================================================================== */
 function renderDashboardAtoms(){
-    dashboardAtoms.forEach(a=>{
-        const d=document.createElement("div");
-        d.className=`cost-slot ${a.class}`; d.id=`val-container-${a.name}`;
-        d.innerHTML=`<div class="slot-val" id="val-${a.name}">0</div><div class="slot-name">${a.name}</div>`;
+    DOM.magicDashboard.innerHTML = '';
+    dashboardAtoms.forEach(a => {
+        const d = document.createElement("div"); d.className = `cost-slot`; d.id = `val-container-${a.name}`;
+        d.innerHTML = `<div class="val" id="val-${a.name}">0</div><div class="name">${a.name}</div>`;
         DOM.magicDashboard.appendChild(d);
     });
 }
-
-function resetMagicDashboard(clearAll){
-    dashboardAtoms.forEach(a=>{
-        const container=document.getElementById(`val-container-${a.name}`);
-        const e=document.getElementById(`val-${a.name}`);
-        const nameEl=container.querySelector('.slot-name');
-        if(e){e.innerHTML="0"; e.style.display="";}
-        if(nameEl) nameEl.style.display="block";
+function resetMagicDashboard(){
+    dashboardAtoms.forEach(a => {
+        const container = document.getElementById(`val-container-${a.name}`);
+        if(!container) return; const e = container.querySelector('.val'); const nameEl = container.querySelector('.name');
+        if(e){ e.innerHTML = "0"; e.style.display = ""; }
+        if(nameEl) nameEl.style.display = "block";
         container.classList.remove('active');
     });
 }
 
 /* ========================================================================
-   [ 메인 뷰 전환 로직 ]
+   [ SECTION 7 : 사이트 초기화 (window.onload) ]
 ======================================================================== */
-function toggleMainView(){
-    const btn = document.getElementById('btn-toggle-view');
-    const searchBlock = document.getElementById('header-search-block');
-    
-    if(currentView===1){
-        currentView=2;
-        document.getElementById('view-combo').classList.remove('active');
-        document.getElementById('view-essence').classList.add('active');
-        btn.innerText='히든조합';
-        searchBlock.style.opacity = '0';
-        setTimeout(() => searchBlock.style.display = 'none', 300);
-    } else {
-        currentView=1;
-        document.getElementById('view-combo').classList.add('active');
-        document.getElementById('view-essence').classList.remove('active');
-        btn.innerText='일일정수';
-        searchBlock.style.display = 'flex';
-        setTimeout(() => searchBlock.style.opacity = '1', 10);
-    }
-}
-
-function resetCombo(){
-    DOM.comboInput.value=""; updateHighlight();
-    DOM.treeView.innerHTML=""; 
-    resetMagicDashboard(true);
-}
-
-/* ========================================================================
-   [ 일일정수 UI 컨트롤 ]
-======================================================================== */
-const essenceClickState = {};
-const essenceUnitsMap = {coral:[],aiur:[],zerus:[],hybrid:[]};
-const essenceMax = {coral:0,aiur:0,zerus:0};
-
-function initEssenceData(){
-    essenceUnitsMap.coral=[]; essenceUnitsMap.aiur=[]; essenceUnitsMap.zerus=[]; essenceUnitsMap.hybrid=[];
-    const catMapping={
-        "테바":"coral","테메":"coral",
-        "토바":"aiur","토메":"aiur",
-        "저그중립":"zerus","혼종":"hybrid"
-    };
-    unitDatabase.forEach(u=>{
-        essenceClickState[u.name]=false;
-        const group=catMapping[u.category];
-        if(!group) return;
-        if(!["히든","슈퍼히든"].includes(u.grade)) return;
-        essenceUnitsMap[group].push({name:u.name,category:u.category,grade:u.grade});
-    });
-    
-    const ESSENCE_GRADE_ORDER = ["슈퍼히든","히든"];
-    Object.keys(essenceUnitsMap).forEach(g=>{
-        essenceUnitsMap[g].sort((a,b)=>ESSENCE_GRADE_ORDER.indexOf(a.grade)-ESSENCE_GRADE_ORDER.indexOf(b.grade));
-    });
-    const hybridLen=essenceUnitsMap.hybrid.length;
-    ["coral","aiur","zerus"].forEach(g=>{
-        essenceMax[g]=essenceUnitsMap[g].length+hybridLen;
-        document.getElementById(`max-${g}`).innerText=`/${essenceMax[g]}`;
-    });
-    renderEssenceGroups();
-}
-
-function renderEssenceGroups(){
-    const container=document.getElementById('essenceGroupsContainer');
-    const groupConfigs=[
-        {id:'coral',title:'코랄', text:'1회조합+1정수', data:essenceUnitsMap.coral},
-        {id:'aiur', title:'아이어', text:'1회조합+1정수', data:essenceUnitsMap.aiur},
-        {id:'zerus',title:'제루스', text:'1회조합+1정수', data:essenceUnitsMap.zerus},
-        {id:'hybrid',title:'혼종', text:'3회조합전체+1', data:essenceUnitsMap.hybrid}
-    ];
-    let html='';
-    const isMobile=window.innerWidth<=1200;
-    groupConfigs.forEach(g=>{
-        const displayStyle=isMobile?'none':'block';
-        const icon=isMobile?'▼':'▲';
-        html+=`<div class="essence-group">
-            <div class="essence-group-header" onclick="toggleEssenceGroup('${g.id}')" style="cursor:pointer;">
-                <h3 class="essence-group-title">${g.title} <span id="es-icon-${g.id}" style="font-size:.75rem;margin-left:6px;color:var(--text-muted);">${icon}</span></h3>
-                <button class="btn-select-all" onclick="event.stopPropagation();toggleAllEssence('${g.id}')">전체선택</button>
-            </div>
-            <div style="font-size:0.85rem; color:var(--accent); margin-bottom:12px; font-weight:700;">${g.text}</div>
-            <div id="es-content-${g.id}" class="essence-content" style="display:${displayStyle};">`;
-        
-        ["슈퍼히든","히든"].forEach(gradeGroup=>{
-            const gradeUnits = g.data.filter(u=>u.grade===gradeGroup);
-            if(!gradeUnits.length) return;
-            const gradeLabelStyle = gradeGroup==="슈퍼히든"
-                ? `color:#ffd700;border-bottom-color:rgba(255,215,0,0.25);`
-                : `color:var(--accent);border-bottom-color:rgba(56,189,248,0.2);`;
-            const gradeIcon = gradeGroup==="슈퍼히든" ? "✦" : "◈";
-            html+=`<div class="es-grade-header" style="${gradeLabelStyle}">${gradeIcon} ${gradeGroup}</div>`;
-            html+=`<div class="unit-check-list" style="margin-bottom:14px;">`;
-            gradeUnits.forEach(uObj=>{
-                const unitName=uObj.name;
-                html+=`<div class="unit-check-btn" id="es-btn-${clean(unitName)}" onclick="toggleEssence('${unitName}')">
-                    <span style="color:${getUnitColor(unitName)};font-weight:800;">${unitName}</span>
-                    <span style="margin-left:auto;font-size:.8rem;color:${gradeColors[uObj.grade]||'var(--text-muted)'}">${uObj.category}</span>
-                </div>`;
-            });
-            html+=`</div>`;
-        });
-        html+=`</div></div>`;
-    });
-    container.innerHTML=html;
-    updateEssenceCalculation();
-}
-
-function toggleEssenceGroup(groupId){
-    const content=document.getElementById(`es-content-${groupId}`);
-    const icon=document.getElementById(`es-icon-${groupId}`);
-    if(content.style.display==='none'){content.style.display='block';icon.innerText='▲';}
-    else{content.style.display='none';icon.innerText='▼';}
-}
-
-function toggleAllEssence(groupId){
-    const units=essenceUnitsMap[groupId];
-    const allSelected=units.every(u=>essenceClickState[u.name]);
-    const newState=!allSelected;
-    units.forEach(u=>{
-        essenceClickState[u.name]=newState;
-        const btn=document.getElementById(`es-btn-${clean(u.name)}`);
-        if(btn){if(newState) btn.classList.add('active'); else btn.classList.remove('active');}
-    });
-    updateEssenceCalculation();
-    renderEssenceTree();
-}
-
-function toggleEssence(unitName){
-    essenceClickState[unitName]=!essenceClickState[unitName];
-    const btn=document.getElementById(`es-btn-${clean(unitName)}`);
-    if(btn){if(essenceClickState[unitName]) btn.classList.add('active'); else btn.classList.remove('active');}
-    updateEssenceCalculation();
-    renderEssenceTree();
-}
-
-function resetAllEssence(){
-    for(const key in essenceClickState){
-        essenceClickState[key]=false;
-        const btn=document.getElementById(`es-btn-${clean(key)}`);
-        if(btn) btn.classList.remove('active');
-    }
-    updateEssenceCalculation();
-    renderEssenceTree();
-}
-
-function updateEssenceCalculation(){
-    let counts={coral:0,aiur:0,zerus:0,hybrid:0};
-    essenceUnitsMap.coral.forEach(u=>{if(essenceClickState[u.name]) counts.coral++;});
-    essenceUnitsMap.aiur.forEach(u=>{if(essenceClickState[u.name]) counts.aiur++;});
-    essenceUnitsMap.zerus.forEach(u=>{if(essenceClickState[u.name]) counts.zerus++;});
-    essenceUnitsMap.hybrid.forEach(u=>{if(essenceClickState[u.name]) counts.hybrid++;});
-    const actual={
-        coral: counts.coral+counts.hybrid,
-        aiur:  counts.aiur +counts.hybrid,
-        zerus: counts.zerus+counts.hybrid
-    };
-    document.getElementById('val-coral').innerText=actual.coral;
-    document.getElementById('val-aiur').innerText=actual.aiur;
-    document.getElementById('val-zerus').innerText=actual.zerus;
-    document.getElementById('essence-total-val').innerText=actual.coral+actual.aiur+actual.zerus;
-}
-
-function renderEssenceTree(){
-    const target = document.getElementById('essenceTreeView');
-    const selectedKeys = [];
-    
-    for(const key in essenceClickState){
-        if(essenceClickState[key]) selectedKeys.push(clean(key));
-    }
-    
-    if(selectedKeys.length === 0){
-        target.innerHTML = `<div style="color:var(--text-muted);text-align:center;margin-top:80px;font-size:1rem;font-weight:600;">좌측에서 유닛을 클릭하면<br>해당 유닛의 계보가 모두 표시됩니다.</div>`;
-        return;
-    }
-    
-    analyzeUnits(selectedKeys, {}, target);
-    
-    if(window.innerWidth<=1200) {
-        target.scrollIntoView({behavior:'smooth'});
-    }
-}
-
-/* ========================================================================
-   [ 시스템 초기화 ]
-======================================================================== */
-function debounce(f,t){let timer; return(...args)=>{clearTimeout(timer);timer=setTimeout(()=>f.apply(this,args),t);};}
-
 window.onload = () => {
-    init();
+    unitDatabase.forEach(u => { if(!u.key) u.key = clean(u.name); unitMap.set(u.key, u); });
     
-    // 시네마틱 인트로 스플래시 제어
-    setTimeout(() => {
-        const splash = document.getElementById('splash-screen');
-        if (splash) {
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 800);
+    DOM.tablesContainer = document.getElementById("tablesContainer");
+    DOM.magicDashboard  = document.getElementById("magicDashboard");
+    DOM.treeView        = document.getElementById("treeView");
+    DOM.comboInput      = document.getElementById("comboInput");
+    DOM.highlightLayer  = document.getElementById("highlightLayer");
+    DOM.suggestions     = document.getElementById("searchSuggestions");
+
+    DOM.comboInput.addEventListener("input", () => { updateHighlight(); updateSuggestions(); debounceSearch(); });
+    DOM.comboInput.addEventListener("scroll", () => { DOM.highlightLayer.scrollLeft = DOM.comboInput.scrollLeft; });
+    DOM.comboInput.addEventListener("focus", () => { if(DOM.comboInput.value.trim()) updateSuggestions(); });
+    DOM.comboInput.addEventListener("keydown", handleSuggestionKey);
+    document.addEventListener("click", e => { if(!e.target.closest('.search-input-wrapper')) hideSuggestions(); });
+
+    renderDashboardAtoms(); 
+    renderTabs();
+    
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*]*'.split('');
+    const fontSize = 16; const columns = canvas.width / fontSize;
+    const drops = []; for(let x = 0; x < columns; x++) drops[x] = 1;
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
+        for(let i = 0; i < drops.length; i++) {
+            const text = letters[Math.floor(Math.random() * letters.length)];
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
         }
-        document.querySelector('.container').classList.add('visible');
-    }, 4800);
+    }
+    const matrixInterval = setInterval(drawMatrix, 33);
+
+    const line1 = document.getElementById('intro-line1');
+    const line2 = document.getElementById('intro-line2');
+    const line3 = document.getElementById('intro-line3');
+    const pctEl = document.getElementById('loading-percent');
+    
+    line1.className = 'intro-line typing';
+    const textTimeout1 = setTimeout(() => { line1.className = 'intro-line done'; line2.className = 'intro-line typing'; }, 100);
+    const textTimeout2 = setTimeout(() => { line2.className = 'intro-line done'; line3.className = 'intro-line typing'; }, 800);
+
+    let start = Date.now();
+    // 인트로 로딩시간 설정 5초 - 000
+    const introDuration = 3000;
+    const pctInterval = setInterval(() => {
+        let elapsed = Date.now() - start;
+        let pct = Math.min(100, Math.floor((elapsed / introDuration) * 100));
+        pctEl.innerText = pct + '%';
+        if(pct >= 100) clearInterval(pctInterval);
+    }, 50);
+
+    const introEl = document.getElementById('matrix-intro');
+    let introCleared = false;
+    const clearIntro = () => {
+        if(introCleared) return;
+        introCleared = true;
+        clearInterval(matrixInterval); clearInterval(pctInterval);
+        clearTimeout(textTimeout1); clearTimeout(textTimeout2);
+        introEl.style.opacity = '0';
+        setTimeout(() => { introEl.remove(); document.getElementById('mainDashboard').classList.add('visible'); }, 500);
+    };
+    introEl.addEventListener('click', clearIntro);
+    setTimeout(clearIntro, introDuration);
+
+    const titles = ["개복디 넥서스", "DATA BASE", "SYSTEM ONLINE"];
+    let titleIdx = 0;
+    const mainTitleAnim = document.getElementById('mainTitleAnim');
+    setInterval(() => {
+        titleIdx = (titleIdx + 1) % titles.length;
+        mainTitleAnim.style.animation = 'none'; void mainTitleAnim.offsetWidth; 
+        mainTitleAnim.innerText = titles[titleIdx];
+        mainTitleAnim.style.animation = 'typing 1.5s steps(20, end) forwards, blink-caret 0.75s step-end infinite';
+    }, 10000);
 };
 
-function init(){
-    unitDatabase.forEach(u=>{ if(!u.key) u.key=clean(u.name); unitMap.set(u.key, u); });
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('selectstart', e => { if(e.target.tagName !== 'INPUT') e.preventDefault(); });
+window.addEventListener('keydown', e => { if(e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73,74,67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode === 85)) e.preventDefault(); });
 
-    DOM.tablesContainer=document.getElementById("tablesContainer");
-    DOM.magicDashboard=document.getElementById("magicDashboard");
-    DOM.treeView=document.getElementById("treeView");
-    DOM.comboInput=document.getElementById("comboInput");
-    DOM.highlightLayer=document.getElementById("highlightLayer");
-
-    DOM.comboInput.addEventListener("input",()=>{updateHighlight();debounceSearch();});
-    DOM.comboInput.addEventListener("scroll",()=>{DOM.highlightLayer.scrollLeft=DOM.comboInput.scrollLeft;});
-
-    renderDashboardAtoms();
-    renderTabs();
-    renderQuickFilters();
-    initEssenceData();
+/* ========================================================================
+   [ SECTION 8 : 사용방법(모달 팝업) 제어 로직 ]
+======================================================================== */
+function openHelpModal() {
+    document.getElementById('helpModal').classList.add('active');
 }
 
-</script>
+function closeHelpModal(e) {
+    if (e === undefined || e.target.id === 'helpModal') {
+        document.getElementById('helpModal').classList.remove('active');
+    }
+}
 
-<script>
-/* 보안 스크립트 */
-(function(){
-    document.addEventListener('contextmenu',e=>e.preventDefault());
-    document.addEventListener('dragstart',e=>e.preventDefault());
-    document.addEventListener('selectstart',e=>e.preventDefault());
-    window.addEventListener('keydown',function(e){
-        if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85)){
-            e.preventDefault(); return false;
-        }
-    });
-    const blocker=function(){setInterval(function(){debugger;},100);};
-    try{blocker();}catch(e){}
-})();
+/* ========================================================================
+   [ SECTION 9 : 유닛 데이터베이스 ]
+======================================================================== */
+const unitDatabase = [
+  // (유닛 데이터 부분 - 기존과 동일하므로 유지됨)
+  // ... 생략 없이 전체 데이터 포함 ...
+  {name:"전쟁광",grade:"매직",category:"테바",recipe:"",cost:""},
+  {name:"저격수",grade:"매직",category:"테바",recipe:"",cost:""},
+  {name:"망치경호대",grade:"매직",category:"테바",recipe:"",cost:""},
+  {name:"죽음의머리",grade:"레어",category:"테바",recipe:"전쟁광[1]+망치경호대[1]",cost:"전쟁광[1],망치경호대[1]"},
+  {name:"악령",grade:"레어",category:"테바",recipe:"저격수[1]+망치경호대[1]",cost:"저격수[1],망치경호대[1]"},
+  {name:"짐레이너",grade:"에픽",category:"테바",recipe:"죽음의머리[1]+악령[1]",cost:"전쟁광[1],저격수[1],망치경호대[2]"},
+  {name:"스투코프",grade:"유니크",category:"테바",recipe:"짐레이너[1]+케리건[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"노바",grade:"헬",category:"테바",recipe:"스투코프[2]+혼종파멸자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
+  {name:"특공대레이너",grade:"레전드",category:"테바",recipe:"노바[1]+워필드장군[1]",cost:"전쟁광[4],저격수[8],망치경호대[12],암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
+  {name:"가브리엘토시",grade:"히든",category:"테바",recipe:"악령[2]+망치경호대[3]",cost:"저격수[2],망치경호대[5]"},
+  {name:"광부",grade:"히든",category:"테바",recipe:"도우미(500킬↑)[1]+타우렌화장실[1]",cost:"전쟁광[4],암흑불멸자[4],도우미[1]"},
+  {name:"로리스완",grade:"히든",category:"테바",recipe:"자치령불곰[2]+낮까마귀[1]+자동포탑[1]",cost:"전쟁광[8],망치경호대[6],낮까마귀[1],자동포탑[5]"},
+  {name:"마일스블레이즈루이스",grade:"히든",category:"테바",recipe:"프로메테우스중대(X,90%↑)+자치령불곰[2]+빨정관(10킬이상)[1]",cost:"암흑집정관[4],전쟁광[8],망치경호대[6]저격수[4],망치경호대[10],스파르타중대[4]"},
+  {name:"멀록해병",grade:"히든",category:"테바",recipe:"죽음의머리[3]+라바사우르스(잠복)[2]",cost:"전쟁광[3],망치경호대[3],원시바퀴[2],원시히드라리스크[2]"},
+  {name:"워필드장군",grade:"히든",category:"테바",recipe:"스투코프[1]+악령[4]",cost:"전쟁광[1],저격수[5],망치경호대[6],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"이곤스텟먼",grade:"히든",category:"테바",recipe:"멀록해병[1]+타우렌화장실[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
+  {name:"자치령불곰",grade:"히든",category:"테바",recipe:"타우렌우주해병[2]+망치경호대[3]",cost:"전쟁광[4],망치경호대[3]"},
+  {name:"타우렌우주해병",grade:"히든",category:"테바",recipe:"전쟁광(SS↑)[2]",cost:"전쟁광[2]"},
+  {name:"타우렌화장실",grade:"히든",category:"테바",recipe:"타우렌우주해병[2]+말살자[1]",cost:"전쟁광[4],암흑불멸자[4]"},
+  {name:"타이커스핀들레이",grade:"히든",category:"테바",recipe:"로리스완(X↑)[1]+이곤스텟먼(X↑)[1]",cost:"전쟁광[15],망치경호대[9],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2],자동포탑[5]"},
+  {name:"프로메테우스중대",grade:"히든",category:"테바",recipe:"가브리엘토시(SSS↑)[2]+스파르타중대[4]",cost:"저격수[4],망치경호대[10],스파르타중대[4]"},
+  {name:"비밀작전노바",grade:"슈퍼히든",category:"테바",recipe:"특공대레이너(SXD,300%↑,300킬↑)[1]+타이커스핀들레이(SXD,300%↑,300킬↑)[1]+오메가리스크(X↑,150%↑)[2]",cost:"전쟁광[19],저격수[8],망치경호대[21],암흑광전사[5],암흑고위기사[5],암흑집정관[10],원시바퀴[15],변종가시지옥[13],원시히드라리스크[28],자동포탑[5]"},
+  {name:"스파르타중대",grade:"매직",category:"테메",recipe:"",cost:""},
+  {name:"코브라",grade:"매직",category:"테메",recipe:"",cost:""},
+  {name:"공성파괴단",grade:"매직",category:"테메",recipe:"",cost:""},
+  {name:"검은망치",grade:"레어",category:"테메",recipe:"스파르타중대[1]+공성파괴단[1]",cost:"스파르타중대[1],공성파괴단[1]"},
+  {name:"A.R.E.S",grade:"레어",category:"테메",recipe:"코브라[1]+공성파괴단[1]",cost:"코브라[1],공성파괴단[1]"},
+  {name:"대천사",grade:"에픽",category:"테메",recipe:"검은망치[1]+A.R.E.S[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2]"},
+  {name:"오딘",grade:"유니크",category:"테메",recipe:"대천사[2]",cost:"코브라[2],스파르타중대[2],공성파괴단[4]"},
+  {name:"히페리온",grade:"헬",category:"테메",recipe:"오딘[2]+공허포격기[1]",cost:"코브라[5],스파르타중대[5],공성파괴단[10],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"고르곤전투순양함",grade:"레전드",category:"테메",recipe:"히페리온[1]+과학선[1]",cost:"코브라[11],스파르타중대[7],공성파괴단[18],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"과학선",grade:"히든",category:"테메",recipe:"오딘[1]+A.R.E.S[4]",cost:"코브라[6],스파르타중대[2],공성파괴단[8]"},
+  {name:"낮까마귀",grade:"히든",category:"테메",recipe:"땅거미지뢰[2]+투견[3]+통기레쓰[1]",cost:"시체매-지뢰매설[24],코브라[3],스파르타중대[6],암흑광전사[2]"},
+  {name:"대천사전투기",grade:"히든",category:"테메",recipe:"대천사(SSS↑)[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8]"},
+  {name:"드라켄레이저천공기",grade:"히든",category:"테메",recipe:"공성파괴단[3]+A.R.E.S[2]",cost:"코브라[2],공성파괴단[5]"},
+  {name:"땅거미지뢰",grade:"히든",category:"테메",recipe:"거미지뢰(시체매로매설)[12]",cost:"시체매-지뢰매설[12]"},
+  {name:"아우구스트그라드의자랑",grade:"히든",category:"테메",recipe:"고르곤전투순양함(남은강화횟수0,1000킬)[1]+검은망치(SSS)[4]",cost:"코브라[11],스파르타중대[11],공성파괴단[22],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"제우스폭격기",grade:"히든",category:"테메",recipe:"해적주력함(Lv11)[1]+폭격기(Lv11)[1]+메시브디제스터(스킬사용)[1]",cost:"스파르타중대[21],코브라[22],공성파괴단[34],암흑광전사[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2],시체매-지뢰매설[24],메시브디제스터[1]"},
+  {name:"창공의분노",grade:"히든",category:"테메",recipe:"대천사전투기(한계돌파3↑,500킬↑)[1]+분노수호자(X↑)[1]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
+  {name:"통기레쓰",grade:"히든",category:"테메",recipe:"코브라[3]+암흑광전사[2]",cost:"코브라[3],암흑광전사[2]"},
+  {name:"투견",grade:"히든",category:"테메",recipe:"스파르타중대(SS↑)[2]",cost:"스파르타중대[2]"},
+  {name:"폭격기",grade:"히든",category:"테메",recipe:"낮까마귀(X↑)[1]+과학선(X↑)[1]",cost:"시체매-지뢰매설[24],코브라[9],스파르타중대[8],공성파괴단[8],암흑광전사[2]"},
+  {name:"핵의원천",grade:"히든",category:"테메",recipe:"타우렌화장실[1]+통기레쓰[2]+빨정관[1]",cost:"전쟁광[4],코브라[6],암흑광전사[4],암흑집정관[4],암흑불멸자[4]"},
+  {name:"해적주력함",grade:"히든",category:"테메",recipe:"대천사전투기[2]+히페리온(X↑,90%↑)[1]",cost:"코브라[13],스파르타중대[13],공성파괴단[26],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"테라트론",grade:"슈퍼히든",category:"테메",recipe:"고르곤전투순양함(SXD,300%↑,300킬↑)[1]+해적주력함(SXD,300%↑,300킬↑)[1]+로리스완(XD↑)[2]",cost:"전쟁광[16],망치경호대[12],코브라[24],스파르타중대[20],공성파괴단[44],암흑파수기[2],암흑추적자[2],암흑불멸자[4],자동포탑[10]"},
+  {name:"암흑광전사",grade:"매직",category:"토바",recipe:"",cost:""},
+  {name:"암흑고위기사",grade:"매직",category:"토바",recipe:"",cost:""},
+  {name:"암흑집정관",grade:"매직",category:"토바",recipe:"",cost:""},
+  {name:"광전사석상",grade:"레어",category:"토바",recipe:"암흑광전사[1]+암흑집정관[1]",cost:"암흑광전사[1],암흑집정관[1]"},
+  {name:"정화자사도",grade:"레어",category:"토바",recipe:"암흑고위기사[1]+암흑집정관[1]",cost:"암흑고위기사[1],암흑집정관[1]"},
+  {name:"제라툴",grade:"에픽",category:"토바",recipe:"광전사석상[1]+정화자사도[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
+  {name:"혼종파멸자",grade:"유니크",category:"토바",recipe:"제라툴[1]+짐레이너[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
+  {name:"보라준",grade:"헬",category:"토바",recipe:"혼종파멸자[2]+혼종약탈자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[3],암흑고위기사[3],암흑집정관[6]"},
+  {name:"아르타니스",grade:"레전드",category:"토바",recipe:"보라준[1]+테사다르[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[4],암흑고위기사[8],암흑집정관[12],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"라사라",grade:"히든",category:"토바",recipe:"빨정관[1]+광전사석상[3]",cost:"암흑광전사[3],암흑집정관[7]"},
+  {name:"말라쉬",grade:"히든",category:"토바",recipe:"알라라크(XD↑,200%↑)[1]+드라켄레이저천공기(알라라크죽이기)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[2],공성파괴단[5],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
+  {name:"백인대장",grade:"히든",category:"토바",recipe:"암흑기사(SSS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
+  {name:"빨정관",grade:"히든",category:"토바",recipe:"암흑집정관[4]",cost:"암흑집정관[4]"},
+  {name:"승천자",grade:"히든",category:"토바",recipe:"파수병[2]+광전사석상[2]",cost:"암흑광전사[6],암흑고위기사[4],암흑집정관[2]"},
+  {name:"알라라크",grade:"히든",category:"토바",recipe:"피의사냥꾼[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
+  {name:"암흑기사",grade:"히든",category:"토바",recipe:"암흑고위기사(SS↑)[1]+암흑광전사(SS↑)[1]",cost:"암흑고위기사[1],암흑광전사[1]"},
+  {name:"카락스",grade:"히든",category:"토바",recipe:"승천자[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[13],암흑고위기사[9],암흑집정관[6]"},
+  {name:"탈란다르",grade:"히든",category:"토바",recipe:"카락스(X↑,90%↑)[1]+알라라크(X↑,90%↑)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[22],암흑고위기사[22],암흑집정관[12]"},
+  {name:"테사다르",grade:"히든",category:"토바",recipe:"혼종파멸자[1]+정화자사도[4]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[5],암흑집정관[6]"},
+  {name:"파수병",grade:"히든",category:"토바",recipe:"암흑기사(SS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
+  {name:"피의사냥꾼",grade:"히든",category:"토바",recipe:"백인대장[2]+정화자사도[2]",cost:"암흑광전사[4],암흑고위기사[6],암흑집정관[2]"},
+  {name:"아몬",grade:"슈퍼히든",category:"토바",recipe:"탈란다르(SXD,300%↑,300킬↑)[1]+아르타니스(SXD,300%↑,300킬↑)[1]+탈다림폭풍함(XD↑)[2]",cost:"전쟁광[5],저격수[5],망치경호대[10],암흑광전사[26],암흑고위기사[30],암흑집정관[40],암흑파수기[8],암흑불멸자[20],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"암흑파수기",grade:"매직",category:"토메",recipe:"",cost:""},
+  {name:"암흑추적자",grade:"매직",category:"토메",recipe:"",cost:""},
+  {name:"암흑불멸자",grade:"매직",category:"토메",recipe:"",cost:""},
+  {name:"선동자",grade:"레어",category:"토메",recipe:"암흑추적자[1]+암흑불멸자[1]",cost:"암흑추적자[1],암흑불멸자[1]"},
+  {name:"교란기",grade:"레어",category:"토메",recipe:"암흑파수기[1]+암흑불멸자[1]",cost:"암흑파수기[1],암흑불멸자[1]"},
+  {name:"거신",grade:"에픽",category:"토메",recipe:"교란기[1]+선동자[1]",cost:"암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"공허포격기",grade:"유니크",category:"토메",recipe:"대천사[1]+거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
+  {name:"분노수호자",grade:"유니크",category:"토메",recipe:"거신[2]",cost:"암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
+  {name:"공허의구도자",grade:"헬",category:"토메",recipe:"분노수호자[2]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[5],암흑추적자[5],암흑불멸자[10]"},
+  {name:"셀렌디스",grade:"레전드",category:"토메",recipe:"공허의구도자[1]+정화자거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[11],암흑불멸자[18]"},
+  {name:"동력기",grade:"히든",category:"토메",recipe:"암흑파수기(SS↑)[2]",cost:"암흑파수기[2]"},
+  {name:"말살자",grade:"히든",category:"토메",recipe:"암흑불멸자[4]",cost:"암흑불멸자[4]"},
+  {name:"모선핵",grade:"히든",category:"토메",recipe:"차원분광기[1]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[3],암흑추적자[1],암흑불멸자[6]"},
+  {name:"모한다르",grade:"히든",category:"토메",recipe:"정화자거신(X↑)[1]+공허포격기[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
+  {name:"정화모선",grade:"히든",category:"토메",recipe:"분노수호자[2]+모선핵[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[5],암흑불멸자[14]"},
+  {name:"정화자감시자",grade:"히든",category:"토메",recipe:"정화모선(Lv11,남은강화횟수0회,스킬사용)[3]",cost:"코브라[3],스파르타중대[3],공성파괴단[6],암흑파수기[21],암흑추적자[15],암흑불멸자[42]"},
+  {name:"정화자거신",grade:"히든",category:"토메",recipe:"분노수호자[1]+선동자[4]",cost:"암흑파수기[2],암흑추적자[6],암흑불멸자[8]"},
+  {name:"차원분광기",grade:"히든",category:"토메",recipe:"말살자[1]+동력기[1]",cost:"암흑파수기[2],암흑불멸자[4]"},
+  {name:"케이다린초석",grade:"히든",category:"토메",recipe:"선동자(SSS↑)[9]",cost:"암흑추적자[9],암흑불멸자[9]"},
+  {name:"탈다림모선",grade:"히든",category:"토메",recipe:"정화모선(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[5],암흑불멸자[24]"},
+  {name:"탈다림폭풍함",grade:"히든",category:"토메",recipe:"폭풍함[2]+빨정관[2]",cost:"암흑집정관[8],암흑파수기[4],암흑불멸자[10]"},
+  {name:"폭풍함",grade:"히든",category:"토메",recipe:"교란기[2]+암흑불멸자[3]",cost:"암흑파수기[2],암흑불멸자[5]"},
+  {name:"하늘군주",grade:"히든",category:"토메",recipe:"셀렌디스(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[11],암흑불멸자[28]"},
+  {name:"아둔의창",grade:"슈퍼히든",category:"토메",recipe:"셀렌디스(SXD,300%↑,300킬↑)[1]+탈다림모선(SXD,300%↑,300킬↑)[1]+카락스(X↑,150%↑)[2]",cost:"전쟁광[2],저격수[2],망치경호대[4],코브라[2],스파르타중대[2],공성파괴단[4],암흑광전사[26],암흑고위기사[18],암흑집정관[20],암흑파수기[18],암흑추적자[16],암흑불멸자[42]"},
+  {name:"원시바퀴",grade:"매직",category:"저그중립",recipe:"",cost:""},
+  {name:"변종가시지옥",grade:"매직",category:"저그중립",recipe:"",cost:""},
+  {name:"원시히드라리스크",grade:"매직",category:"저그중립",recipe:"",cost:""},
+  {name:"브루탈리스크",grade:"레어",category:"저그중립",recipe:"변종가시지옥[1]+원시히드라리스크[1]",cost:"변종가시지옥[1],원시히드라리스크[1]"},
+  {name:"라바사우르스",grade:"레어",category:"저그중립",recipe:"원시바퀴[1]+원시히드라리스크[1]",cost:"원시바퀴[1],원시히드라리스크[1]"},
+  {name:"케리건",grade:"에픽",category:"저그중립",recipe:"브루탈리스크[1]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"혼종약탈자",grade:"유니크",category:"저그중립",recipe:"케리건[1]+제라툴[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
+  {name:"거대괴수",grade:"헬",category:"저그중립",recipe:"혼종약탈자[2]+스투코프[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
+  {name:"아토실로프",grade:"헬",category:"저그중립",recipe:"우르사돈[암][2]",cost:"우르사돈[암][2]"},
+  {name:"테이스틀로프",grade:"헬",category:"저그중립",recipe:"우르사돈[수][2]",cost:"우르사돈[수][2]"},
+  {name:"원시케리건",grade:"레전드",category:"저그중립",recipe:"거대괴수[1]+크레이스[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[3],암흑고위기사[3],암흑집정관[6],원시바퀴[4],변종가시지옥[8],원시히드라리스크[12]"},
+  {name:"고름바퀴",grade:"히든",category:"저그중립",recipe:"원시바퀴[3]+암흑추적자[2]",cost:"원시바퀴[3],암흑추적자[2]"},
+  {name:"군단숙주",grade:"히든",category:"저그중립",recipe:"변종가시지옥(SS↑)[2]",cost:"변종가시지옥[2]"},
+  {name:"데하카",grade:"히든",category:"저그중립",recipe:"데하카고치[1]+퀸(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[3],변종가시지옥[4],원시히드라리스크[3]"},
+  {name:"데하카고치",grade:"히든",category:"저그중립",recipe:"데하카의오른팔[1]+이곤스텟먼(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
+  {name:"데하카의오른팔",grade:"히든",category:"저그중립",recipe:"100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]",cost:"없음"},
+  {name:"땅굴파괴자",grade:"히든",category:"저그중립",recipe:"아토실로프(X↑,200%↑,Lv7)[4]",cost:"우르사돈[암][8]"},
+  {name:"무리군주",grade:"히든",category:"저그중립",recipe:"퀸[2]+크레이스[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
+  {name:"살모사",grade:"히든",category:"저그중립",recipe:"퀸[1]+일벌레(SS↑)[3]",cost:"원시바퀴[2],변종가시지옥[4],원시히드라리스크[3]"},
+  {name:"수호군주",grade:"히든",category:"저그중립",recipe:"살모사(X↑)[1]+군단숙주(잠복)[2]",cost:"원시바퀴[2],변종가시지옥[8],원시히드라리스크[3]"},
+  {name:"아포칼리스크",grade:"히든",category:"저그중립",recipe:"오메가리스크(X↑,90%↑,100킬↑)[2]+오딘(10킬↑)[1]",cost:"스파르타중대[2],코브라[2],공성파괴단[4],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[10],변종가시지옥[10],원시히드라리스크[20]"},
+  {name:"알렉산더",grade:"히든",category:"저그중립",recipe:"포식귀[1]+수호군주[1]+히페리온(풀강화)[1]+스투코프(SXD)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],스파르타중대[5],코브라[5],공성파괴단[10],암흑파수기[1],암흑추적자[3],암흑불멸자[2],원시바퀴[8],변종가시지옥[13],원시히드라리스크[8]"},
+  {name:"오메가리스크",grade:"히든",category:"저그중립",recipe:"혼종약탈자[2]+케리건[3]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[5],변종가시지옥[5],원시히드라리스크[10]"},
+  {name:"일벌레",grade:"히든",category:"저그중립",recipe:"원시바퀴(잠복)[1]+원시히드라리스크(잠복)[2]",cost:"원시바퀴[1],원시히드라리스크[2]"},
+  {name:"크레이스",grade:"히든",category:"저그중립",recipe:"혼종약탈자[1]+브루탈리스크[4]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[5],원시히드라리스크[6]"},
+  {name:"토라스크",grade:"히든",category:"저그중립",recipe:"오메가리스크(X↑,90%↑)[1]+고름바퀴[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10]"},
+  {name:"포식귀",grade:"히든",category:"저그중립",recipe:"살모사[1]+고름바퀴(X↑)[1]",cost:"암흑추적자[2],원시바퀴[5],변종가시지옥[4],원시히드라리스크[3]"},
+  {name:"포자주둥이",grade:"히든",category:"저그중립",recipe:"일벌레(미니성큰스킬사용,히든성소배치)SSS↑)[12]",cost:"원시바퀴[8],원시히드라리스크[4]"},
+  {name:"퀸",grade:"히든",category:"저그중립",recipe:"군단숙주[2]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[4],원시히드라리스크[1]"},
+  {name:"하이브리드로프",grade:"히든",category:"저그중립",recipe:"아토실로프(Lv7)[1]+테이스틀로프(Lv7)[1]",cost:"우르사돈[암][2],우르사돈[수][2]"},
+  {name:"불새케리건",grade:"슈퍼히든",category:"저그중립",recipe:"원시케리건(SXD,300%↑,300킬↑)[1]+토라스크(SXD,300%↑,300킬↑)[1]+낮까마귀(X↑,150%↑)[2]",cost:"시체매-지뢰매설[48],전쟁광[1],저격수[1],망치경호대[2],코브라[6],스파르타중대[12],암흑광전사[9],암흑고위기사[5],암흑집정관[10],암흑추적자[4],원시바퀴[15],변종가시지옥[13],원시히드라리스크[22]"},
+  {name:"초월체",grade:"슈퍼히든",category:"저그중립",recipe:"하이브리드로프(SXD↑,300%↑,Lv7)[2]+테사다르(XD↑)[1]+크레이스(XD↑)[1]+과학선(XD↑)[1]+정화자거신(XD↑)[1]+워필드장군(XD↑)[1]",cost:"전쟁광[2],저격수[6],망치경호대[8],코브라[6],스파르타중대[2],공성파괴단[8],암흑광전사[2],암흑고위기사[6],암흑집정관[8],암흑파수기[2],암흑추적자[6],암흑불멸자[8],원시바퀴[2],변종가시지옥[6],원시히드라리스크[8],우르사돈[암][4],우르사돈[수][4]"},
+  {name:"공허분쇄자",grade:"히든",category:"혼종",recipe:"혼종네메시스(XD↑,200%↑,11Lv)[1]+파멸자(XD↑,200%↑,11Lv)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[3],암흑고위기사[11],암흑집정관[14],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
+  {name:"사라케리건",grade:"히든",category:"혼종",recipe:"노바(X↑,90%↑)[1]+원시케리건(X↑,90%↑)[1]",cost:"전쟁광[4],저격수[4],망치경호대[8],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[6],변종가시지옥[10],원시히드라리스크[16]"},
+  {name:"아몬의젤나가피조물",grade:"히든",category:"혼종",recipe:"젤나가피조물(RXD)[1]+파멸자(XD↑)[1]",cost:"시체매-지뢰매설[8],전쟁광[1],저격수[1],망치경호대[2],코브라[17],스파르타중대[16],공성파괴단[24],암흑광전사[15],암흑고위기사[9],암흑집정관[6],암흑파수기[12],암흑추적자[20],암흑불멸자[32]"},
+  {name:"유물",grade:"히든",category:"혼종",recipe:"유물조각[5]",cost:"유물조각[5]"},
+  {name:"젤나가피조물",grade:"히든",category:"혼종",recipe:"카락스(XD↑)[1]+모한다르(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[4],스파르타중대[4],공성파괴단[8],암흑광전사[13],암흑고위기사[9],암흑집정관[6],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
+  {name:"티라노조르",grade:"히든",category:"혼종",recipe:"토라스크(XD↑)[1]+테이스틀로프(X↑)[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10],우르사돈[수][4]"},
+  {name:"파멸자",grade:"히든",category:"혼종",recipe:"모한다르(X↑,90%↑)[1]+폭격기(X↑,90%↑)[1]",cost:"시체매-지뢰매설[24],코브라[13],스파르타중대[12],공성파괴단[16],암흑광전사[2],암흑파수기[6],암흑추적자[10],암흑불멸자[14]"},
+  {name:"혼종네메시스",grade:"히든",category:"혼종",recipe:"무리군주(X↑,90%↑)[1]+테사다르(X↑)[2]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[6],암흑집정관[8],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
+  {name:"혼종뫼비우스",grade:"히든",category:"혼종",recipe:"해적주력함(X↑,한계돌파3↑)[1]+탈다림모선(X↑,한계돌파3↑)[1]+갓오브타임(스킬사용)[1]",cost:"코브라[14],스파르타중대[14],공성파괴단[28],암흑집정관[8],암흑파수기[12],암흑추적자[6],암흑불멸자[26],갓오브타임[1]"},
+  {name:"혼종베히모스",grade:"히든",category:"혼종",recipe:"알라라크(X↑,90%↑)[1]+워필드장군(X↑)[2]",cost:"전쟁광[3],저격수[11],망치경호대[14],암흑고위기사[13],암흑광전사[9],암흑집정관[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
+  {name:"혼종종언자",grade:"히든",category:"혼종",recipe:"사라케리건(XD↑,200%↑,Lv11)[1]+혼종베히모스(XD↑,200%↑,Lv11)[1]",cost:"전쟁광[7],저격수[15],망치경호대[22],암흑광전사[13],암흑고위기사[17],암흑집정관[14],원시바퀴[8],변종가시지옥[12],원시히드라리스크[20]"},
+  {name:"나루드",grade:"슈퍼히든",category:"혼종",recipe:"공허분쇄자(SXD,300%↑,300~999kill)[2]+사라케리건(X↑,150%↑)[2]",cost:"전쟁광[12],저격수[12],망치경호대[24],코브라[26],스파르타중대[24],공성파괴단[32],암흑광전사[18],암흑고위기사[30],암흑집정관[44],암흑파수기[12],암흑추적자[20],암흑불멸자[32],원시바퀴[18],변종가시지옥[46],원시히드라리스크[48],시체매-지뢰매설[48]"}
+];
 </script>
 </body>
 </html>
