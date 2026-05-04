@@ -2,369 +2,1064 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>개복디 넥서스</title>
-    
-    <!-- [1] PC/모바일 브라우저 탭 및 북마크 아이콘 설정 -->
-    <script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;ri=AAIUVAARY29tLmdvb2dsZS5DaHJvbWUA2Gh0dHBzOi8vY29udHJpYnV0aW9uLnVzZXJjb250ZW50Lmdvb2dsZS5jb20vZG93bmxvYWQ%2FYz1DZ3hpWVhKa1gzTjBiM0poWjJVU1R4SU1jbVZ4ZFdWemRGOWtZWFJoR2o4S01EazRPVFkwWVRBeE5qZzVNems1Wmprd01EQTJOVEV3TVRneU1EQXpOVFF4TURZMll6UmpNekl4WlRBMk1UTmpPQklMRWdjUThkQ1RvY2dkR0FFJmZpbGVuYW1lPWluZGV4Lmh0bWwmb3BpPTEwMzEzNTA1MA"></script><link rel="icon" href="https://github.com/sldbox/site/icon.png" type="image/png">
+
+    <link rel="icon" href="https://github.com/sldbox/site/icon.png" type="image/png">
     <link rel="shortcut icon" href="https://github.com/sldbox/site/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="https://github.com/sldbox/site/icon.png">
 
-    <!-- [2] SNS/메신저(카톡, 디스코드 등) 링크 공유 시 표시될 정보 설정 -->
     <meta name="description" content="개복디 넥서스 - 개인복권디펜스 유닛 조합 & 일일정수 계산기">
     <meta property="og:title" content="개복디 넥서스 - MATRIX HUD">
     <meta property="og:description" content="히든 조합 계보 시뮬레이션 및 일일 정수 계산기">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sldbox.github.io/site/">
     <meta property="og:image" content="https://github.com/sldbox/site/logo.png">
-    <meta property="og:image:width" content="800">
-    <meta property="og:image:height" content="400">
-    
-    <!-- 트위터 공유 최적화 -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="개복디 넥서스">
     <meta name="twitter:description" content="유닛 조합 & 일일정수 계산기">
     <meta name="twitter:image" content="https://github.com/sldbox/site/logo.png">
+    <meta name="theme-color" content="#000000">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
 
     <style>
-        /* 폰트 불러오기 */
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+/* ============================================================
+   DESIGN TOKENS
+============================================================ */
+:root {
+    --void:        #000000;
+    --panel:       #080808;
+    --panel-b:     #0d0d0d;
+    --surface:     #111111;
 
-        /* =========================================================
-           [ 1. 색상 및 기본 테마 설정 (CSS 변수) ]
-        ========================================================= */
-        :root {
-            --bg-void: #000000;         
-            --bg-panel: #0a0a0a;        
-            
-            --accent-main: #00FF41;     
-            --accent-dim: #008F11;      
-            --border-tech: rgba(0, 255, 65, 0.3); 
-            
-            /* 등급별 텍스트 색상 */
-            --gr-매직: #87CEEB; --gr-레어: #FBBF24; --gr-에픽: #FB923C; --gr-유니크: #EF4444;
-            --gr-헬: #EC4899; --gr-레전드: #A78BFA; --gr-히든: #34D399; --gr-슈퍼히든: #FFD700;
+    --g:           #00FF41;
+    --g-dim:       #007a1e;
+    --g-faint:     rgba(0,255,65,0.07);
+    --g-border:    rgba(0,255,65,0.22);
+    --g-glow:      rgba(0,255,65,0.5);
 
-            --text-main: #E2E8F0;       
-            --text-sub: #94A3B8;        
-            --text-muted: #475569;      
-            
-            --font-body: 'Pretendard', sans-serif;
-            --font-mono: monospace;     
-        }
+    --scan:        rgba(0,255,65,0.03);
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: var(--bg-void); color: var(--text-main);
-            font-family: var(--font-body); user-select: none;
-            height: 100vh; display: flex; flex-direction: column;
-            overflow-y: hidden; overflow-x: auto; 
-        }
+    --grade-magic:   #87CEEB;
+    --grade-rare:    #FBBF24;
+    --grade-epic:    #FB923C;
+    --grade-unique:  #EF4444;
+    --grade-hell:    #EC4899;
+    --grade-legend:  #A78BFA;
+    --grade-hidden:  #34D399;
+    --grade-super:   #FFD700;
 
-        /* =========================================================
-           [ 2. 인트로 애니메이션 설정 ]
-        ========================================================= */
-        #matrix-intro {
-            position: fixed; inset: 0; z-index: 10000; background: var(--bg-void);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease; cursor: pointer;
-        }
-        #matrixCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.2; pointer-events: none; }
-        .intro-terminal {
-            position: relative; z-index: 10; font-family: var(--font-mono); color: var(--accent-main); font-size: 1.3rem;
-            width: 600px; max-width: 90vw; display: flex; flex-direction: column; align-items: flex-start; margin: 0 auto;
-            background: rgba(0,0,0,0.8); padding: 30px; border: 1px solid var(--accent-dim);
-        }
-        .intro-line {
-            overflow: hidden; white-space: nowrap; margin-bottom: 10px;
-            border-right: .15em solid transparent; width: max-content; display: none;
-        }
-        /* 인트로 로딩설정 3초 - animation: loadProgress 3s linear forwards; */
-        .intro-line.typing { display: block; border-right-color: var(--accent-main); animation: typing 0.4s steps(20, end) forwards, blink-caret 0.4s step-end infinite; }
-        .intro-line.done { display: block; border-right-color: transparent; animation: none; }
-        .loading-bar-container { width: 100%; height: 6px; background: rgba(0,255,65,0.1); margin-top: 25px; position: relative; overflow: hidden; border-radius: 3px; }
-        .loading-bar { height: 100%; background: var(--accent-main); width: 0%; animation: loadProgress 3s linear forwards; }
-        #loading-percent { margin-top: 10px; align-self: flex-end; font-size: 1.5rem; font-weight: 700; color: var(--accent-main); }
-        .skip-hint { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; color: var(--text-sub); opacity: 0.7; }
+    --text:        #D8E4D0;
+    --text-sub:    #7A9A7A;
+    --text-muted:  #3A5A3A;
 
-        @keyframes typing { from { width: 0 } to { width: 100% } }
-        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--accent-main); } }
-        @keyframes loadProgress { 0% { width: 0%; } 100% { width: 100%; } }
+    --font-body:   'Noto Sans KR', sans-serif;
+    --font-mono:   'Share Tech Mono', monospace;
 
-        .matrix-title-anim {
-            display: inline-block; overflow: hidden; white-space: nowrap; border-right: 0.15em solid var(--accent-main);
-            animation: typing 1.5s steps(20, end) forwards, blink-caret 0.75s step-end infinite;
-        }
+    --header-h:    60px;
+    --radius:      3px;
+    --safe-top:    env(safe-area-inset-top, 0px);
+    --safe-bot:    env(safe-area-inset-bottom, 0px);
+}
 
-        /* =========================================================
-           [ 3. 상단 헤더 & 검색창 ]
-        ========================================================= */
-        .tactical-header {
-            flex-shrink: 0; height: 80px; background: #050505; border-bottom: 1px solid var(--border-tech);
-            display: flex; justify-content: center; align-items: center; padding: 0 24px; position: relative; z-index: 50;
-        }
-        .header-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; max-width: 1600px; gap: 20px; }
-        .brand-title { grid-column: 1; justify-self: start; font-size: 1.6rem; font-weight: 900; color: var(--accent-main); letter-spacing: 0.05em; white-space: nowrap; }
-        .header-search { grid-column: 2; justify-self: center; width: 600px; max-width: 100%; display: flex; gap: 8px; align-items: center; }
-        .header-dummy-right { grid-column: 3; }
+/* ============================================================
+   RESET & BASE
+============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .search-input-wrapper { flex: 1; position: relative; background: #000; border: 1px solid var(--border-tech); border-radius: 4px; transition: 0.3s; height: 48px; }
-        .search-input-wrapper:focus-within { border-color: var(--accent-main); }
-        .search-overlay {
-            width: 100%; height: 48px; box-sizing: border-box; padding: 0 16px; line-height: 48px; font-size: 1.05rem; font-weight: 600;
-            border: none; background: transparent; color: var(--text-main); white-space: pre; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
-        }
-        #highlightLayer { position: absolute; inset: 0; z-index: 1; color: var(--text-main); pointer-events: none; }
-        #comboInput { position: absolute; inset: 0; z-index: 2; color: transparent; caret-color: var(--accent-main); outline: none; }
-        #comboInput::placeholder { color: var(--text-muted); font-size: 0.95rem; font-weight: 400; }
+html { height: 100%; }
 
-        .btn-tech {
-            background: rgba(0,255,65,0.05); color: var(--accent-main); border: 1px solid var(--border-tech);
-            border-radius: 4px; padding: 0 24px; height: 48px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: 0.2s; flex-shrink: 0;
-        }
-        .btn-tech:hover { background: var(--accent-main); color: #000; }
+body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100%;
+    /* scanline overlay */
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0,0,0,0.15) 2px,
+            rgba(0,0,0,0.15) 4px
+        );
+    user-select: none;
+    overflow-x: hidden;
+}
 
-        .search-suggestions {
-            position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-panel); border: 1px solid var(--accent-dim);
-            max-height: 350px; overflow-y: auto; z-index: 100; display: none; border-radius: 4px;
-        }
-        .search-suggestions.visible { display: block; }
-        .suggestion-item { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(0,255,65,0.1); font-size: 0.95rem; }
-        .suggestion-item:hover, .suggestion-item.focused { background: rgba(0,255,65,0.2); border-left: 3px solid var(--accent-main); }
+/* ============================================================
+   SCROLLBARS
+============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: var(--g-dim); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--g); }
+* { scrollbar-width: thin; scrollbar-color: var(--g-dim) #050505; }
 
-        /* =========================================================
-           [ 4. 메인 대시보드 레이아웃 ]
-        ========================================================= */
-        .main-dashboard {
-            display: grid; grid-template-columns: 40fr 35fr 35fr; grid-template-rows: min-content 1fr;
-            gap: 16px; padding: 16px 24px; flex: 1; min-height: 0; width: 100%; min-width: 1024px; 
-            opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease;
-        }
-        .main-dashboard.visible { opacity: 1; transform: translateY(0); }
+/* ============================================================
+   INTRO CINEMATIC
+============================================================ */
+#intro-screen {
+    position: fixed; inset: 0; z-index: 10000;
+    background: var(--void);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+    overflow: hidden;
+}
+#intro-screen.fade-out { opacity: 0; pointer-events: none; }
 
-        .codex-panel { grid-column: 1; grid-row: 1 / 3; }
-        .tree-panel { grid-column: 2; grid-row: 1 / 3; }
-        .essence-panel { grid-column: 3; grid-row: 1; }
-        .magic-panel { grid-column: 3; grid-row: 2; }
+#matrixCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+#matrixCanvas.visible { opacity: 1; }
 
-        .hud-panel { background: var(--bg-panel); border: 1px solid #1a1a1a; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .hud-panel::before { content: ""; position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--accent-dim); }
-        .panel-header { padding: 14px 18px; border-bottom: 1px solid #1a1a1a; font-weight: 800; font-size: 1rem; color: var(--accent-main); background: rgba(0,255,65,0.03); flex-shrink: 0; }
-        .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; min-height: 0; scrollbar-width: thin; }
+/* Vignette */
+#intro-screen::before {
+    content: "";
+    position: absolute; inset: 0; z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+}
 
-        /* =========================================================
-           [ 5. 패널 내부요소 디자인 ]
-        ========================================================= */
-        .codex-tabs { display: flex; gap: 6px; margin-bottom: 14px; background: rgba(0,0,0,0.5); padding: 6px; flex-shrink: 0; border-radius: 4px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-        .codex-tabs::-webkit-scrollbar { display: none; }
-        .tab-btn { flex: 1; min-width: 85px; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; font-weight: 800; padding: 12px 0; cursor: pointer; transition: 0.2s; border-radius: 4px; }
-        .tab-btn:hover { background: rgba(0,255,65,0.05); color: var(--text-main); }
-        .tab-btn.active { background: var(--accent-dim); color: #fff; }
+/* Horizontal scan sweep */
+.scan-sweep {
+    position: absolute; inset: 0; z-index: 3;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,255,65,0.04) 49%,
+        rgba(0,255,65,0.09) 50%,
+        rgba(0,255,65,0.04) 51%,
+        transparent 100%
+    );
+    background-size: 100% 200%;
+    animation: sweep 3s linear infinite;
+    pointer-events: none;
+}
+@keyframes sweep {
+    0%   { background-position: 0 -100%; }
+    100% { background-position: 0 200%; }
+}
 
-        #tabContent { flex: 1; overflow-y: auto; padding-right: 4px; }
-        .unit-list-card { display: flex; flex-direction: column; padding: 16px; background: rgba(0,0,0,0.6); border: 1px solid #1a1a1a; margin-bottom: 8px; cursor: pointer; transition: 0.2s; border-radius: 4px; border-left: 3px solid transparent; }
-        .unit-list-card:hover { border-color: #333; background: #111; }
-        .unit-list-card.active { border-left-color: var(--accent-main); background: rgba(0,255,65,0.08); border-color: rgba(0,255,65,0.3); }
-        .unit-list-card .title-row { font-weight: 800; font-size: 1.1rem; margin-bottom: 8px; display: flex; align-items: center; }
-        .unit-list-card .recipe-row { font-size: 0.9rem; color: var(--text-sub); line-height: 1.6; word-break: keep-all; white-space: normal; }
+/* Corner decorations */
+.intro-corner {
+    position: absolute; z-index: 4;
+    width: 60px; height: 60px;
+    pointer-events: none;
+}
+.intro-corner.tl { top: 24px; left: 24px; border-top: 2px solid var(--g); border-left: 2px solid var(--g); }
+.intro-corner.tr { top: 24px; right: 24px; border-top: 2px solid var(--g); border-right: 2px solid var(--g); }
+.intro-corner.bl { bottom: 24px; left: 24px; border-bottom: 2px solid var(--g); border-left: 2px solid var(--g); }
+.intro-corner.br { bottom: 24px; right: 24px; border-bottom: 2px solid var(--g); border-right: 2px solid var(--g); }
 
-        .empty-hud { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
-        .analysis-card { background: rgba(0,0,0,0.4); border: 1px solid #222; border-left: 3px solid var(--accent-main); padding: 20px; margin-bottom: 16px; border-radius: 4px; }
-        .analysis-card h3 { font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .tree-ul { list-style: none; padding-left: 28px; margin-top: 12px; border-left: 1px dashed #444; }
-        .tree-ul.root-ul { border-left: none; padding-left: 0; }
-        .tree-li { position: relative; margin-top: 12px; }
-        .tree-li::before { content: ""; position: absolute; top: 16px; left: -28px; width: 22px; height: 1px; background: #444; }
-        .root-ul > .tree-li::before { display: none; }
-        .tree-node-wrapper { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .unit-badge { background: #111; border: 1px solid #333; padding: 8px 16px; font-size: 1.1rem; font-weight: 800; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-        .unit-badge:hover { border-color: var(--accent-main); filter: brightness(1.2); }
-        .bullet-recipe { color: var(--text-sub); font-size: 0.95rem; padding-left: 10px; margin-top: 8px; border-left: 2px solid #333; margin-left: 16px; }
-        .bullet-cost { color: var(--accent-main); font-size: 0.95rem; padding-left: 10px; margin-top: 6px; font-weight: 700; border-left: 2px solid var(--accent-dim); margin-left: 16px; }
+/* Center HUD panel */
+.intro-hud {
+    position: relative; z-index: 5;
+    width: min(620px, 92vw);
+    font-family: var(--font-mono);
+    color: var(--g);
+    padding: 28px 32px 24px;
+    border: 1px solid var(--g-dim);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 40px rgba(0,255,65,0.12), inset 0 0 30px rgba(0,0,0,0.5);
+    animation: hud-appear 0.6s ease forwards;
+    opacity: 0;
+}
+@keyframes hud-appear { to { opacity: 1; } }
 
-        /* 정수 패널 가로 1줄 통합 디자인 */
-        .essence-row { display: flex; gap: 8px; width: 100%; margin-bottom: 0; flex-shrink: 0; }
-        .score-circle { flex: 1; background: #050505; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 0; min-width: 0; }
-        .score-circle.total { border-color: var(--accent-main); background: rgba(0,255,65,0.05); }
-        .score-circle.total .val { color: var(--accent-main); }
-        .score-circle .val { font-size: 1.6rem; font-weight: 900; line-height: 1; font-family: var(--font-mono); }
-        .score-circle label { font-size: 0.8rem; color: var(--text-sub); margin-top: 6px; font-weight: 700; white-space: nowrap; }
+/* Top bar of HUD */
+.intro-hud-top {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--g-dim);
+    padding-bottom: 12px; margin-bottom: 18px;
+    font-size: 0.75rem; color: var(--text-sub);
+}
+.intro-hud-id { font-size: 0.8rem; color: var(--g); letter-spacing: 0.1em; }
 
-        .magic-panel .panel-content { display: flex; flex-direction: column; padding: 16px; }
-        .magic-grid { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; gap: 10px; }
-        .cost-slot { background: #050505; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; height: 100%; min-height: 70px; }
-        .cost-slot.active { background: rgba(0,255,65,0.08); border-color: var(--accent-dim); }
-        .cost-slot .val { font-size: 1.5rem; font-weight: 800; color: var(--text-muted); font-family: var(--font-mono); }
-        .cost-slot.active .val { color: var(--accent-main); }
-        .cost-slot .name { font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; font-weight: 600; text-align: center; }
+/* Title */
+.intro-title {
+    font-size: clamp(1.4rem, 5vw, 2.2rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--g);
+    text-shadow: 0 0 20px var(--g-glow), 0 0 50px rgba(0,255,65,0.3);
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 3px solid var(--g);
+    width: 0;
+    animation: title-type 0.8s steps(7, end) 0.5s forwards, blink-cursor 0.6s step-end infinite 0.5s;
+}
+@keyframes title-type { to { width: 100%; } }
+@keyframes blink-cursor { 50% { border-color: transparent; } }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #050505; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
+.intro-subtitle {
+    font-size: 0.85rem; color: var(--text-sub);
+    letter-spacing: 0.2em;
+    margin-bottom: 22px;
+    opacity: 0;
+    animation: fade-in 0.4s ease 1.4s forwards;
+}
+@keyframes fade-in { to { opacity: 1; } }
 
-        @media(max-width: 768px) {
-            body { overflow-x: hidden; overflow-y: auto; }
-            .main-dashboard { min-width: 100%; display: flex; flex-direction: column; }
-            .header-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-            .header-search { width: 100%; }
-            
-            /* 모바일 가로 정렬 유지 및 크기 축소 */
-            .essence-row { gap: 4px; }
-            .score-circle { padding: 10px 0; }
-            .score-circle .val { font-size: 1.3rem; }
-            .score-circle label { font-size: 0.7rem; }
-            
-            .essence-panel { order: 1; flex: none; }
-            .magic-panel { order: 2; flex: none; min-height: 450px; }
-            .codex-panel { order: 3; flex: none; min-height: 600px; }
-            .tree-panel { order: 4; flex: none; min-height: 600px; }
+/* Terminal lines */
+.term-log {
+    list-style: none;
+    font-size: 0.82rem;
+    line-height: 2;
+    margin-bottom: 20px;
+    min-height: 80px;
+}
+.term-log li {
+    opacity: 0;
+    color: var(--text-sub);
+    display: flex; align-items: center; gap: 8px;
+}
+.term-log li::before {
+    content: ">";
+    color: var(--g);
+    flex-shrink: 0;
+}
+.term-log li.ok { color: var(--g); }
+.term-log li.warn { color: var(--grade-rare); }
+.term-log li.err { color: var(--grade-unique); }
+.term-log li.show { opacity: 1; }
 
-            /* 종족 탭 모바일 자동 줄바꿈 최적화 (3개씩 2줄 배치) */
-            .codex-tabs { flex-wrap: wrap; white-space: normal; overflow-x: hidden; }
-            .tab-btn { flex: 1 1 calc(33.333% - 6px); min-width: auto; padding: 10px 0; font-size: 0.95rem; }
-        }
+/* Progress */
+.prog-row {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.78rem; color: var(--text-sub);
+    margin-bottom: 6px;
+    opacity: 0;
+    animation: fade-in 0.4s ease 1.6s forwards;
+}
+.prog-track {
+    flex: 1; height: 4px;
+    background: rgba(0,255,65,0.1);
+    border-radius: 2px; overflow: hidden;
+    position: relative;
+}
+.prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--g-dim), var(--g));
+    width: 0%;
+    transition: width 0.05s linear;
+    box-shadow: 0 0 8px var(--g-glow);
+}
+.prog-pct { font-family: var(--font-mono); color: var(--g); font-size: 0.9rem; min-width: 44px; text-align: right; }
 
-        /* =========================================================
-           [ 6. 사용방법 모달 팝업 디자인 ]
-        ========================================================= */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-            backdrop-filter: blur(5px);
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content {
-            background: var(--bg-panel); border: 1px solid var(--accent-main); border-radius: 6px;
-            width: 700px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;
-            box-shadow: 0 0 30px rgba(0,255,65,0.2); transform: translateY(-20px); transition: transform 0.3s ease;
-        }
-        .modal-overlay.active .modal-content { transform: translateY(0); }
-        .modal-header {
-            padding: 20px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,255,65,0.05);
-        }
-        .modal-header h2 { font-size: 1.4rem; color: var(--accent-main); margin: 0; font-weight: 800; }
-        .btn-close {
-            background: transparent; border: none; color: var(--text-muted); font-size: 2rem;
-            cursor: pointer; line-height: 1; transition: 0.2s;
-        }
-        .btn-close:hover { color: #EF4444; }
-        .modal-body { padding: 24px; overflow-y: auto; color: var(--text-main); font-size: 1rem; }
-        .guide-section { margin-bottom: 24px; border-left: 3px solid var(--accent-dim); padding-left: 16px; background: rgba(0,0,0,0.3); padding-top: 12px; padding-bottom: 12px; border-radius: 0 4px 4px 0; }
-        .guide-section h3 { color: var(--text-main); font-size: 1.15rem; margin-bottom: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-        .guide-section h3::before { content: "■"; color: var(--accent-main); font-size: 0.8rem; }
-        .guide-section ul { list-style: none; padding: 0; margin: 0; }
+/* Subsystem bars */
+.sys-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    opacity: 0;
+    animation: fade-in 0.4s ease 2s forwards;
+}
+.sys-item {
+    background: rgba(0,255,65,0.04);
+    border: 1px solid rgba(0,255,65,0.12);
+    padding: 8px 10px;
+    border-radius: var(--radius);
+}
+.sys-item-label { font-size: 0.65rem; color: var(--text-sub); margin-bottom: 4px; letter-spacing: 0.1em; }
+.sys-item-bar { height: 2px; background: rgba(0,255,65,0.1); border-radius: 1px; overflow: hidden; }
+.sys-item-fill {
+    height: 100%;
+    background: var(--g);
+    width: 0%;
+    animation: sys-fill 1s ease 2.2s forwards;
+    box-shadow: 0 0 4px var(--g);
+}
+@keyframes sys-fill { to { width: 100%; } }
+.sys-item-fill.d1 { animation-delay: 2.2s; }
+.sys-item-fill.d2 { animation-delay: 2.4s; }
+.sys-item-fill.d3 { animation-delay: 2.6s; }
+.sys-item-fill.d4 { animation-delay: 2.8s; }
+.sys-item-fill.d5 { animation-delay: 3.0s; }
+.sys-item-fill.d6 { animation-delay: 3.2s; }
 
-        /* 텍스트 줄바꿈 문제 해결을 위해 li CSS 구조 변경 */
-        .guide-section li { 
-            margin-bottom: 10px; 
-            color: var(--text-sub); 
-            font-size: 0.95rem; 
-            position: relative;
-            padding-left: 14px; 
-            line-height: 1.6;
-            word-break: keep-all; 
-        }
-        .guide-section li::before { 
-            content: "-"; 
-            color: var(--accent-dim); 
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-        .guide-highlight { color: var(--accent-main); font-weight: 700; }
-    </style>
+/* Skip hint */
+.skip-hint {
+    position: absolute; bottom: 32px; right: 32px;
+    z-index: 6;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    opacity: 0;
+    animation: fade-in 0.6s ease 2.5s forwards;
+}
+.skip-hint span {
+    display: inline-block;
+    animation: pulse 2s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+/* ============================================================
+   HEADER
+============================================================ */
+.site-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(0,0,0,0.92);
+    border-bottom: 1px solid var(--g-border);
+    backdrop-filter: blur(8px);
+    padding: calc(var(--safe-top) + 10px) 16px 10px;
+    /* glow line */
+    box-shadow: 0 1px 0 var(--g-dim), 0 2px 20px rgba(0,255,65,0.06);
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.brand {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--g);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 12px var(--g-glow);
+    white-space: nowrap;
+    position: relative;
+}
+.brand::after {
+    content: "";
+    position: absolute; bottom: -2px; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--g), transparent);
+}
+/* animated title cycling */
+.brand-cycle {
+    display: inline-block;
+    overflow: hidden;
+    border-right: 2px solid var(--g);
+    white-space: nowrap;
+    animation: blink-cursor 0.7s step-end infinite;
+}
+
+/* Search wrapper */
+.search-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+.search-box {
+    display: flex; align-items: center; gap: 6px;
+    height: 40px;
+    background: rgba(0,255,65,0.03);
+    border: 1px solid var(--g-border);
+    border-radius: var(--radius);
+    padding: 0 12px;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus-within {
+    border-color: var(--g);
+    box-shadow: 0 0 12px rgba(0,255,65,0.15);
+}
+.search-icon {
+    color: var(--g-dim); font-size: 0.85rem; flex-shrink: 0;
+    font-family: var(--font-mono);
+}
+.search-inner { flex: 1; position: relative; min-width: 0; }
+#comboInput {
+    position: absolute; inset: 0;
+    background: transparent; border: none; outline: none;
+    color: transparent; caret-color: var(--g);
+    font-size: 0.95rem; font-family: var(--font-mono);
+    width: 100%;
+}
+#comboInput::placeholder { color: var(--text-muted); font-size: 0.85rem; font-family: var(--font-body); }
+#highlightLayer {
+    pointer-events: none;
+    font-size: 0.95rem; font-family: var(--font-mono);
+    color: var(--text);
+    white-space: pre;
+    overflow: hidden;
+    height: 100%;
+    display: flex; align-items: center;
+}
+.search-suggestions {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: #050505;
+    border: 1px solid var(--g-dim);
+    border-radius: var(--radius);
+    max-height: 300px; overflow-y: auto;
+    z-index: 200; display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+}
+.search-suggestions.visible { display: block; }
+.suggestion-item {
+    padding: 10px 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid rgba(0,255,65,0.06);
+    font-size: 0.9rem; transition: background 0.15s;
+}
+.suggestion-item:hover, .suggestion-item.focused {
+    background: rgba(0,255,65,0.1);
+    border-left: 2px solid var(--g);
+    padding-left: 12px;
+}
+
+/* Header buttons */
+.hdr-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-hdr {
+    height: 40px; padding: 0 14px;
+    background: transparent;
+    border: 1px solid var(--g-border);
+    border-radius: var(--radius);
+    color: var(--g);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn-hdr:hover {
+    background: var(--g);
+    color: #000;
+    box-shadow: 0 0 12px var(--g-glow);
+}
+
+/* Mobile search row collapse */
+@media (max-width: 719px) {
+    .site-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: calc(var(--safe-top) + 8px) 12px 8px;
+    }
+    .header-inner { flex-wrap: wrap; gap: 8px; }
+    .brand { font-size: 1rem; }
+    .search-wrap { order: 3; flex-basis: 100%; }
+    .hdr-btns { margin-left: auto; }
+    .btn-hdr { font-size: 0.75rem; padding: 0 10px; }
+}
+
+/* ============================================================
+   MAIN LAYOUT
+============================================================ */
+.main-layout {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.main-layout.visible { opacity: 1; transform: translateY(0); }
+
+/* ---- 가로 모니터 / 와이드 PC (landscape + 충분한 가로폭) ---- */
+@media (min-width: 1100px) and (min-aspect-ratio: 1/1) {
+    .main-layout {
+        display: grid;
+        grid-template-columns: 38fr 33fr 29fr;
+        grid-template-rows: auto 1fr;
+        gap: 12px;
+        padding: 12px 16px;
+        height: calc(100vh - var(--header-h));
+        min-height: 0;
+    }
+    .panel-codex   { grid-column: 1; grid-row: 1 / 3; min-height: 0; }
+    .panel-tree    { grid-column: 2; grid-row: 1 / 3; min-height: 0; }
+    .panel-essence { grid-column: 3; grid-row: 1; flex: none; }
+    .panel-magic   { grid-column: 3; grid-row: 2; min-height: 0; overflow: hidden; }
+    .panel-magic .panel-body { overflow-y: auto; }
+    .magic-grid { height: 100%; grid-template-rows: repeat(4, 1fr); }
+    .cost-slot { height: 100%; }
+}
+
+/* ---- 세로 모니터 PC (portrait 또는 1100px 미만 넓은 화면) ---- */
+@media (min-width: 720px) and (max-aspect-ratio: 1/1) {
+    .main-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px 14px calc(var(--safe-bot) + 10px);
+    }
+    .panel-essence { grid-column: 1; grid-row: 1; }
+    .panel-magic   { grid-column: 2; grid-row: 1; min-height: 320px; }
+    .panel-codex   { grid-column: 1 / 3; grid-row: 2; min-height: 460px; }
+    .panel-tree    { grid-column: 1 / 3; grid-row: 3; min-height: 400px; }
+    .magic-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---- 모바일 / 좁은 화면 (719px 미만) ---- */
+@media (max-width: 719px) {
+    .main-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 10px calc(var(--safe-bot) + 10px);
+    }
+    .panel-essence { order: 1; }
+    .panel-magic   { order: 2; }
+    .panel-codex   { order: 3; }
+    .panel-tree    { order: 4; }
+}
+
+/* ============================================================
+   PANEL BASE
+============================================================ */
+.hud-panel {
+    background: var(--panel);
+    border: 1px solid #181818;
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+}
+
+/* Left accent bar */
+.hud-panel::before {
+    content: "";
+    position: absolute; top: 0; left: 0;
+    width: 2px; height: 100%;
+    background: var(--g-dim);
+}
+.hud-panel:hover::before { background: var(--g); }
+
+/* Corner ticks on active panel */
+.panel-header {
+    padding: 11px 16px;
+    background: rgba(0,255,65,0.025);
+    border-bottom: 1px solid #161616;
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+}
+.panel-header::after {
+    content: "";
+    position: absolute; bottom: 0; left: 0;
+    width: 40%; height: 1px;
+    background: linear-gradient(90deg, var(--g-dim), transparent);
+}
+
+.ph-icon {
+    font-family: var(--font-mono);
+    font-size: 0.7rem; color: var(--g-dim);
+    background: rgba(0,255,65,0.06);
+    border: 1px solid var(--g-dim);
+    border-radius: 2px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+.ph-title {
+    font-weight: 700; font-size: 0.9rem;
+    color: var(--g);
+    letter-spacing: 0.04em;
+}
+.ph-spacer { flex: 1; }
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================================
+   CODEX PANEL
+============================================================ */
+.codex-tabs {
+    display: flex; gap: 4px;
+    background: rgba(0,0,0,0.4);
+    padding: 5px; border-radius: var(--radius);
+    margin-bottom: 12px; flex-shrink: 0;
+    overflow-x: auto; white-space: nowrap;
+    scrollbar-width: none;
+}
+.codex-tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+    background: none; border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.85rem; font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer; transition: all 0.2s;
+    border-radius: 2px;
+    flex-shrink: 0;
+    position: relative;
+    letter-spacing: 0.03em;
+}
+.tab-btn:hover { color: var(--text); background: rgba(0,255,65,0.06); }
+.tab-btn.active {
+    background: rgba(0,255,65,0.12);
+    color: var(--g);
+    border: 1px solid var(--g-border);
+}
+
+#tabContent { flex: 1; overflow-y: auto; }
+
+.unit-card {
+    display: flex; flex-direction: column;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #161616;
+    border-left: 3px solid transparent;
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+.unit-card:hover { background: #0f0f0f; border-color: #2a2a2a; }
+.unit-card.active {
+    border-left-color: var(--g);
+    background: var(--g-faint);
+    border-color: var(--g-border);
+}
+.uc-title {
+    font-weight: 800; font-size: 1rem;
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.uc-recipe { font-size: 0.85rem; color: var(--text-sub); line-height: 1.6; word-break: keep-all; }
+
+/* Grade tag */
+.gtag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 1px 5px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    opacity: 0.85;
+}
+.essence-label {
+    font-size: 0.75rem; color: var(--g);
+    font-weight: 800; margin-left: 4px;
+    font-family: var(--font-mono);
+    animation: ess-pulse 2s ease infinite;
+}
+@keyframes ess-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Mobile: collapse tabs to grid */
+@media (max-width: 719px) {
+    .codex-tabs { flex-wrap: wrap; white-space: normal; overflow-x: hidden; }
+    .tab-btn { flex: 1 1 calc(33.333% - 4px); min-width: auto; padding: 8px 4px; font-size: 0.8rem; }
+}
+
+/* ============================================================
+   TREE PANEL
+============================================================ */
+.empty-hud {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; min-height: 160px;
+    color: var(--text-muted);
+    text-align: center;
+    font-family: var(--font-mono);
+}
+.empty-hud-icon { font-size: 1.8rem; margin-bottom: 12px; opacity: 0.4; }
+.empty-hud-msg { font-size: 0.9rem; opacity: 0.6; }
+.empty-hud-sub { font-size: 0.75rem; opacity: 0.35; margin-top: 6px; }
+
+.analysis-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid #1e1e1e;
+    border-left: 3px solid var(--g);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: var(--radius);
+}
+.analysis-card h3 {
+    font-size: 1.05rem;
+    border-bottom: 1px solid #222;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; flex-wrap: wrap;
+}
+
+.tree-ul { list-style: none; padding-left: 24px; margin-top: 10px; border-left: 1px dashed #2a2a2a; }
+.tree-ul.root-ul { border-left: none; padding-left: 0; }
+.tree-li { position: relative; margin-top: 10px; }
+.tree-li::before { content: ""; position: absolute; top: 14px; left: -24px; width: 18px; height: 1px; background: #2a2a2a; }
+.root-ul > .tree-li::before { display: none; }
+.tree-node-wrapper { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.unit-badge {
+    background: #0c0c0c; border: 1px solid #252525;
+    padding: 6px 14px; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; border-radius: var(--radius); transition: 0.2s;
+}
+.unit-badge:hover { border-color: var(--g); filter: brightness(1.3); }
+.bullet-recipe {
+    color: var(--text-sub); font-size: 0.82rem;
+    padding-left: 10px; margin-top: 6px;
+    border-left: 2px solid #282828; margin-left: 14px;
+    line-height: 1.6;
+}
+.bullet-cost {
+    color: var(--g); font-size: 0.82rem;
+    padding-left: 10px; margin-top: 4px;
+    font-weight: 700; border-left: 2px solid var(--g-dim); margin-left: 14px;
+    font-family: var(--font-mono);
+    line-height: 1.6;
+}
+.toggle-mark { font-size: 0.65rem; color: var(--g); margin-left: 5px; }
+
+.btn-small {
+    background: transparent; color: var(--g);
+    border: 1px solid var(--g-border);
+    border-radius: var(--radius);
+    padding: 4px 10px; font-size: 0.75rem;
+    font-family: var(--font-mono);
+    cursor: pointer; transition: 0.2s;
+}
+.btn-small:hover { background: var(--g); color: #000; }
+
+/* ============================================================
+   ESSENCE PANEL
+============================================================ */
+.essence-row {
+    display: flex; gap: 8px; width: 100%;
+}
+.score-cell {
+    flex: 1;
+    background: #050505;
+    border: 1px solid #1c1c1c;
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 14px 8px;
+    min-width: 0;
+    transition: border-color 0.2s;
+    position: relative; overflow: hidden;
+}
+.score-cell.total {
+    border-color: var(--g-border);
+    background: var(--g-faint);
+}
+.score-cell.total::after {
+    content: "";
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--g), transparent);
+}
+.score-val {
+    font-family: var(--font-mono);
+    font-size: 1.8rem; font-weight: 400;
+    line-height: 1;
+    color: var(--text-muted);
+}
+.score-cell.total .score-val { color: var(--g); }
+.score-val.nonzero { color: var(--g); text-shadow: 0 0 12px var(--g-glow); }
+.score-label {
+    font-size: 0.72rem; margin-top: 6px;
+    font-weight: 700; color: var(--text-sub);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   MAGIC PANEL
+============================================================ */
+.magic-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+.cost-slot {
+    background: #050505;
+    border: 1px solid #181818;
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 10px 4px; min-height: 64px;
+    transition: all 0.2s;
+}
+.cost-slot.active {
+    background: var(--g-faint);
+    border-color: var(--g-border);
+    box-shadow: 0 0 10px rgba(0,255,65,0.08);
+}
+.cost-val {
+    font-family: var(--font-mono);
+    font-size: 1.3rem; font-weight: 400;
+    color: var(--text-muted);
+}
+.cost-slot.active .cost-val { color: var(--g); }
+.cost-name {
+    font-size: 0.68rem; color: var(--text-sub);
+    margin-top: 6px; font-weight: 700;
+    text-align: center; line-height: 1.3;
+    word-break: keep-all;
+}
+
+@media (max-width: 719px) {
+    .magic-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .cost-slot { min-height: 56px; padding: 8px 2px; }
+    .cost-val { font-size: 1.1rem; }
+    .cost-name { font-size: 0.62rem; }
+}
+
+/* 모바일 패널 최소 높이 (719px 미만) */
+@media (max-width: 719px) {
+    .panel-magic { min-height: 280px; }
+    .panel-codex { min-height: 500px; }
+    .panel-tree  { min-height: 380px; }
+}
+
+/* ============================================================
+   MODAL
+============================================================ */
+.modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 9000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(6px);
+}
+.modal-backdrop.active { opacity: 1; pointer-events: auto; }
+.modal-box {
+    background: #060606;
+    border: 1px solid var(--g-dim);
+    border-radius: var(--radius);
+    width: min(700px, 92vw);
+    max-height: 80vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,255,65,0.15);
+    transform: translateY(-16px);
+    transition: transform 0.3s;
+}
+.modal-backdrop.active .modal-box { transform: translateY(0); }
+.modal-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid #181818;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(0,255,65,0.03);
+    flex-shrink: 0;
+}
+.modal-head h2 { font-size: 1.2rem; color: var(--g); font-weight: 800; }
+.btn-close {
+    background: none; border: 1px solid #333;
+    color: var(--text-sub); font-size: 1.5rem;
+    cursor: pointer; padding: 0 8px; line-height: 1.4;
+    border-radius: var(--radius); transition: 0.2s;
+}
+.btn-close:hover { border-color: var(--grade-unique); color: var(--grade-unique); }
+.modal-body-scroll { padding: 20px; overflow-y: auto; flex: 1; }
+.guide-section {
+    margin-bottom: 20px;
+    border-left: 2px solid var(--g-dim);
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+.guide-section h3 {
+    font-size: 1rem; font-weight: 800;
+    color: var(--text); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.guide-section h3::before { content: "■"; color: var(--g); font-size: 0.7rem; }
+.guide-section ul { list-style: none; }
+.guide-section li {
+    color: var(--text-sub); font-size: 0.88rem;
+    padding-left: 14px; position: relative;
+    margin-bottom: 8px; line-height: 1.7;
+    word-break: keep-all;
+}
+.guide-section li::before { content: "—"; color: var(--g-dim); position: absolute; left: 0; }
+.hl { color: var(--g); font-weight: 700; }
+
+/* ============================================================
+   UTILITY
+============================================================ */
+.no-select { user-select: none; }
+</style>
 </head>
 <body oncontextmenu="return false">
-<div id="matrix-intro">
+
+<!-- ============================================================
+     INTRO CINEMATIC
+============================================================ -->
+<div id="intro-screen">
     <canvas id="matrixCanvas"></canvas>
-    <div class="intro-terminal">
-        <div id="intro-line1" class="intro-line">> 개복디 넥서스 연결 중...</div>
-        <div id="intro-line2" class="intro-line">> 데이터베이스 확인 중...</div>
-        <div id="intro-line3" class="intro-line">> 접근 허가됨.</div>
-        <div class="loading-bar-container"><div class="loading-bar"></div></div>
-        <div id="loading-percent">0%</div>
-        <div class="skip-hint">[ 화면을 클릭하여 스킵 ]</div>
+    <div class="scan-sweep"></div>
+
+    <div class="intro-corner tl"></div>
+    <div class="intro-corner tr"></div>
+    <div class="intro-corner bl"></div>
+    <div class="intro-corner br"></div>
+
+    <div class="intro-hud">
+        <div class="intro-hud-top">
+            <span class="intro-hud-id">SYS.ID :: NEXUS-OBD-7</span>
+            <span id="introTimestamp"></span>
+        </div>
+
+        <div class="intro-title">개복디 넥서스</div>
+        <div class="intro-subtitle">GAEBOKDI NEXUS / DATA MATRIX v2.0</div>
+
+        <ul class="term-log" id="termLog">
+            <li id="tl1">KERNEL BOOT... 초기화 중</li>
+            <li id="tl2" class="ok">DATABASE LINK... 유닛 데이터 로드 완료</li>
+            <li id="tl3" class="ok">RECIPE ENGINE... 조합 트리 빌드 완료</li>
+            <li id="tl4" class="warn">ESSENCE COUNTER... 정수 시스템 준비</li>
+            <li id="tl5" class="ok">MATRIX HUD... 렌더링 준비 완료</li>
+        </ul>
+
+        <div class="prog-row">
+            <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-sub);letter-spacing:.1em;">LOADING</span>
+            <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+            <span class="prog-pct" id="progPct">0%</span>
+        </div>
+
+        <div class="sys-grid">
+            <div class="sys-item"><div class="sys-item-label">UNIT DB</div><div class="sys-item-bar"><div class="sys-item-fill d1"></div></div></div>
+            <div class="sys-item"><div class="sys-item-label">RECIPE</div><div class="sys-item-bar"><div class="sys-item-fill d2"></div></div></div>
+            <div class="sys-item"><div class="sys-item-label">TREE</div><div class="sys-item-bar"><div class="sys-item-fill d3"></div></div></div>
+            <div class="sys-item"><div class="sys-item-label">ESSENCE</div><div class="sys-item-bar"><div class="sys-item-fill d4"></div></div></div>
+            <div class="sys-item"><div class="sys-item-label">MATRIX</div><div class="sys-item-bar"><div class="sys-item-fill d5"></div></div></div>
+            <div class="sys-item"><div class="sys-item-label">HUD</div><div class="sys-item-bar"><div class="sys-item-fill d6"></div></div></div>
+        </div>
     </div>
+
+    <div class="skip-hint"><span>[ 화면 터치 / 클릭으로 스킵 ]</span></div>
 </div>
 
-<header class="tactical-header">
+<!-- ============================================================
+     HEADER
+============================================================ -->
+<header class="site-header">
     <div class="header-inner">
-        <div class="brand-title"><span class="matrix-title-anim" id="mainTitleAnim">개복디 넥서스</span></div>
-        <div class="header-search">
-            <div class="search-input-wrapper">
-                <input type="text" id="comboInput" class="search-overlay" placeholder="유닛 검색 (예: 불새, 아몬, 테라*2)" autocomplete="off" spellcheck="false">
-                <div id="highlightLayer" class="search-overlay"></div>
-                <div class="search-suggestions" id="searchSuggestions"></div>
-            </div>
-            <button class="btn-tech" onclick="resetAll()">초기화</button>
-            <button class="btn-tech" onclick="openHelpModal()">사용방법</button>
+        <div class="brand">
+            <span class="brand-cycle" id="brandCycle">개복디 넥서스</span>
         </div>
-        <div class="header-dummy-right"></div>
+
+        <div class="search-wrap">
+            <div class="search-box">
+                <span class="search-icon">&#128269;</span>
+                <div class="search-inner">
+                    <input type="text" id="comboInput"
+                        placeholder="유닛 검색 (예: 불새, 아몬, 테라*2)"
+                        autocomplete="off" spellcheck="false">
+                    <div id="highlightLayer"></div>
+                </div>
+            </div>
+            <div class="search-suggestions" id="searchSuggestions"></div>
+        </div>
+
+        <div class="hdr-btns">
+            <button class="btn-hdr" onclick="resetAll()">초기화</button>
+            <button class="btn-hdr" onclick="openHelpModal()">사용방법</button>
+        </div>
     </div>
 </header>
 
-<div class="main-dashboard" id="mainDashboard">
-    <div class="hud-panel codex-panel">
-        <div class="panel-header"><span>유닛 도감 데이터베이스</span></div>
-        <div class="panel-content" style="padding: 16px;">
-            <div class="codex-tabs"></div>
+<!-- ============================================================
+     MAIN LAYOUT
+============================================================ -->
+<main class="main-layout" id="mainLayout">
+
+    <!-- CODEX -->
+    <div class="hud-panel panel-codex">
+        <div class="panel-header">
+            <span class="ph-icon">DB</span>
+            <span class="ph-title">유닛 도감 데이터베이스</span>
+        </div>
+        <div class="panel-body">
+            <div class="codex-tabs" id="codexTabs"></div>
             <div id="tabContent"></div>
         </div>
     </div>
 
-    <div class="hud-panel tree-panel">
-        <div class="panel-header"><span>계보 및 조합 트리 시뮬레이션</span></div>
-        <div class="panel-content" id="treeView">
+    <!-- TREE -->
+    <div class="hud-panel panel-tree">
+        <div class="panel-header">
+            <span class="ph-icon">TREE</span>
+            <span class="ph-title">계보 & 조합 트리 시뮬레이션</span>
+        </div>
+        <div class="panel-body" id="treeView">
             <div class="empty-hud">
-                <div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div>
-                <div style="font-size:0.95rem; opacity:0.6; margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div>
+                <div class="empty-hud-icon">◈</div>
+                <div class="empty-hud-msg">명령 대기 중</div>
+                <div class="empty-hud-sub">좌측 도감이나 검색창에서 대상을 선택하십시오</div>
             </div>
         </div>
     </div>
 
-    <div class="hud-panel essence-panel">
-        <div class="panel-header"><span>일일 정수 카운터</span></div>
-        <div class="panel-content" style="padding: 16px;">
+    <!-- ESSENCE -->
+    <div class="hud-panel panel-essence">
+        <div class="panel-header">
+            <span class="ph-icon">ESS</span>
+            <span class="ph-title">일일 정수 카운터</span>
+        </div>
+        <div class="panel-body" style="padding:12px;">
             <div class="essence-row">
-                <div class="score-circle total"><div class="val" id="essence-total-val">0</div><label>총합</label></div>
-                <div class="score-circle"><div class="val" id="val-coral">0</div><label style="color:#FF6B6B;">코랄</label></div>
-                <div class="score-circle"><div class="val" id="val-aiur">0</div><label style="color:#FBBF24;">아이어</label></div>
-                <div class="score-circle"><div class="val" id="val-zerus">0</div><label style="color:#A855F7;">제루스</label></div>
+                <div class="score-cell total">
+                    <div class="score-val" id="essence-total-val">0</div>
+                    <div class="score-label">총합</div>
+                </div>
+                <div class="score-cell">
+                    <div class="score-val" id="val-coral">0</div>
+                    <div class="score-label" style="color:#FF6B6B;">코랄</div>
+                </div>
+                <div class="score-cell">
+                    <div class="score-val" id="val-aiur">0</div>
+                    <div class="score-label" style="color:var(--grade-rare);">아이어</div>
+                </div>
+                <div class="score-cell">
+                    <div class="score-val" id="val-zerus">0</div>
+                    <div class="score-label" style="color:var(--grade-legend);">제루스</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="hud-panel magic-panel">
-        <div class="panel-header"><span>매직 코스트 산출 매트릭스</span></div>
-        <div class="panel-content">
+    <!-- MAGIC COST -->
+    <div class="hud-panel panel-magic">
+        <div class="panel-header">
+            <span class="ph-icon">COST</span>
+            <span class="ph-title">매직 코스트 산출 매트릭스</span>
+        </div>
+        <div class="panel-body">
             <div class="magic-grid" id="magicDashboard"></div>
         </div>
     </div>
-</div>
 
-<!-- 사용방법 모달 팝업 구조 -->
-<div class="modal-overlay" id="helpModal" onclick="closeHelpModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
+</main>
+
+<!-- ============================================================
+     HELP MODAL
+============================================================ -->
+<div class="modal-backdrop" id="helpModal" onclick="closeHelpModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-head">
             <h2>개복디 넥서스 사용 가이드</h2>
             <button class="btn-close" onclick="closeHelpModal()">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body-scroll">
             <div class="guide-section">
                 <h3>유닛 검색 및 자동완성</h3>
                 <ul>
                     <li>유닛 이름, 초성, 별명(예: 불새)을 검색창에 직접 입력하여 찾을 수 있습니다.</li>
-                    <li><span class="guide-highlight">유닛명*숫자</span> (예: 테라*2) 형식으로 입력하면 여러 유닛을 한 번에 추가 및 계산합니다.</li>
+                    <li><span class="hl">유닛명*숫자</span> (예: 테라*2) 형식으로 입력하면 여러 유닛을 한 번에 추가 및 계산합니다.</li>
                 </ul>
             </div>
             <div class="guide-section">
                 <h3>유닛 도감 데이터베이스 (좌측)</h3>
                 <ul>
                     <li>종족별 탭을 눌러 해당 카테고리의 모든 유닛 조합법을 확인합니다.</li>
-                    <li>목록은 <span class="guide-highlight">총 필요 비용(Cost)이 비싼 순서</span>로 자동 정렬되어 노출됩니다. (슈퍼히든 등급은 예외로 최상단 고정)</li>
+                    <li>목록은 <span class="hl">총 필요 비용(Cost)이 비싼 순서</span>로 자동 정렬되어 노출됩니다. (슈퍼히든 등급은 예외로 최상단 고정)</li>
                     <li>유닛을 클릭하면 중앙 및 우측 패널의 계산기에 즉시 데이터가 반영됩니다.</li>
                 </ul>
             </div>
@@ -372,22 +1067,22 @@
                 <h3>계보 및 조합 트리 시뮬레이션 (중앙)</h3>
                 <ul>
                     <li>선택한 유닛을 만들기 위한 하위 재료가 트리 형태로 상세히 펼쳐집니다.</li>
-                    <li><span class="guide-highlight">모두 펼치기/접기</span> 버튼으로 복잡한 계보를 한눈에 파악할 수 있습니다.</li>
-                    <li>단일 유닛을 선택할 경우, 해당 유닛을 재료로 사용하는 <span class="guide-highlight">상위 조합 가능 유닛</span>을 추천 목록에 표시해 줍니다.</li>
+                    <li><span class="hl">모두 펼치기/접기</span> 버튼으로 복잡한 계보를 한눈에 파악할 수 있습니다.</li>
+                    <li>단일 유닛을 선택할 경우, 해당 유닛을 재료로 사용하는 <span class="hl">상위 조합 가능 유닛</span>을 추천 목록에 표시해 줍니다.</li>
                 </ul>
             </div>
             <div class="guide-section">
                 <h3>일일 정수 카운터 (우측 상단)</h3>
                 <ul>
-                    <li><span class="guide-highlight">좌측 유닛 도감에서 직접 클릭하여 선택한 유닛</span>에 한해서만 1일 1회 정수(1점)가 오릅니다.</li>
+                    <li><span class="hl">좌측 유닛 도감에서 직접 클릭하여 선택한 유닛</span>에 한해서만 1일 1회 정수(1점)가 오릅니다.</li>
                     <li>검색창에서 '유닛명*숫자'를 입력하여 코스트를 계산하더라도, 정수 카운터는 함께 오르지 않도록 분리되어 있습니다.</li>
-                    <li>도감에서 유닛을 클릭하면 이름 옆에 <span style="color:var(--accent-main); font-weight:800;">[정수확보]</span> 태그가 표시되어 획득 여부를 쉽게 파악할 수 있습니다.</li>
+                    <li>도감에서 유닛을 클릭하면 이름 옆에 <span class="hl">[정수확보]</span> 태그가 표시되어 획득 여부를 쉽게 파악할 수 있습니다.</li>
                 </ul>
             </div>
             <div class="guide-section">
                 <h3>매직 코스트 산출 매트릭스 (우측 하단)</h3>
                 <ul>
-                    <li>선택한 최종 유닛들을 제작하기 위해 필요한 <span class="guide-highlight">가장 기초적인 매직 등급 유닛(전쟁광, 스파르타 등)의 총 요구 개수</span>를 역산하여 보여줍니다.</li>
+                    <li>선택한 최종 유닛들을 제작하기 위해 필요한 <span class="hl">가장 기초적인 매직 등급 유닛의 총 요구 개수</span>를 역산하여 보여줍니다.</li>
                 </ul>
             </div>
         </div>
@@ -395,15 +1090,15 @@
 </div>
 
 <script>
-/* ========================================================================
-   [ SECTION 1 : 기본 설정값 및 변수 정의 ]
-======================================================================== */
+/* ====================================================================
+   SECTION 1 : 설정값 및 상수
+==================================================================== */
 const gradeColorsRaw = {
-    "매직":"#87CEEB", "레어":"#FBBF24", "에픽":"#FB923C", "유니크":"#EF4444",
-    "헬":"#EC4899", "레전드":"#A78BFA", "히든":"#34D399", "슈퍼히든":"#FFD700"
+    "매직":"#87CEEB","레어":"#FBBF24","에픽":"#FB923C","유니크":"#EF4444",
+    "헬":"#EC4899","레전드":"#A78BFA","히든":"#34D399","슈퍼히든":"#FFD700"
 };
 const GRADE_ORDER = ["매직","레어","에픽","유니크","헬","레전드","히든","슈퍼히든"];
-const IGNORE_PARSE_RECIPES = ["미발견", "없음", "", "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"];
+const IGNORE_PARSE_RECIPES = ["미발견","없음","","100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"];
 
 const dashboardAtoms = [
     {name:"전쟁광"},{name:"스파르타중대"},{name:"암흑광전사"},{name:"암흑파수기"},{name:"원시바퀴"},
@@ -411,14 +1106,12 @@ const dashboardAtoms = [
     {name:"망치경호대"},{name:"공성파괴단"},{name:"암흑집정관"},{name:"암흑불멸자"},{name:"원시히드라리스크"},
     {name:"땅거미지뢰"},{name:"자동포탑"},{name:"우르사돈[암]"},{name:"우르사돈[수]"},{name:"갓오타/메시브"}
 ];
-
 const specialKeywordMap = [
-    {keys:["자동포탑"], atom:"자동포탑"}, {keys:["잠복"], atom:"잠복"},
-    {keys:["지뢰","시체매"], atom:"땅거미지뢰", divider:12},
-    {keys:["우르사돈[암]","우르사돈암"], atom:"우르사돈[암]"}, {keys:["우르사돈[수]","우르사돈수"], atom:"우르사돈[수]"},
-    {keys:["메시브","디제스터"], atom:"갓오타/메시브", subKey:"메시브"}, {keys:["갓오브타임","갓오타"], atom:"갓오타/메시브", subKey:"갓오타"}
+    {keys:["자동포탑"],atom:"자동포탑"},{keys:["잠복"],atom:"잠복"},
+    {keys:["지뢰","시체매"],atom:"땅거미지뢰",divider:12},
+    {keys:["우르사돈[암]","우르사돈암"],atom:"우르사돈[암]"},{keys:["우르사돈[수]","우르사돈수"],atom:"우르사돈[수]"},
+    {keys:["메시브","디제스터"],atom:"갓오타/메시브",subKey:"메시브"},{keys:["갓오브타임","갓오타"],atom:"갓오타/메시브",subKey:"갓오타"}
 ];
-
 const UNIT_ALIASES = {
     "불새":"불새케리건","아몬":"아몬","나루드":"나루드","비작노":"비밀작전노바","초월":"초월체",
     "테라":"테라트론","아둔":"아둔의창","토시":"가브리엘토시","타이커스":"타이커스핀들레이",
@@ -428,582 +1121,529 @@ const UNIT_ALIASES = {
     "공허분":"공허분쇄자","사라":"사라케리건","유물":"유물","네메":"혼종네메시스",
     "스투":"스투코프","짐레":"짐레이너","오딘":"오딘","고르곤":"고르곤전투순양함"
 };
+const TAB_CATEGORIES = [
+    {key:"테바",label:"테바"},{key:"테메",label:"테메"},{key:"토바",label:"토바"},
+    {key:"토메",label:"토메"},{key:"저그중립",label:"저그중립"},{key:"혼종",label:"혼종"}
+];
+const GRADE_SHORT = {매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'H',슈퍼히든:'SH'};
 
-const TAB_CATEGORIES = [{key:"테바",label:"테바"},{key:"테메",label:"테메"},{key:"토바",label:"토바"},{key:"토메",label:"토메"},{key:"저그중립",label:"저그중립"},{key:"혼종",label:"혼종"}];
-
-/* ========================================================================
-   [ SECTION 2 : 상태 관리 및 유틸리티 함수 ]
-======================================================================== */
-const unitMap = new Map(); 
-const activeUnits = new Map(); 
-const essenceUnits = new Set(); // 도감 클릭(정수 획득) 상태 독립 추적
-const DOM = {}; 
-
+/* ====================================================================
+   SECTION 2 : 상태 관리
+==================================================================== */
+const unitMap    = new Map();
+const activeUnits = new Map();
+const essenceUnits = new Set();
+const DOM = {};
 const clean = s => s ? s.replace(/\s+/g,'').toLowerCase() : '';
 
 function getUnitColor(name){
-    const cName = clean(String(name).split(/[(\[▶▼]/)[0]);
-    const u = unitMap.get(cName);
-    if(u && gradeColorsRaw[u.grade]) return gradeColorsRaw[u.grade];
-    return "var(--text-main)";
+    const u = unitMap.get(clean(String(name).split(/[(\[▶▼]/)[0]));
+    return u && gradeColorsRaw[u.grade] ? gradeColorsRaw[u.grade] : "var(--text)";
 }
-
 function gradeTag(grade){
-    const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'H',슈퍼히든:'S'};
-    return `<span style="color:${gradeColorsRaw[grade]||'#fff'}; font-family:var(--font-mono);">[${short[grade]||grade}]</span>`;
+    return `<span class="gtag" style="color:${gradeColorsRaw[grade]||'#fff'};border-color:${gradeColorsRaw[grade]||'#fff'}44;">${GRADE_SHORT[grade]||grade}</span>`;
 }
-
-function debounce(f,t){let timer; return(...args)=>{clearTimeout(timer);timer=setTimeout(()=>f.apply(this,args),t);};}
+function debounce(f,t){let timer;return(...args)=>{clearTimeout(timer);timer=setTimeout(()=>f(...args),t);};}
 
 function findUnit(input){
-    if(!input) return null; const ckey = clean(input); if(!ckey) return null;
+    if(!input) return null; const ckey=clean(input); if(!ckey) return null;
     if(UNIT_ALIASES[input.trim()]) return unitMap.get(clean(UNIT_ALIASES[input.trim()]));
     if(UNIT_ALIASES[ckey]) return unitMap.get(clean(UNIT_ALIASES[ckey]));
     if(unitMap.get(ckey)) return unitMap.get(ckey);
-    
-    const allUnits = [...unitMap.values()];
-    const startsWith = allUnits.filter(u => clean(u.name).startsWith(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
-    if(startsWith.length) return startsWith[0];
-    
-    const includes = allUnits.filter(u => clean(u.name).includes(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
-    if(includes.length) return includes[0];
-    return null;
+    const all=[...unitMap.values()];
+    const sw=all.filter(u=>clean(u.name).startsWith(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade)-GRADE_ORDER.indexOf(a.grade));
+    if(sw.length) return sw[0];
+    const inc=all.filter(u=>clean(u.name).includes(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade)-GRADE_ORDER.indexOf(a.grade));
+    return inc.length ? inc[0] : null;
 }
-
-function findAllMatchingUnits(input, limit=8){
-    if(!input || !input.trim()) return [];
-    const ckey = clean(input); const allUnits = [...unitMap.values()];
-    const found = new Set(); const result = [];
-    
-    Object.entries(UNIT_ALIASES).forEach(([alias, target]) => {
-        if(clean(alias).startsWith(ckey) || clean(alias) === ckey){
-            const u = unitMap.get(clean(target));
-            if(u && !found.has(u.name)){ found.add(u.name); result.push({unit:u, alias:alias}); }
+function findAllMatchingUnits(input,limit=8){
+    if(!input||!input.trim()) return [];
+    const ckey=clean(input); const all=[...unitMap.values()];
+    const found=new Set(); const result=[];
+    Object.entries(UNIT_ALIASES).forEach(([alias,target])=>{
+        if(clean(alias).startsWith(ckey)||clean(alias)===ckey){
+            const u=unitMap.get(clean(target));
+            if(u&&!found.has(u.name)){found.add(u.name);result.push({unit:u,alias});}
         }
     });
-    
-    allUnits.forEach(u => { if(!found.has(u.name) && clean(u.name).startsWith(ckey)){ found.add(u.name); result.push({unit:u, alias:null}); } });
-    allUnits.forEach(u => { if(!found.has(u.name) && clean(u.name).includes(ckey)){ found.add(u.name); result.push({unit:u, alias:null}); } });
-    result.sort((a,b) => GRADE_ORDER.indexOf(b.unit.grade) - GRADE_ORDER.indexOf(a.unit.grade));
-    return result.slice(0, limit);
+    all.forEach(u=>{if(!found.has(u.name)&&clean(u.name).startsWith(ckey)){found.add(u.name);result.push({unit:u,alias:null});}});
+    all.forEach(u=>{if(!found.has(u.name)&&clean(u.name).includes(ckey)){found.add(u.name);result.push({unit:u,alias:null});}});
+    result.sort((a,b)=>GRADE_ORDER.indexOf(b.unit.grade)-GRADE_ORDER.indexOf(a.unit.grade));
+    return result.slice(0,limit);
 }
 
-/* ========================================================================
-   [ SECTION 3 : 코스트(비용) 파싱 및 산출 로직 ]
-======================================================================== */
-function processCostKeyword(rawName, amount, map){
-    let matched = false; const cName = clean(rawName);
+/* ====================================================================
+   SECTION 3 : 코스트 파싱
+==================================================================== */
+function processCostKeyword(rawName,amount,map){
+    let matched=false; const cName=clean(rawName);
     for(const conf of specialKeywordMap){
-        if(conf.keys.some(k => cName.includes(clean(k)))){
-            const val = conf.divider ? amount/conf.divider : amount;
-            if(conf.subKey){ if(!map[conf.atom]) map[conf.atom]={갓오타:0,메시브:0}; map[conf.atom][conf.subKey]+=val; }
+        if(conf.keys.some(k=>cName.includes(clean(k)))){
+            const val=conf.divider?amount/conf.divider:amount;
+            if(conf.subKey){if(!map[conf.atom])map[conf.atom]={갓오타:0,메시브:0};map[conf.atom][conf.subKey]+=val;}
             else map[conf.atom]=(map[conf.atom]||0)+val;
             matched=true; break;
         }
     }
-    if(!matched){
-        const atom = dashboardAtoms.find(a=>clean(a.name)===cName);
-        if(atom){ map[atom.name]=(map[atom.name]||0)+amount; matched=true; }
-    }
+    if(!matched){const atom=dashboardAtoms.find(a=>clean(a.name)===cName);if(atom){map[atom.name]=(map[atom.name]||0)+amount;matched=true;}}
     return matched;
 }
-
-function parseFixedCost(costStr, multiplier, map){
-    if(!costStr || ["정보 부족","미발견","없음",""].includes(costStr)) return;
+function parseFixedCost(costStr,multiplier,map){
+    if(!costStr||["정보 부족","미발견","없음",""].includes(costStr))return;
     costStr.split(',').forEach(p=>{
-        const m = p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
-        if(m) processCostKeyword(m[1].trim(), parseFloat(m[2])*multiplier, map);
-        else processCostKeyword(p.trim(), multiplier, map);
+        const m=p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
+        if(m) processCostKeyword(m[1].trim(),parseFloat(m[2])*multiplier,map);
+        else processCostKeyword(p.trim(),multiplier,map);
     });
 }
-
-function calculateRecursiveCost(name, m, map, visited=new Set()){
-    const pName = clean(name.split(/[(\[]/)[0]);
-    if(visited.has(pName)) return; const curV=new Set(visited); curV.add(pName);
-    if(processCostKeyword(pName, m, map)) return;
-    
-    const u = unitMap.get(pName);
-    if(u && u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)){
+function calculateRecursiveCost(name,m,map,visited=new Set()){
+    const pName=clean(name.split(/[(\[]/)[0]);
+    if(visited.has(pName))return; const curV=new Set(visited); curV.add(pName);
+    if(processCostKeyword(pName,m,map))return;
+    const u=unitMap.get(pName);
+    if(u&&u.recipe&&!IGNORE_PARSE_RECIPES.includes(u.recipe)){
         u.recipe.split('+').forEach(part=>{
             const match=part.trim().match(/^([^(\[]+)/);
             if(match){
                 const ingName=match[1].trim(); const cntMatch=part.match(/\[(\d+)\]/);
-                const cnt=cntMatch?parseInt(cntMatch[1]):1; const childU = unitMap.get(clean(ingName));
-                if(childU && childU.cost && !["정보 부족","미발견","없음",""].includes(childU.cost)) parseFixedCost(childU.cost, cnt*m, map);
-                else calculateRecursiveCost(ingName, cnt*m, map, curV);
-            } else calculateRecursiveCost(part.trim(), m, map, curV);
+                const cnt=cntMatch?parseInt(cntMatch[1]):1; const childU=unitMap.get(clean(ingName));
+                if(childU&&childU.cost&&!["정보 부족","미발견","없음",""].includes(childU.cost))parseFixedCost(childU.cost,cnt*m,map);
+                else calculateRecursiveCost(ingName,cnt*m,map,curV);
+            } else calculateRecursiveCost(part.trim(),m,map,curV);
         });
     }
 }
-
-function calculateTotalCostScore(costStr) {
-    if (!costStr || costStr === "정보 부족" || costStr === "미발견" || costStr === "없음") return 0;
-    let total = 0;
-    const regex = /\[(\d+(?:\.\d+)?)\]/g;
-    let match;
-    while ((match = regex.exec(costStr)) !== null) {
-        total += parseFloat(match[1]);
-    }
+function calculateTotalCostScore(costStr){
+    if(!costStr||["정보 부족","미발견","없음"].includes(costStr))return 0;
+    let total=0; const re=/\[(\d+(?:\.\d+)?)\]/g; let m;
+    while((m=re.exec(costStr))!==null) total+=parseFloat(m[1]);
     return total;
 }
 
-/* ========================================================================
-   [ SECTION 4 : 화면(UI) 업데이트 로직 ]
-======================================================================== */
+/* ====================================================================
+   SECTION 4 : UI 업데이트
+==================================================================== */
 function toggleUnitSelection(name){
-    const cName = clean(name);
-    
-    // 1. 도감 클릭 시 일일 정수 리스트 토글
+    const cName=clean(name);
     if(essenceUnits.has(cName)) essenceUnits.delete(cName);
     else essenceUnits.add(cName);
-    
-    // 2. 기존 코스트 계산기 로직
     if(activeUnits.has(cName)) activeUnits.delete(cName);
-    else activeUnits.set(cName, 1);
-    
-    updateAllPanels();
-    updateSearchBarFromState();
+    else activeUnits.set(cName,1);
+    updateAllPanels(); updateSearchBarFromState();
 }
-
-function updateSearchBarFromState() {
-    const searchArr = [];
-    activeUnits.forEach((count, key) => {
-        let u = unitMap.get(key);
-        if(u) searchArr.push(count > 1 ? `${u.name}*${count}` : u.name);
-    });
-    DOM.comboInput.value = searchArr.join(", ");
-    updateHighlight();
+function updateSearchBarFromState(){
+    const arr=[];
+    activeUnits.forEach((count,key)=>{const u=unitMap.get(key);if(u)arr.push(count>1?`${u.name}*${count}`:u.name);});
+    DOM.comboInput.value=arr.join(", "); updateHighlight();
 }
+function updateAllPanels(){renderTreeAndMagic();updateEssence();refreshCodexHighlight();}
 
-function updateAllPanels() {
-    renderTreeAndMagic();
-    updateEssence();
-    refreshCodexHighlight();
-}
-
-// 일일 정수 산출 로직 (검색 수량 무시, 도감 클릭 기반 1일 1회)
-function updateEssence() {
-    let counts = {coral:0, aiur:0, zerus:0, hybrid:0};
-    essenceUnits.forEach(key => { 
-        let u = unitMap.get(key);
-        if(u && ["히든", "슈퍼히든"].includes(u.grade)) {
-            if(["테바", "테메"].includes(u.category)) counts.coral += 1;
-            else if(["토바", "토메"].includes(u.category)) counts.aiur += 1;
-            else if(u.category === "저그중립") counts.zerus += 1;
-            else if(u.category === "혼종") counts.hybrid += 1;
+function updateEssence(){
+    let counts={coral:0,aiur:0,zerus:0,hybrid:0};
+    essenceUnits.forEach(key=>{
+        const u=unitMap.get(key);
+        if(u&&["히든","슈퍼히든"].includes(u.grade)){
+            if(["테바","테메"].includes(u.category)) counts.coral+=1;
+            else if(["토바","토메"].includes(u.category)) counts.aiur+=1;
+            else if(u.category==="저그중립") counts.zerus+=1;
+            else if(u.category==="혼종") counts.hybrid+=1;
         }
     });
-    
-    const coralTotal = counts.coral + counts.hybrid;
-    const aiurTotal = counts.aiur + counts.hybrid;
-    const zerusTotal = counts.zerus + counts.hybrid;
-    const allTotal = coralTotal + aiurTotal + zerusTotal;
-
-    document.getElementById('val-coral').innerText = coralTotal;
-    document.getElementById('val-aiur').innerText = aiurTotal;
-    document.getElementById('val-zerus').innerText = zerusTotal;
-    document.getElementById('essence-total-val').innerText = allTotal;
+    const coralTotal=counts.coral+counts.hybrid;
+    const aiurTotal=counts.aiur+counts.hybrid;
+    const zerusTotal=counts.zerus+counts.hybrid;
+    const allTotal=coralTotal+aiurTotal+zerusTotal;
+    const setVal=(id,v)=>{
+        const el=document.getElementById(id);
+        if(el){el.innerText=v;el.className='score-val'+(v>0?' nonzero':'');}
+    };
+    setVal('val-coral',coralTotal);
+    setVal('val-aiur',aiurTotal);
+    setVal('val-zerus',zerusTotal);
+    setVal('essence-total-val',allTotal);
 }
-
-// 도감 좌측 패널 하이라이트 동기화 (정수확보 라벨 추가)
-function refreshCodexHighlight() {
-    document.querySelectorAll('.unit-list-card').forEach(card => {
-        let name = clean(card.dataset.name);
-        
+function refreshCodexHighlight(){
+    document.querySelectorAll('.unit-card').forEach(card=>{
+        const name=clean(card.dataset.name);
         if(activeUnits.has(name)) card.classList.add('active');
         else card.classList.remove('active');
-        
-        let titleRow = card.querySelector('.title-row');
-        let essenceSpan = titleRow.querySelector('.essence-label');
-        if(essenceUnits.has(name)) {
-            if(!essenceSpan) titleRow.insertAdjacentHTML('beforeend', `<span class="essence-label" style="font-size:0.85rem; color:var(--accent-main); font-weight:800; margin-left:6px;">[정수확보]</span>`);
-        } else {
-            if(essenceSpan) essenceSpan.remove();
-        }
+        let titleRow=card.querySelector('.uc-title');
+        let eLabel=titleRow.querySelector('.essence-label');
+        if(essenceUnits.has(name)){
+            if(!eLabel) titleRow.insertAdjacentHTML('beforeend','<span class="essence-label">[정수확보]</span>');
+        } else { if(eLabel) eLabel.remove(); }
     });
 }
-
 function renderTreeAndMagic(){
     resetMagicDashboard();
-    if(activeUnits.size === 0) {
-        DOM.treeView.innerHTML = `<div class="empty-hud"><div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div><div style="font-size:0.95rem;opacity:0.6;margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div></div>`;
+    if(activeUnits.size===0){
+        DOM.treeView.innerHTML=`<div class="empty-hud"><div class="empty-hud-icon">◈</div><div class="empty-hud-msg">명령 대기 중</div><div class="empty-hud-sub">좌측 도감이나 검색창에서 대상을 선택하십시오</div></div>`;
         return;
     }
-
-    const totalMap = {};
-    dashboardAtoms.forEach(a => { if(a.name === "갓오타/메시브") totalMap[a.name] = {갓오타:0, 메시브:0}; else totalMap[a.name] = 0; });
-    
-    let htmlBuffer = ''; 
-    const keys = Array.from(activeUnits.keys());
-
-    if(keys.length === 1){
-        const targetU = unitMap.get(keys[0]);
-        if(targetU && ["레전드","히든","헬","슈퍼히든"].includes(targetU.grade)){
-            const parents = unitDatabase.filter(u => ["히든","슈퍼히든"].includes(u.grade) && u.name !== targetU.name && u.recipe && u.recipe.includes(targetU.name));
-            if(parents.length > 0){
-                parents.sort((a,b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
-                htmlBuffer += `<div class="analysis-card" style="border-left-color:#FBBF24;">
-                    <h3 style="color:#FBBF24;border-bottom-color:rgba(251,191,36,0.2);">> 상위 조합 가능</h3>
+    const totalMap={};
+    dashboardAtoms.forEach(a=>{if(a.name==="갓오타/메시브")totalMap[a.name]={갓오타:0,메시브:0};else totalMap[a.name]=0;});
+    let html='';
+    const keys=Array.from(activeUnits.keys());
+    if(keys.length===1){
+        const targetU=unitMap.get(keys[0]);
+        if(targetU&&["레전드","히든","헬","슈퍼히든"].includes(targetU.grade)){
+            const parents=unitDatabase.filter(u=>["히든","슈퍼히든"].includes(u.grade)&&u.name!==targetU.name&&u.recipe&&u.recipe.includes(targetU.name));
+            if(parents.length>0){
+                parents.sort((a,b)=>GRADE_ORDER.indexOf(a.grade)-GRADE_ORDER.indexOf(b.grade));
+                html+=`<div class="analysis-card" style="border-left-color:var(--grade-rare);">
+                    <h3 style="color:var(--grade-rare);border-bottom-color:rgba(251,191,36,0.2);">> 상위 조합 가능
+                    </h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">`;
-                parents.forEach(p => { htmlBuffer += `<div class="unit-badge" style="color:${getUnitColor(p.name)};" onclick="toggleUnitSelection('${p.name}')">${p.name}</div>`; });
-                htmlBuffer += `</div></div>`;
+                parents.forEach(p=>{html+=`<div class="unit-badge" style="color:${getUnitColor(p.name)};" onclick="toggleUnitSelection('${p.name}')">${p.name}</div>`;});
+                html+=`</div></div>`;
             }
         }
     }
-    
-    keys.forEach(k => {
-        const u = unitMap.get(k); if(!u) return; const c = activeUnits.get(k) || 1;
-        if(u.cost && !["정보 부족","미발견","없음",""].includes(u.cost)) parseFixedCost(u.cost, c, totalMap);
-        else calculateRecursiveCost(u.name, c, totalMap);
-        
-        htmlBuffer += `<div class="analysis-card" id="card-${k}">
+    keys.forEach(k=>{
+        const u=unitMap.get(k); if(!u)return; const c=activeUnits.get(k)||1;
+        if(u.cost&&!["정보 부족","미발견","없음",""].includes(u.cost))parseFixedCost(u.cost,c,totalMap);
+        else calculateRecursiveCost(u.name,c,totalMap);
+        html+=`<div class="analysis-card" id="card-${k}">
             <h3>
-                <span style="color:${getUnitColor(u.name)};">${u.name}${c > 1 ? ` <span style="color:var(--text-sub);font-size:0.9rem;">x${c}</span>` : ''}</span>
-                <button class="btn-tech" style="padding:4px 12px;font-size:0.75rem;height:auto;" data-expanded="false" onclick="toggleAllTree(this)">모두 펼치기</button>
+                <span style="color:${getUnitColor(u.name)};">${u.name}${c>1?` <span style="color:var(--text-sub);font-size:0.85rem;">x${c}</span>`:''}</span>
+                <button class="btn-small" data-expanded="false" onclick="toggleAllTree(this)">모두 펼치기</button>
             </h3>
-            <div style="display:block;">
-                <ul class="tree-ul root-ul" style="display:block;">${buildTree(k, new Set(), true, '', 0)}</ul>
-            </div>
+            <ul class="tree-ul root-ul" style="display:block;">${buildTree(k,new Set(),true,'',0)}</ul>
         </div>`;
     });
-    
-    DOM.treeView.innerHTML = htmlBuffer;
-    
-    dashboardAtoms.forEach(a => {
-        const val = totalMap[a.name];
-        const container = document.getElementById(`val-container-${a.name}`);
-        if(!container) return;
-        const e = container.querySelector('.val'); const nameEl = container.querySelector('.name');
-        if(a.name === "갓오타/메시브"){
-            if(val.갓오타 > 0 || val.메시브 > 0){
-                let html = "";
-                if(val.갓오타 > 0) html += `<div style="font-size:0.9rem;color:#FBBF24;">갓오타 ${Math.ceil(val.갓오타)}</div>`;
-                if(val.메시브 > 0) html += `<div style="font-size:0.9rem;color:#EF4444;">메시브 ${Math.ceil(val.메시브)}</div>`;
-                e.innerHTML = html; nameEl.style.display = 'none'; container.classList.add('active');
+    DOM.treeView.innerHTML=html;
+    dashboardAtoms.forEach(a=>{
+        const val=totalMap[a.name];
+        const container=document.getElementById(`vslot-${a.name}`);
+        if(!container)return;
+        const e=container.querySelector('.cost-val');
+        const nameEl=container.querySelector('.cost-name');
+        if(a.name==="갓오타/메시브"){
+            if(val.갓오타>0||val.메시브>0){
+                let h="";
+                if(val.갓오타>0)h+=`<div style="font-size:0.8rem;color:var(--grade-rare);">갓오타 ${Math.ceil(val.갓오타)}</div>`;
+                if(val.메시브>0)h+=`<div style="font-size:0.8rem;color:var(--grade-unique);">메시브 ${Math.ceil(val.메시브)}</div>`;
+                e.innerHTML=h; nameEl.style.display='none'; container.classList.add('active');
             }
-        } else if(val > 0){
-            e.innerText = Math.ceil(val); nameEl.style.display = 'block'; container.classList.add('active');
+        } else if(val>0){
+            e.innerText=Math.ceil(val); nameEl.style.display='block'; container.classList.add('active');
         }
     });
 }
-
-function buildTree(key, visited=new Set(), isRoot=false, conditionStr='', depth=0){
-    const u = unitMap.get(key);
-    if(!u) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge">${key}</div><span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span></div></li>`;
-    if(visited.has(key)) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);background:rgba(0,0,0,0.5);">${u.name} (중복)</div><span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span></div></li>`;
-    
+function buildTree(key,visited=new Set(),isRoot=false,conditionStr='',depth=0){
+    const u=unitMap.get(key);
+    if(!u)return`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge">${key}</div><span style="color:var(--text-sub);font-size:0.85rem;">${conditionStr}</span></div></li>`;
+    if(visited.has(key))return`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);opacity:0.5;">${u.name} (중복)</div></div></li>`;
     const newV=new Set(visited); newV.add(key); let ch='';
-    if(u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)){
+    if(u.recipe&&!IGNORE_PARSE_RECIPES.includes(u.recipe)){
         u.recipe.split('+').forEach(part=>{
-            const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
-            if(match) {
-                const childName = clean(match[1]); const cond = match[2] ? `(${match[2]})` : ''; const cnt = match[3] ? `[${match[3]}]` : '';
-                const combinedCond = `${cond}${cnt}`; const target = unitMap.get(childName);
-                if(target && target.key !== u.key) ch += buildTree(target.key||childName, newV, false, combinedCond, depth+1);
-                else ch += `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);">${match[1].trim()}</div><span style="color:var(--text-sub);font-size:0.9rem;">${combinedCond}</span></div></li>`;
+            const match=part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
+            if(match){
+                const childName=clean(match[1]); const cond=match[2]?`(${match[2]})`:''; const cnt=match[3]?`[${match[3]}]`:'';
+                const combined=`${cond}${cnt}`; const target=unitMap.get(childName);
+                if(target&&target.key!==u.key)ch+=buildTree(target.key||childName,newV,false,combined,depth+1);
+                else ch+=`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted);">${match[1].trim()}</div><span style="color:var(--text-sub);font-size:0.85rem;">${combined}</span></div></li>`;
             } else {
-                const childName = clean(part); const target = unitMap.get(childName);
-                if(target && target.key !== u.key) ch += buildTree(target.key||childName, newV, false, '', depth+1);
+                const childName=clean(part); const target=unitMap.get(childName);
+                if(target&&target.key!==u.key)ch+=buildTree(target.key||childName,newV,false,'',depth+1);
             }
         });
     }
-    const ulStyle = depth === 0 ? 'block' : 'none'; const mark = depth === 0 ? '▼' : '▶'; const bulletDisplay = depth === 0 ? 'block' : 'none';
-    const isRedundant = u.recipe && u.cost && clean(u.recipe).replace(/\+/g,',') === clean(u.cost).replace(/\+/g,',');
-    
-    return `<li class="tree-li">
+    const ulStyle=depth===0?'block':'none'; const mark=depth===0?'▼':'▶'; const bulletDisplay=depth===0?'block':'none';
+    const isRedundant=u.recipe&&u.cost&&clean(u.recipe).replace(/\+/g,',')===clean(u.cost).replace(/\+/g,',');
+    return`<li class="tree-li">
         <div class="tree-node-wrapper">
-            <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">${u.name}${ch ? `<span class="toggle-mark" style="margin-left:6px;font-size:0.7rem;color:var(--accent-main)">${mark}</span>` : ''}</div>
-            ${conditionStr ? `<span style="color:var(--text-sub);font-size:0.9rem;">${conditionStr}</span>` : ''}
+            <div class="unit-badge" style="color:${getUnitColor(u.name)};" onclick="toggleTreeNode(this)">${u.name}${ch?`<span class="toggle-mark">${mark}</span>`:''}
+            </div>
+            ${conditionStr?`<span style="color:var(--text-sub);font-size:0.82rem;">${conditionStr}</span>`:''}
         </div>
-        ${(u.recipe && !["미발견","없음",""].includes(u.recipe)) ? `<div class="bullet-recipe" style="display:${bulletDisplay};">조합: ${u.recipe}</div>` : ''}
-        ${(u.cost && !isRedundant && !["미발견","없음",""].includes(u.cost)) ? `<div class="bullet-cost" style="display:${bulletDisplay};">비용: ${u.cost}</div>` : ''}
-        ${ch ? `<ul class="tree-ul ${isRoot ? 'root-ul' : ''}" style="display:${ulStyle};">${ch}</ul>` : ''}
+        ${(u.recipe&&!["미발견","없음",""].includes(u.recipe))?`<div class="bullet-recipe" style="display:${bulletDisplay};">조합: ${u.recipe}</div>`:''}
+        ${(u.cost&&!isRedundant&&!["미발견","없음",""].includes(u.cost))?`<div class="bullet-cost" style="display:${bulletDisplay};">비용: ${u.cost}</div>`:''}
+        ${ch?`<ul class="tree-ul ${isRoot?'root-ul':''}" style="display:${ulStyle};">${ch}</ul>`:''}
     </li>`;
 }
-
 function toggleAllTree(btn){
-    const card = btn.closest('.analysis-card'); let isExpanded = btn.getAttribute('data-expanded') === 'true';
+    const card=btn.closest('.analysis-card'); const isExpanded=btn.getAttribute('data-expanded')==='true';
     if(isExpanded){
-        const rootNode = card.querySelector('.tree-ul.root-ul > .tree-li');
-        if(rootNode){
-            const firstLevelUl = rootNode.querySelector(':scope > .tree-ul');
-            if(firstLevelUl){
-                firstLevelUl.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'none');
-                firstLevelUl.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'none');
-                firstLevelUl.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▶');
-            }
-        }
-        btn.innerText = '모두 펼치기';
+        const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');
+        if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-recipe,.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶');}}
+        btn.innerText='모두 펼치기';
     } else {
-        card.querySelectorAll('.tree-ul').forEach(el => el.style.display = 'block');
-        card.querySelectorAll('.bullet-recipe, .bullet-cost').forEach(el => el.style.display = 'block');
-        card.querySelectorAll('.toggle-mark').forEach(el => el.innerText = '▼');
-        btn.innerText = '모두 접기';
+        card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');
+        card.querySelectorAll('.bullet-recipe,.bullet-cost').forEach(el=>el.style.display='block');
+        card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');
+        btn.innerText='모두 접기';
     }
-    btn.setAttribute('data-expanded', !isExpanded);
+    btn.setAttribute('data-expanded',!isExpanded);
 }
 function toggleTreeNode(el){
-    const p = el.closest('.tree-li');
-    const r = p.querySelector(':scope>.bullet-recipe'); const c = p.querySelector(':scope>.bullet-cost');
-    const t = p.querySelector(':scope>.tree-ul'); const m = p.querySelector(':scope>.tree-node-wrapper .toggle-mark');
-    if(t) t.style.display = (t.style.display === 'none' ? 'block' : 'none');
-    if(r) r.style.display = (r.style.display === 'none' ? 'block' : 'none');
-    if(c) c.style.display = (c.style.display === 'none' ? 'block' : 'none');
-    if(m) m.innerText = (m.innerText === '▶' ? '▼' : '▶');
+    const p=el.closest('.tree-li');
+    const r=p.querySelector(':scope>.bullet-recipe'),c=p.querySelector(':scope>.bullet-cost');
+    const t=p.querySelector(':scope>.tree-ul'),m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');
+    if(t)t.style.display=t.style.display==='none'?'block':'none';
+    if(r)r.style.display=r.style.display==='none'?'block':'none';
+    if(c)c.style.display=c.style.display==='none'?'block':'none';
+    if(m)m.innerText=m.innerText==='▶'?'▼':'▶';
 }
 
-/* ========================================================================
-   [ SECTION 5 : 검색 및 자동완성 시스템 ]
-======================================================================== */
+/* ====================================================================
+   SECTION 5 : 검색 시스템
+==================================================================== */
 function updateHighlight(){
-    const val = DOM.comboInput.value;
-    if(!val){ DOM.highlightLayer.innerHTML = ""; return; }
-    const parts = val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').split(/([,\/]+)/);
-    const colored = parts.map(part => {
-        if(/^[,\/]+$/.test(part)) return `<span style="color:var(--text-muted)">${part}</span>`;
-        const subParts = part.split('*'); let unitName = subParts[0]; let color = "var(--text-main)";
-        if(unitName.trim().length > 0){
-            const found = findUnit(unitName.trim());
-            if(found) color = getUnitColor(found.name);
-        }
-        subParts[0] = `<span style="color:${color}">${unitName}</span>`;
+    const val=DOM.comboInput.value;
+    if(!val){DOM.highlightLayer.innerHTML="";return;}
+    const parts=val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').split(/([,\/]+)/);
+    const colored=parts.map(part=>{
+        if(/^[,\/]+$/.test(part))return`<span style="color:var(--text-muted)">${part}</span>`;
+        const subParts=part.split('*'); let unitName=subParts[0]; let color="var(--text)";
+        if(unitName.trim().length>0){const found=findUnit(unitName.trim());if(found)color=getUnitColor(found.name);}
+        subParts[0]=`<span style="color:${color}">${unitName}</span>`;
         return subParts.join('<span style="color:var(--text-muted)">*</span>');
     });
-    DOM.highlightLayer.innerHTML = colored.join('');
+    DOM.highlightLayer.innerHTML=colored.join('');
 }
-
-const debounceSearch = debounce(() => {
-    const val = DOM.comboInput.value.trim();
+const debounceSearch=debounce(()=>{
+    const val=DOM.comboInput.value.trim();
     activeUnits.clear();
-    if(val){ 
-        const terms = val.split(/[,\/]/).map(t => t.trim()).filter(t => t !== "");
-        terms.forEach(raw => {
-            let [t, c] = raw.split('*'); let found = findUnit(t.trim());
-            if(found){ activeUnits.set(clean(found.name), parseInt(c) || 1); }
+    if(val){
+        const terms=val.split(/[,\/]/).map(t=>t.trim()).filter(t=>t!=="");
+        terms.forEach(raw=>{
+            let[t,c]=raw.split('*'); const found=findUnit(t.trim());
+            if(found) activeUnits.set(clean(found.name),parseInt(c)||1);
         });
     }
     updateAllPanels();
-}, 300);
+},300);
 
 function resetAll(){
-    activeUnits.clear();
-    essenceUnits.clear(); // 정수 초기화
-    DOM.comboInput.value = ""; updateHighlight(); hideSuggestions(); 
-    DOM.treeView.innerHTML = `<div class="empty-hud"><div style="font-size:1.2rem; font-weight:700;">명령 대기 중...</div><div style="font-size:0.95rem;opacity:0.6;margin-top:8px;">좌측 도감이나 검색창에서 대상을 선택하십시오.</div></div>`;
+    activeUnits.clear(); essenceUnits.clear();
+    DOM.comboInput.value=""; updateHighlight(); hideSuggestions();
+    DOM.treeView.innerHTML=`<div class="empty-hud"><div class="empty-hud-icon">◈</div><div class="empty-hud-msg">명령 대기 중</div><div class="empty-hud-sub">좌측 도감이나 검색창에서 대상을 선택하십시오</div></div>`;
     resetMagicDashboard(); updateAllPanels(); DOM.comboInput.focus();
 }
 
-let suggestionsState = {focused: -1, items: []};
+let suggestionsState={focused:-1,items:[]};
 function updateSuggestions(){
-    const val = DOM.comboInput.value; const lastTerm = val.split(/[,\/]/).pop().split('*')[0].trim();
-    if(!lastTerm){ hideSuggestions(); return; }
-    const matches = findAllMatchingUnits(lastTerm, 8);
-    if(!matches.length){ hideSuggestions(); return; }
-    let html = '';
-    matches.forEach((m, idx) => {
-        const u = m.unit; const aliasInfo = m.alias && clean(m.alias) !== clean(u.name) ? `<span style="font-size:0.8rem;color:var(--accent-main);font-style:italic;">[${m.alias}]</span>` : '';
-        html += `<div class="suggestion-item" data-idx="${idx}" data-name="${u.name}" onclick="pickSuggestion('${u.name}')">
+    const val=DOM.comboInput.value; const lastTerm=val.split(/[,\/]/).pop().split('*')[0].trim();
+    if(!lastTerm){hideSuggestions();return;}
+    const matches=findAllMatchingUnits(lastTerm,8);
+    if(!matches.length){hideSuggestions();return;}
+    let html='';
+    matches.forEach((m,idx)=>{
+        const u=m.unit; const aliasInfo=m.alias&&clean(m.alias)!==clean(u.name)?`<span style="font-size:0.75rem;color:var(--g);font-style:italic;">[${m.alias}]</span>`:'';
+        html+=`<div class="suggestion-item" data-idx="${idx}" data-name="${u.name}" onclick="pickSuggestion('${u.name}')">
             <span style="font-weight:700;color:${getUnitColor(u.name)};flex:1;">${u.name} ${aliasInfo}</span>
-            <span style="font-family:var(--font-mono);font-size:0.8rem;color:${gradeColorsRaw[u.grade]};border:1px solid;padding:2px 6px;border-radius:2px;">${u.grade}</span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:${gradeColorsRaw[u.grade]};border:1px solid;padding:1px 6px;border-radius:2px;">${u.grade}</span>
         </div>`;
     });
-    DOM.suggestions.innerHTML = html; DOM.suggestions.classList.add('visible');
-    suggestionsState.focused = -1; suggestionsState.items = matches;
+    DOM.suggestions.innerHTML=html; DOM.suggestions.classList.add('visible');
+    suggestionsState.focused=-1; suggestionsState.items=matches;
 }
-
-function hideSuggestions(){ DOM.suggestions.classList.remove('visible'); suggestionsState.focused = -1; suggestionsState.items = []; }
-
+function hideSuggestions(){DOM.suggestions.classList.remove('visible');suggestionsState.focused=-1;suggestionsState.items=[];}
 function pickSuggestion(name){
-    const val = DOM.comboInput.value; const parts = val.split(/([,\/])/);
+    const val=DOM.comboInput.value; const parts=val.split(/([,\/])/);
     if(parts.length){
-        const lastPart = parts[parts.length-1]; const starIdx = lastPart.indexOf('*');
-        if(starIdx >= 0) parts[parts.length-1] = name + lastPart.substring(starIdx);
-        else parts[parts.length-1] = name;
-        DOM.comboInput.value = parts.join('');
-    } else DOM.comboInput.value = name;
+        const lastPart=parts[parts.length-1]; const starIdx=lastPart.indexOf('*');
+        if(starIdx>=0)parts[parts.length-1]=name+lastPart.substring(starIdx);
+        else parts[parts.length-1]=name;
+        DOM.comboInput.value=parts.join('');
+    } else DOM.comboInput.value=name;
     updateHighlight(); hideSuggestions(); DOM.comboInput.focus(); debounceSearch();
 }
-
 function handleSuggestionKey(e){
-    if(!DOM.suggestions.classList.contains('visible')) return;
-    const items = DOM.suggestions.querySelectorAll('.suggestion-item'); if(!items.length) return;
-    if(e.key === 'ArrowDown'){ e.preventDefault(); suggestionsState.focused = Math.min(suggestionsState.focused + 1, items.length - 1); items.forEach((it, i) => it.classList.toggle('focused', i === suggestionsState.focused)); }
-    else if(e.key === 'ArrowUp'){ e.preventDefault(); suggestionsState.focused = Math.max(suggestionsState.focused - 1, -1); items.forEach((it, i) => it.classList.toggle('focused', i === suggestionsState.focused)); }
-    else if(e.key === 'Enter'){ if(suggestionsState.focused >= 0){ e.preventDefault(); pickSuggestion(items[suggestionsState.focused].dataset.name); } else hideSuggestions(); }
-    else if(e.key === 'Escape') hideSuggestions();
+    if(!DOM.suggestions.classList.contains('visible'))return;
+    const items=DOM.suggestions.querySelectorAll('.suggestion-item'); if(!items.length)return;
+    if(e.key==='ArrowDown'){e.preventDefault();suggestionsState.focused=Math.min(suggestionsState.focused+1,items.length-1);items.forEach((it,i)=>it.classList.toggle('focused',i===suggestionsState.focused));}
+    else if(e.key==='ArrowUp'){e.preventDefault();suggestionsState.focused=Math.max(suggestionsState.focused-1,-1);items.forEach((it,i)=>it.classList.toggle('focused',i===suggestionsState.focused));}
+    else if(e.key==='Enter'){if(suggestionsState.focused>=0){e.preventDefault();pickSuggestion(items[suggestionsState.focused].dataset.name);}else hideSuggestions();}
+    else if(e.key==='Escape')hideSuggestions();
 }
 
-/* ========================================================================
-   [ SECTION 6 : 도감 탭 (비용 정렬) 및 초기화 로직 ]
-======================================================================== */
+/* ====================================================================
+   SECTION 6 : 도감 탭
+==================================================================== */
 function renderTabs(){
-    let h = ``;
-    TAB_CATEGORIES.forEach((cat, idx) => {
-        const count = unitDatabase.filter(u => u.category === cat.key && ["슈퍼히든","히든","레전드"].includes(u.grade)).length;
-        h += `<button class="tab-btn" id="tab-btn-${idx}" onclick="selectTab(${idx})">
-            ${cat.label} <span style="font-size:0.8rem; opacity:0.7;">(${count})</span>
-        </button>`; 
+    let h='';
+    TAB_CATEGORIES.forEach((cat,idx)=>{
+        const count=unitDatabase.filter(u=>u.category===cat.key&&["슈퍼히든","히든","레전드"].includes(u.grade)).length;
+        h+=`<button class="tab-btn" onclick="selectTab(${idx})">${cat.label} <span style="font-size:0.72rem;opacity:0.6;">(${count})</span></button>`;
     });
-    document.querySelector('.codex-tabs').innerHTML = h; selectTab(0);
+    document.getElementById('codexTabs').innerHTML=h; selectTab(0);
 }
-
 function selectTab(idx){
-    document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === idx));
-    const catKey = TAB_CATEGORIES[idx].key;
-    
-    let items = unitDatabase.filter(u => u.category === catKey && ["슈퍼히든","히든","레전드"].includes(u.grade));
-    
-    items.sort((a,b) => {
-        if (a.grade === "슈퍼히든" && b.grade !== "슈퍼히든") return -1;
-        if (b.grade === "슈퍼히든" && a.grade !== "슈퍼히든") return 1;
-        
-        let costA = calculateTotalCostScore(a.cost);
-        let costB = calculateTotalCostScore(b.cost);
-        return costB - costA;
+    document.querySelectorAll('.tab-btn').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+    const catKey=TAB_CATEGORIES[idx].key;
+    let items=unitDatabase.filter(u=>u.category===catKey&&["슈퍼히든","히든","레전드"].includes(u.grade));
+    items.sort((a,b)=>{
+        if(a.grade==="슈퍼히든"&&b.grade!=="슈퍼히든")return -1;
+        if(b.grade==="슈퍼히든"&&a.grade!=="슈퍼히든")return 1;
+        return calculateTotalCostScore(b.cost)-calculateTotalCostScore(a.cost);
     });
-
-    let h = '<div>';
-    items.forEach(item => {
-        let isActive = activeUnits.has(clean(item.name)) ? 'active' : '';
-        let totalCost = calculateTotalCostScore(item.cost);
-        let costLabel = totalCost > 0 ? ` <span style="font-size:0.85rem; color:var(--text-sub); font-weight:normal;">[총비용: ${totalCost}]</span>` : '';
-        
-        h += `<div class="unit-list-card ${isActive}" data-name="${item.name}" onclick="toggleUnitSelection('${item.name}')">
-            <div class="title-row" style="color:${getUnitColor(item.name)};">
+    let h='<div>';
+    items.forEach(item=>{
+        const isActive=activeUnits.has(clean(item.name))?'active':'';
+        const totalCost=calculateTotalCostScore(item.cost);
+        const costLabel=totalCost>0?` <span style="font-size:0.78rem;color:var(--text-sub);font-weight:400;">[${totalCost}]</span>`:'';
+        h+=`<div class="unit-card ${isActive}" data-name="${item.name}" onclick="toggleUnitSelection('${item.name}')">
+            <div class="uc-title" style="color:${getUnitColor(item.name)};">
                 ${gradeTag(item.grade)} ${item.name}${costLabel}
             </div>
-            <div class="recipe-row">${item.recipe || '정보 없음'}</div>
+            <div class="uc-recipe">${item.recipe||'정보 없음'}</div>
         </div>`;
     });
-    h += '</div>'; document.getElementById('tabContent').innerHTML = h;
-    refreshCodexHighlight(); 
+    h+='</div>';
+    document.getElementById('tabContent').innerHTML=h;
+    refreshCodexHighlight();
 }
 
+/* ====================================================================
+   SECTION 7 : 매직 대시보드
+==================================================================== */
 function renderDashboardAtoms(){
-    DOM.magicDashboard.innerHTML = '';
-    dashboardAtoms.forEach(a => {
-        const d = document.createElement("div"); d.className = `cost-slot`; d.id = `val-container-${a.name}`;
-        d.innerHTML = `<div class="val" id="val-${a.name}">0</div><div class="name">${a.name}</div>`;
+    DOM.magicDashboard.innerHTML='';
+    dashboardAtoms.forEach(a=>{
+        const d=document.createElement('div');
+        d.className='cost-slot'; d.id=`vslot-${a.name}`;
+        d.innerHTML=`<div class="cost-val">0</div><div class="cost-name">${a.name}</div>`;
         DOM.magicDashboard.appendChild(d);
     });
 }
 function resetMagicDashboard(){
-    dashboardAtoms.forEach(a => {
-        const container = document.getElementById(`val-container-${a.name}`);
-        if(!container) return; const e = container.querySelector('.val'); const nameEl = container.querySelector('.name');
-        if(e){ e.innerHTML = "0"; e.style.display = ""; }
-        if(nameEl) nameEl.style.display = "block";
+    dashboardAtoms.forEach(a=>{
+        const container=document.getElementById(`vslot-${a.name}`);
+        if(!container)return;
+        const e=container.querySelector('.cost-val'); const nameEl=container.querySelector('.cost-name');
+        if(e){e.innerHTML="0"; e.style.display="";}
+        if(nameEl)nameEl.style.display='block';
         container.classList.remove('active');
     });
 }
 
-/* ========================================================================
-   [ SECTION 7 : 사이트 초기화 (window.onload) ]
-======================================================================== */
-window.onload = () => {
-    unitDatabase.forEach(u => { if(!u.key) u.key = clean(u.name); unitMap.set(u.key, u); });
-    
-    DOM.tablesContainer = document.getElementById("tablesContainer");
-    DOM.magicDashboard  = document.getElementById("magicDashboard");
-    DOM.treeView        = document.getElementById("treeView");
-    DOM.comboInput      = document.getElementById("comboInput");
-    DOM.highlightLayer  = document.getElementById("highlightLayer");
-    DOM.suggestions     = document.getElementById("searchSuggestions");
+/* ====================================================================
+   SECTION 8 : 모달
+==================================================================== */
+function openHelpModal(){document.getElementById('helpModal').classList.add('active');}
+function closeHelpModal(e){if(e===undefined||e.target.id==='helpModal')document.getElementById('helpModal').classList.remove('active');}
 
-    DOM.comboInput.addEventListener("input", () => { updateHighlight(); updateSuggestions(); debounceSearch(); });
-    DOM.comboInput.addEventListener("scroll", () => { DOM.highlightLayer.scrollLeft = DOM.comboInput.scrollLeft; });
-    DOM.comboInput.addEventListener("focus", () => { if(DOM.comboInput.value.trim()) updateSuggestions(); });
-    DOM.comboInput.addEventListener("keydown", handleSuggestionKey);
-    document.addEventListener("click", e => { if(!e.target.closest('.search-input-wrapper')) hideSuggestions(); });
+/* ====================================================================
+   SECTION 9 : INTRO CINEMATIC
+==================================================================== */
+function runIntro(){
+    const introScreen=document.getElementById('intro-screen');
+    const canvas=document.getElementById('matrixCanvas');
+    const ctx=canvas.getContext('2d');
+    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+    canvas.classList.add('visible');
 
-    renderDashboardAtoms(); 
-    renderTabs();
-    
-    const canvas = document.getElementById('matrixCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*]*'.split('');
-    const fontSize = 16; const columns = canvas.width / fontSize;
-    const drops = []; for(let x = 0; x < columns; x++) drops[x] = 1;
-    function drawMatrix() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
-        for(let i = 0; i < drops.length; i++) {
-            const text = letters[Math.floor(Math.random() * letters.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-            if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    /* Matrix rain */
+    const chars='アイウエオカキクケコサシスセソタチツテトABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*[]{}<>'.split('');
+    const fontSize=14; const cols=Math.floor(canvas.width/fontSize);
+    const drops=new Array(cols).fill(0).map(()=>Math.random()*-50);
+    function drawMatrix(){
+        ctx.fillStyle='rgba(0,0,0,0.055)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        for(let i=0;i<cols;i++){
+            const text=chars[Math.floor(Math.random()*chars.length)];
+            const intensity=Math.random();
+            if(intensity>0.8) ctx.fillStyle='#00FF41';
+            else if(intensity>0.4) ctx.fillStyle='#007a1e';
+            else ctx.fillStyle='#004010';
+            ctx.font=`${fontSize}px 'Share Tech Mono', monospace`;
+            ctx.fillText(text,i*fontSize,drops[i]*fontSize);
+            if(drops[i]*fontSize>canvas.height&&Math.random()>0.975) drops[i]=0;
             drops[i]++;
         }
     }
-    const matrixInterval = setInterval(drawMatrix, 33);
+    const matrixInterval=setInterval(drawMatrix,40);
 
-    const line1 = document.getElementById('intro-line1');
-    const line2 = document.getElementById('intro-line2');
-    const line3 = document.getElementById('intro-line3');
-    const pctEl = document.getElementById('loading-percent');
-    
-    line1.className = 'intro-line typing';
-    const textTimeout1 = setTimeout(() => { line1.className = 'intro-line done'; line2.className = 'intro-line typing'; }, 100);
-    const textTimeout2 = setTimeout(() => { line2.className = 'intro-line done'; line3.className = 'intro-line typing'; }, 800);
+    /* Timestamp */
+    const ts=document.getElementById('introTimestamp');
+    if(ts){const now=new Date();ts.innerText=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;}
 
-    let start = Date.now();
-    // 인트로 로딩시간 설정 5초 - 000
-    const introDuration = 3000;
-    const pctInterval = setInterval(() => {
-        let elapsed = Date.now() - start;
-        let pct = Math.min(100, Math.floor((elapsed / introDuration) * 100));
-        pctEl.innerText = pct + '%';
-        if(pct >= 100) clearInterval(pctInterval);
-    }, 50);
+    /* Terminal log sequencing */
+    const logItems=document.querySelectorAll('#termLog li');
+    const delays=[0,700,1100,1500,1900];
+    logItems.forEach((li,i)=>setTimeout(()=>li.classList.add('show'),delays[i]));
 
-    const introEl = document.getElementById('matrix-intro');
-    let introCleared = false;
-    const clearIntro = () => {
-        if(introCleared) return;
-        introCleared = true;
-        clearInterval(matrixInterval); clearInterval(pctInterval);
-        clearTimeout(textTimeout1); clearTimeout(textTimeout2);
-        introEl.style.opacity = '0';
-        setTimeout(() => { introEl.remove(); document.getElementById('mainDashboard').classList.add('visible'); }, 500);
+    /* Progress bar */
+    const fill=document.getElementById('progFill');
+    const pct=document.getElementById('progPct');
+    const introDuration=3200;
+    let start=Date.now();
+    const progInterval=setInterval(()=>{
+        const elapsed=Date.now()-start;
+        const p=Math.min(100,Math.floor((elapsed/introDuration)*100));
+        if(fill) fill.style.width=p+'%';
+        if(pct) pct.innerText=p+'%';
+        if(p>=100) clearInterval(progInterval);
+    },40);
+
+    /* Dismiss */
+    let dismissed=false;
+    const dismiss=()=>{
+        if(dismissed)return; dismissed=true;
+        clearInterval(matrixInterval); clearInterval(progInterval);
+        introScreen.classList.add('fade-out');
+        setTimeout(()=>{
+            introScreen.remove();
+            document.getElementById('mainLayout').classList.add('visible');
+        },800);
     };
-    introEl.addEventListener('click', clearIntro);
-    setTimeout(clearIntro, introDuration);
-
-    const titles = ["개복디 넥서스", "DATA BASE", "SYSTEM ONLINE"];
-    let titleIdx = 0;
-    const mainTitleAnim = document.getElementById('mainTitleAnim');
-    setInterval(() => {
-        titleIdx = (titleIdx + 1) % titles.length;
-        mainTitleAnim.style.animation = 'none'; void mainTitleAnim.offsetWidth; 
-        mainTitleAnim.innerText = titles[titleIdx];
-        mainTitleAnim.style.animation = 'typing 1.5s steps(20, end) forwards, blink-caret 0.75s step-end infinite';
-    }, 10000);
-};
-
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('dragstart', e => e.preventDefault());
-document.addEventListener('selectstart', e => { if(e.target.tagName !== 'INPUT') e.preventDefault(); });
-window.addEventListener('keydown', e => { if(e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73,74,67].includes(e.keyCode)) || (e.ctrlKey && e.keyCode === 85)) e.preventDefault(); });
-
-/* ========================================================================
-   [ SECTION 8 : 사용방법(모달 팝업) 제어 로직 ]
-======================================================================== */
-function openHelpModal() {
-    document.getElementById('helpModal').classList.add('active');
+    introScreen.addEventListener('click',dismiss);
+    introScreen.addEventListener('touchend',dismiss,{passive:true});
+    setTimeout(dismiss,introDuration+500);
 }
 
-function closeHelpModal(e) {
-    if (e === undefined || e.target.id === 'helpModal') {
-        document.getElementById('helpModal').classList.remove('active');
-    }
-}
+/* ====================================================================
+   SECTION 10 : INIT
+==================================================================== */
+window.addEventListener('load',()=>{
+    /* Build unitMap */
+    unitDatabase.forEach(u=>{if(!u.key)u.key=clean(u.name);unitMap.set(u.key,u);});
 
-/* ========================================================================
-   [ SECTION 9 : 유닛 데이터베이스 ]
-======================================================================== */
+    /* Cache DOM */
+    DOM.magicDashboard=document.getElementById('magicDashboard');
+    DOM.treeView=document.getElementById('treeView');
+    DOM.comboInput=document.getElementById('comboInput');
+    DOM.highlightLayer=document.getElementById('highlightLayer');
+    DOM.suggestions=document.getElementById('searchSuggestions');
+
+    /* Input events */
+    DOM.comboInput.addEventListener('input',()=>{updateHighlight();updateSuggestions();debounceSearch();});
+    DOM.comboInput.addEventListener('scroll',()=>{DOM.highlightLayer.scrollLeft=DOM.comboInput.scrollLeft;});
+    DOM.comboInput.addEventListener('focus',()=>{if(DOM.comboInput.value.trim())updateSuggestions();});
+    DOM.comboInput.addEventListener('keydown',handleSuggestionKey);
+    document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))hideSuggestions();});
+
+    /* Render */
+    renderDashboardAtoms();
+    renderTabs();
+
+    /* Brand title cycling */
+    const titles=['개복디 넥서스','DATA MATRIX','SYSTEM ONLINE','ACCESS GRANTED'];
+    let titleIdx=0;
+    const brandEl=document.getElementById('brandCycle');
+    setInterval(()=>{
+        titleIdx=(titleIdx+1)%titles.length;
+        brandEl.style.animation='none'; void brandEl.offsetWidth;
+        brandEl.innerText=titles[titleIdx];
+        brandEl.style.animation='';
+    },8000);
+
+    /* Run intro */
+    runIntro();
+});
+
+/* Security */
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('dragstart',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT')e.preventDefault();});
+window.addEventListener('keydown',e=>{if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85))e.preventDefault();});
+
+/* ====================================================================
+   SECTION 11 : UNIT DATABASE
+==================================================================== */
 const unitDatabase = [
-  // (유닛 데이터 부분 - 기존과 동일하므로 유지됨)
-  // ... 생략 없이 전체 데이터 포함 ...
   {name:"전쟁광",grade:"매직",category:"테바",recipe:"",cost:""},
   {name:"저격수",grade:"매직",category:"테바",recipe:"",cost:""},
   {name:"망치경호대",grade:"매직",category:"테바",recipe:"",cost:""},
