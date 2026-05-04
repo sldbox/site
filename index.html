@@ -604,10 +604,10 @@ function getUnitColor(name){
 }
 
 /* ========================================================================
-   [ 태그 생성 함수 ]
+   [ 유닛 등급 태그 생성 함수 ]
 ======================================================================== */
 function gradeTag(grade){
-    const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'H',레전드:'L',히든:'Hi',슈퍼히든:'SH'};
+    const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'Hi',슈퍼히든:'S'};
     return `<span style="color:${gradeColors[grade]||'#fff'}; font-weight: 800;">[${short[grade]||grade}]</span>`;
 }
 
