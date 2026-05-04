@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>개복디 넥서스</title>
 
+<!-- 모든 브라우저 공용 (Favicon) -->
+<link rel="icon" href="https://sldbox.github.io/site/icon.png" type="image/png">
+
+<!-- 아이폰/아이패드용 (Apple Touch Icon) -->
+<link rel="apple-touch-icon" href="https://sldbox.github.io/site/icon.png">
+
+<!-- 안드로이드/크롬용 (Manifest 설정 대용) -->
+<link rel="icon" sizes="192x192" href="https://sldbox.github.io/site/icon.png">
+
     <!-- [1] 검색 엔진용 기본 설명 -->
     <meta name="description" content="개복디 넥서스">
 
@@ -604,10 +613,10 @@ function getUnitColor(name){
 }
 
 /* ========================================================================
-   [ 유닛 등급 태그 생성 함수 ]
+   [ 태그 생성 함수 ]
 ======================================================================== */
 function gradeTag(grade){
-    const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'Hi',슈퍼히든:'S'};
+    const short={매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'H',슈퍼히든:'S'};
     return `<span style="color:${gradeColors[grade]||'#fff'}; font-weight: 800;">[${short[grade]||grade}]</span>`;
 }
 
