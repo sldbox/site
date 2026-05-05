@@ -19,8 +19,6 @@
     <meta property="og:title" content="개복디 넥서스 - MATRIX HUD">
     <meta property="og:description" content="히든 조합 계보 시뮬레이션 및 일일 정수 계산기">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://sldbox.github.io/site/">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ko_KR">
@@ -29,1311 +27,14 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="개복디 넥서스">
     <meta name="twitter:description" content="유닛 조합 & 일일정수 계산기">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png">
 
     <meta name="theme-color" content="#000000">
 
-    <style>
-/* ================================================================
-   ▣ DESIGN TOKENS — 색상/폰트/사이즈 변수 정의
-   수정 시 이 블록만 바꾸면 전체 테마 변경 가능
-================================================================ */
-:root {
-    /* 배경 계열 */
-    --void:        #000000;
-    --panel:       #080808;
-    --panel-b:     #0d0d0d;
-    --surface:     #111111;
-
-    /* 매트릭스 그린 계열 */
-    --g:           #00FF41;
-    --g-dim:       #007a1e;
-    --g-faint:     rgba(0,255,65,0.07);
-    --g-border:    rgba(0,255,65,0.22);
-    --g-glow:      rgba(0,255,65,0.5);
-
-    /* 스캔라인 */
-    --scan:        rgba(0,255,65,0.03);
-
-    /* 등급 색상 */
-    --grade-magic:   #87CEEB;
-    --grade-rare:    #FBBF24;
-    --grade-epic:    #FB923C;
-    --grade-unique:  #EF4444;
-    --grade-hell:    #EC4899;
-    --grade-legend:  #A78BFA;
-    --grade-hidden:  #34D399;
-    --grade-super:   #FFD700;
-
-    /* 텍스트 계열 */
-    --text:        #D8E4D0;
-    --text-sub:    #7A9A7A;
-    --text-muted:  #3A5A3A;
-
-    /* 폰트 */
-    --font-body:   'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif;
-    --font-mono:   'Noto Sans KR', 'Malgun Gothic', sans-serif;
-
-    /* 헤더 높이 — JS에서도 참조 */
-    --header-h:    64px;   /* 헤더 고정 높이 */
-    --radius:      3px;
-
-    /* iOS safe-area */
-    --safe-top:    env(safe-area-inset-top, 0px);
-    --safe-bot:    env(safe-area-inset-bottom, 0px);
-}
-
-/* ================================================================
-   ▣ RESET & BASE
-================================================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { height: 100%; }
-
-body {
-    background: var(--void);
-    color: var(--text);
-    font-family: var(--font-body);
-    height: 100%;
-    min-height: 100%;
-    /* 스캔라인 오버레이 효과 */
-    background-image:
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0,0,0,0.15) 2px,
-            rgba(0,0,0,0.15) 4px
-        );
-    user-select: none;
-    overflow-x: hidden;
-}
-
-/* ================================================================
-   ▣ SCROLLBARS — 커스텀 스크롤바
-================================================================ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #050505; }
-::-webkit-scrollbar-thumb { background: var(--g-dim); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--g); }
-* { scrollbar-width: thin; scrollbar-color: var(--g-dim) #050505; }
-
-/* ================================================================
-   ▣ INTRO CINEMATIC — 인트로 화면
-================================================================ */
-#intro-screen {
-    position: fixed; inset: 0; z-index: 10000;
-    background: var(--void);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: opacity 0.8s ease;
-    overflow: hidden;
-}
-#intro-screen.fade-out { opacity: 0; pointer-events: none; }
-
-#matrixCanvas {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 1s ease;
-}
-#matrixCanvas.visible { opacity: 1; }
-
-/* 비네트 효과 */
-#intro-screen::before {
-    content: "";
-    position: absolute; inset: 0; z-index: 2;
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
-    pointer-events: none;
-}
-
-/* 수평 스캔 스윕 */
-.scan-sweep {
-    position: absolute; inset: 0; z-index: 3;
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(0,255,65,0.04) 49%,
-        rgba(0,255,65,0.09) 50%,
-        rgba(0,255,65,0.04) 51%,
-        transparent 100%
-    );
-    background-size: 100% 200%;
-    animation: sweep 3s linear infinite;
-    pointer-events: none;
-}
-@keyframes sweep {
-    0%   { background-position: 0 -100%; }
-    100% { background-position: 0 200%; }
-}
-
-/* 코너 장식 */
-.intro-corner {
-    position: absolute; z-index: 4;
-    width: 60px; height: 60px;
-    pointer-events: none;
-}
-.intro-corner.tl { top: 24px; left: 24px; border-top: 2px solid var(--g); border-left: 2px solid var(--g); }
-.intro-corner.tr { top: 24px; right: 24px; border-top: 2px solid var(--g); border-right: 2px solid var(--g); }
-.intro-corner.bl { bottom: 24px; left: 24px; border-bottom: 2px solid var(--g); border-left: 2px solid var(--g); }
-.intro-corner.br { bottom: 24px; right: 24px; border-bottom: 2px solid var(--g); border-right: 2px solid var(--g); }
-
-/* HUD 패널 */
-.intro-hud {
-    position: relative; z-index: 5;
-    width: min(620px, 92vw);
-    font-family: var(--font-body);
-    color: var(--g);
-    padding: 28px 32px 24px;
-    border: 1px solid var(--g-dim);
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(4px);
-    box-shadow: 0 0 40px rgba(0,255,65,0.12), inset 0 0 30px rgba(0,0,0,0.5);
-    animation: hud-appear 0.6s ease forwards;
-    opacity: 0;
-}
-@keyframes hud-appear { to { opacity: 1; } }
-
-.intro-hud-top {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid var(--g-dim);
-    padding-bottom: 12px; margin-bottom: 18px;
-    font-size: 0.75rem; color: var(--text-sub);
-}
-.intro-hud-id { font-size: 0.8rem; color: var(--g); letter-spacing: 0.1em; }
-
-.intro-title {
-    font-size: clamp(1.4rem, 5vw, 2.2rem);
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: var(--g);
-    text-shadow: 0 0 20px var(--g-glow), 0 0 50px rgba(0,255,65,0.3);
-    margin-bottom: 6px;
-    font-family: var(--font-mono);
-    overflow: hidden;
-    white-space: nowrap;
-    border-right: 3px solid var(--g);
-    width: 0;
-    animation: title-type 0.8s steps(7, end) 0.5s forwards, blink-cursor 0.6s step-end infinite 0.5s;
-}
-@keyframes title-type { to { width: 100%; } }
-@keyframes blink-cursor { 50% { border-color: transparent; } }
-
-.intro-subtitle {
-    font-size: 0.85rem; color: var(--text-sub);
-    letter-spacing: 0.2em; margin-bottom: 22px;
-    opacity: 0;
-    animation: fade-in 0.4s ease 1.4s forwards;
-}
-@keyframes fade-in { to { opacity: 1; } }
-
-/* 터미널 로그 */
-.term-log {
-    list-style: none;
-    font-size: 0.82rem; line-height: 2;
-    margin-bottom: 20px; min-height: 80px;
-}
-.term-log li {
-    opacity: 0; color: var(--text-sub);
-    display: flex; align-items: center; gap: 8px;
-}
-.term-log li::before { content: ">"; color: var(--g); flex-shrink: 0; }
-.term-log li.ok   { color: var(--g); }
-.term-log li.warn { color: var(--grade-rare); }
-.term-log li.err  { color: var(--grade-unique); }
-.term-log li.show { opacity: 1; }
-
-/* 로딩 진행 바 */
-.prog-row {
-    display: flex; align-items: center; gap: 12px;
-    font-size: 0.78rem; color: var(--text-sub);
-    margin-bottom: 6px;
-    opacity: 0;
-    animation: fade-in 0.4s ease 1.6s forwards;
-}
-.prog-track {
-    flex: 1; height: 4px;
-    background: rgba(0,255,65,0.1);
-    border-radius: 2px; overflow: hidden;
-}
-.prog-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--g-dim), var(--g));
-    width: 0%; transition: width 0.05s linear;
-    box-shadow: 0 0 8px var(--g-glow);
-}
-.prog-pct { font-family: var(--font-mono); color: var(--g); font-size: 0.9rem; min-width: 44px; text-align: right; }
-
-/* 서브시스템 바 */
-.sys-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 8px; opacity: 0;
-    animation: fade-in 0.4s ease 2s forwards;
-}
-.sys-item {
-    background: rgba(0,255,65,0.04);
-    border: 1px solid rgba(0,255,65,0.12);
-    padding: 8px 10px; border-radius: var(--radius);
-}
-.sys-item-label { font-size: 0.65rem; color: var(--text-sub); margin-bottom: 4px; letter-spacing: 0.1em; }
-.sys-item-bar { height: 2px; background: rgba(0,255,65,0.1); border-radius: 1px; overflow: hidden; }
-.sys-item-fill {
-    height: 100%; background: var(--g); width: 0%;
-    animation: sys-fill 1s ease 2.2s forwards;
-    box-shadow: 0 0 4px var(--g);
-}
-@keyframes sys-fill { to { width: 100%; } }
-.sys-item-fill.d1 { animation-delay: 2.2s; }
-.sys-item-fill.d2 { animation-delay: 2.4s; }
-.sys-item-fill.d3 { animation-delay: 2.6s; }
-.sys-item-fill.d4 { animation-delay: 2.8s; }
-.sys-item-fill.d5 { animation-delay: 3.0s; }
-.sys-item-fill.d6 { animation-delay: 3.2s; }
-
-/* 스킵 힌트 */
-.skip-hint {
-    position: absolute; bottom: 32px; right: 32px; z-index: 6;
-    font-family: var(--font-mono); font-size: 0.7rem;
-    color: var(--text-muted); letter-spacing: 0.15em;
-    opacity: 0;
-    animation: fade-in 0.6s ease 2.5s forwards;
-}
-.skip-hint span { display: inline-block; animation: pulse 2s ease infinite; }
-@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
-
-/* ================================================================
-   ▣ SITE HEADER — 최상단 고정 헤더 (제목 + 초기화 + 사용방법)
-   ▸ 이 블록이 헤더 전체 디자인입니다
-================================================================ */
-.site-header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    /* 높이: safe-area 포함 */
-    height: calc(var(--header-h) + var(--safe-top));
-    padding-top: var(--safe-top);
-    z-index: 5000;
-
-    background: rgba(4,4,4,0.97);
-    border-bottom: 1px solid var(--g-border);
-    backdrop-filter: blur(10px);
-
-    /* 헤더 내부 — 가운데 정렬 flex */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-
-    /* 하단 글로우 라인 */
-    box-shadow: 0 2px 24px rgba(0,255,65,0.08);
-}
-
-/* 헤더 내부 래퍼 — 전체 가운데 정렬, 한 줄 모음 */
-.header-inner {
-    width: 100%;
-    max-width: 2400px;
-    padding: 0 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;  /* 전체 내용 가운데 */
-    gap: 14px;
-}
-
-/* ── 왼쪽: 아이콘 + 제목 + 제작자 — flex-shrink 0으로 고정 ── */
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-}
-
-/* 움직이는 사이트 전용 아이콘 (SVG 애니메이션) */
-.site-icon {
-    width: 44px; height: 44px;
-    flex-shrink: 0;
-    position: relative;
-}
-.site-icon svg {
-    width: 100%; height: 100%;
-}
-
-/* 제목 + 제작자 묶음 */
-.header-brand {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    flex-shrink: 0;
-}
-
-/* 헤더 구분선 — 제목그룹과 버튼 사이 */
-.header-divider {
-    width: 1px;
-    height: 32px;
-    background: var(--g-border);
-    flex-shrink: 0;
-    margin: 0 4px;
-}
-
-/* 메인 제목 */
-.header-title {
-    font-family: var(--font-mono);
-    font-size: clamp(1.2rem, 2.2vw, 1.9rem);
-    font-weight: 900;
-    color: var(--g);
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    text-shadow: 0 0 18px var(--g-glow), 0 0 40px rgba(0,255,65,0.2);
-    /* 커서 깜빡 */
-    border-right: 3px solid var(--g);
-    padding-right: 6px;
-    animation: blink-cursor 0.7s step-end infinite;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 제작자 표시 */
-.header-author {
-    font-size: clamp(0.6rem, 1vw, 0.72rem);
-    color: var(--text-sub);
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-    opacity: 0.75;
-}
-.header-author span {
-    color: var(--grade-rare);
-    font-weight: 700;
-}
-
-/* ── 버튼 그룹 ── */
-.header-btns {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.btn-header {
-    height: 40px;
-    padding: 0 22px;
-    background: transparent;
-    border: 1px solid var(--g-border);
-    border-radius: var(--radius);
-    color: var(--g);
-    font-family: var(--font-body);
-    font-size: clamp(0.85rem, 1.2vw, 1rem);
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-}
-.btn-header:hover {
-    background: var(--g);
-    color: #000;
-    box-shadow: 0 0 16px var(--g-glow);
-}
-.btn-header.btn-reset {
-    border-color: rgba(0,255,65,0.5);
-}
-
-/* ================================================================
-   ▣ MAIN LAYOUT — 헤더 높이만큼 상단 패딩, 1헤더 + 3열 그리드
-   ▸ 레이아웃: 유닛도감(35%) | 계보(35%) | 코스트통합(30%)
-================================================================ */
-.main-layout {
-    display: grid;
-    /* 좌: 유닛도감 35  /  중: 계보 35  /  우: 통합코스트 30 */
-    grid-template-columns: 35fr 35fr 30fr;
-    grid-template-rows: 1fr;
-    gap: 8px;
-    padding: calc(var(--header-h) + var(--safe-top) + 8px) 8px calc(var(--safe-bot) + 8px) 8px;
-    height: 100vh;
-    min-height: 0;
-
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.main-layout.visible { opacity: 1; transform: translateY(0); }
-
-/* 패널 배치 */
-.panel-codex   { grid-column: 1; grid-row: 1; min-height: 0; }
-.panel-tree    { grid-column: 2; grid-row: 1; min-height: 0; }
-.panel-unified { grid-column: 3; grid-row: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; }
-
-/* ================================================================
-   ▣ PANEL BASE — 공통 패널 스타일
-================================================================ */
-.hud-panel {
-    background: var(--panel);
-    border: 1px solid #181818;
-    border-radius: var(--radius);
-    display: flex; flex-direction: column;
-    overflow: hidden;
-    position: relative;
-    min-height: 0;
-    height: 100%;
-}
-
-/* 왼쪽 강조 바 */
-.hud-panel::before {
-    content: "";
-    position: absolute; top: 0; left: 0;
-    width: 2px; height: 100%;
-    background: var(--g-dim);
-}
-.hud-panel:hover::before { background: var(--g); }
-
-.panel-header {
-    padding: 10px 14px;
-    background: rgba(0,255,65,0.025);
-    border-bottom: 1px solid #161616;
-    display: flex; align-items: center; gap: 10px;
-    flex-shrink: 0;
-    position: relative;
-}
-.panel-header::after {
-    content: "";
-    position: absolute; bottom: 0; left: 0;
-    width: 40%; height: 1px;
-    background: linear-gradient(90deg, var(--g-dim), transparent);
-}
-
-.ph-icon {
-    font-family: var(--font-mono);
-    font-size: 0.68rem; color: var(--g-dim);
-    background: rgba(0,255,65,0.06);
-    border: 1px solid var(--g-dim);
-    border-radius: 2px; padding: 1px 5px;
-    flex-shrink: 0;
-}
-.ph-title {
-    font-weight: 700; font-size: 0.88rem;
-    color: var(--g); letter-spacing: 0.04em;
-}
-.ph-spacer { flex: 1; }
-
-.panel-body {
-    flex: 1; overflow-y: auto; padding: 12px;
-    min-height: 0; display: flex;
-    flex-direction: column;
-    font-family: var(--font-body);
-}
-
-/* ================================================================
-   ▣ UNIFIED PANEL (3열) — 통합 코스트 박스 (5×5 그리드)
-   ▸ 상단: 총매직코스트 / 총정수 / 코랄 / 아이어 / 제루스 (5칸)
-   ▸ 이하: 매직코스트 20칸 (총 5×5=25칸, 상단5+하단20)
-================================================================ */
-.panel-unified {
-    background: var(--panel);
-    border: 1px solid #181818;
-    border-radius: var(--radius);
-    position: relative;
-    overflow: hidden;
-}
-.panel-unified::before {
-    content: "";
-    position: absolute; top: 0; left: 0;
-    width: 2px; height: 100%;
-    background: var(--g-dim);
-}
-.panel-unified:hover::before { background: var(--g); }
-
-/* 통합 패널 헤더 */
-.unified-header {
-    padding: 10px 14px;
-    background: rgba(0,255,65,0.025);
-    border-bottom: 1px solid #161616;
-    display: flex; align-items: center; gap: 10px;
-    flex-shrink: 0;
-    position: relative;
-}
-.unified-header::after {
-    content: "";
-    position: absolute; bottom: 0; left: 0;
-    width: 40%; height: 1px;
-    background: linear-gradient(90deg, var(--g-dim), transparent);
-}
-
-/* 통합 5×5 그리드 본체 */
-.unified-body {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(5, 1fr);
-    gap: 3px;
-    padding: 5px;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
-}
-
-/* 공통 셀 스타일 */
-.u-cell {
-    background: #0a0a0a;
-    border: 1px solid #1e1e1e;
-    border-radius: 2px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 3px 2px;
-    transition: all 0.2s;
-    min-height: 0; min-width: 0;
-    overflow: hidden;
-    position: relative;
-}
-
-/* 상단 5칸 — 합산 정보 셀 (row 1) */
-.u-cell.summary {
-    background: rgba(0,255,65,0.04);
-    border-color: var(--g-border);
-}
-.u-cell.summary.total-magic {
-    background: rgba(0,255,65,0.08);
-    border-color: rgba(0,255,65,0.4);
-    box-shadow: inset 0 0 10px rgba(0,255,65,0.05);
-}
-.u-cell.summary.total-magic::after {
-    content: "";
-    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--g), transparent);
-}
-
-/* 코스트/정수 셀 값 */
-.u-val {
-    font-family: var(--font-body);
-    font-size: clamp(0.8rem, 1.4vw, 1.4rem);
-    font-weight: 900;
-    line-height: 1;
-    color: var(--text-muted);
-}
-.u-cell.summary .u-val { color: var(--g); text-shadow: 0 0 10px var(--g-glow); }
-.u-val.nonzero { color: var(--g); text-shadow: 0 0 10px var(--g-glow); }
-
-.u-label {
-    font-size: clamp(0.45rem, 0.6vw, 0.62rem);
-    margin-top: 2px; font-weight: 700;
-    color: var(--text-sub); letter-spacing: 0.02em;
-    text-align: center; line-height: 1.2;
-    white-space: nowrap;
-    font-family: var(--font-body);
-    overflow: hidden; text-overflow: ellipsis;
-}
-.u-cell.summary .u-label { color: var(--text); }
-
-/* 코스트 매직 셀 (row 2~5) */
-.u-cell.cost-slot {
-    cursor: default;
-}
-.u-cell.cost-slot.active {
-    background: rgba(0,255,65,0.06);
-    border-color: var(--g-border);
-    box-shadow: 0 0 8px rgba(0,255,65,0.1);
-}
-.u-cell.cost-slot .u-val { color: var(--text-muted); font-size: clamp(0.75rem, 1.2vw, 1.2rem); }
-.u-cell.cost-slot.active .u-val { color: var(--g); text-shadow: 0 0 8px var(--g-glow); }
-.u-cell.cost-slot .u-label { color: var(--text-sub); }
-
-/* 정수 셀 색상 */
-.u-cell[data-kind="coral"] .u-label { color: #FF6B6B; }
-.u-cell[data-kind="aiur"]  .u-label { color: var(--grade-rare); }
-.u-cell[data-kind="zerus"] .u-label { color: var(--grade-legend); }
-
-/* ================================================================
-   ▣ CODEX PANEL — 유닛 도감 (왼쪽 패널)
-================================================================ */
-.codex-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3열 × 2행 */
-    gap: 3px;
-    background: rgba(0,0,0,0.4);
-    padding: 4px; border-radius: var(--radius);
-    margin-bottom: 8px; flex-shrink: 0;
-}
-.codex-tabs::-webkit-scrollbar { display: none; }
-
-.tab-btn {
-    background: none; border: 1px solid transparent;
-    color: var(--text-muted);
-    font-family: var(--font-body);
-    font-size: 0.8rem; font-weight: 700;
-    padding: 5px 8px;
-    cursor: pointer; transition: all 0.2s;
-    border-radius: 2px;
-    position: relative; letter-spacing: 0.03em;
-    width: 100%; text-align: left; /* 그리드 셀 꽉 채움 */
-}
-.tab-btn:hover { color: var(--text); background: rgba(0,255,65,0.06); }
-.tab-btn.active {
-    background: rgba(0,255,65,0.12);
-    color: var(--g);
-    border: 1px solid var(--g-border);
-}
-/* 선택된 유닛이 있는 탭 — 색상 테두리로 강조 */
-.tab-btn.has-selection {
-    border-color: var(--g);
-    color: var(--g);
-    box-shadow: 0 0 8px rgba(0,255,65,0.35), inset 0 0 6px rgba(0,255,65,0.08);
-}
-.tab-btn.has-selection.active {
-    background: rgba(0,255,65,0.18);
-    box-shadow: 0 0 12px rgba(0,255,65,0.5), inset 0 0 8px rgba(0,255,65,0.12);
-}
-/* 선택 개수 뱃지 */
-.tab-sel-count {
-    display: inline-flex;
-    align-items: center; justify-content: center;
-    min-width: 16px; height: 16px;
-    background: var(--g);
-    color: #000;
-    font-size: 0.62rem; font-weight: 900;
-    border-radius: 8px;
-    padding: 0 4px;
-    margin-left: 4px;
-    vertical-align: middle;
-    line-height: 1;
-}
-
-/* 선택됨 영역 */
-.selected-area {
-    margin-bottom: 0;
-    flex-shrink: 0;
-    display: none;
-}
-.selected-area.has-items { display: block; }
-.selected-area-header {
-    display: flex; align-items: center; gap: 6px;
-    padding: 5px 10px;
-    background: rgba(0,255,65,0.08);
-    border: 1px solid var(--g-border);
-    border-radius: 2px 2px 0 0;
-    font-size: 0.72rem; font-weight: 800;
-    color: var(--g); letter-spacing: 0.08em;
-}
-.selected-area-header::before { content: "▶"; font-size: 0.6rem; }
-.selected-items-list {
-    border: 1px solid var(--g-border);
-    border-top: none;
-    border-radius: 0 0 2px 2px;
-    background: rgba(0,0,0,0.5);
-    max-height: 180px;
-    overflow-y: auto;
-}
-
-/* ── 도감 아이템 (node-btn 스타일) ── */
-.codex-item {
-    margin-bottom: 5px;
-}
-.codex-item.selected .codex-node { border-color: var(--g-border); background: var(--g-faint); }
-
-.codex-node-row {
-    display: flex; align-items: stretch; gap: 0;
-}
-
-/* 도감 카드 — 유닛명 위 / 조합조건 가로행 아래, 2줄 구조 */
-.codex-node {
-    flex: 1; min-width: 0;
-    border-radius: var(--radius) 0 0 var(--radius) !important;
-    border-right: none !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 4px !important;
-    padding: 7px 12px !important;
-}
-.codex-node:hover { border-color: var(--g) !important; }
-
-/* 유닛명 행 */
-.codex-node .node-name {
-    width: 100%; min-width: 0;
-    display: flex; align-items: center; gap: 4px;
-    flex-wrap: nowrap;
-}
-
-/* 조합조건 행 — 가로 정렬, 넘치면 다음 줄 */
-.codex-recipe-row {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex-wrap: wrap;          /* 가로 넘치면 줄바꿈 */
-    min-width: 0;
-    overflow: visible;
-    row-gap: 3px;
-}
-/* 조건 뱃지 (노란색, 계보 동일) */
-.codex-recipe-row .node-cond {
-    font-family: var(--font-body);
-    font-size: 0.72rem; font-weight: 700;
-    color: #FFD700;
-    background: rgba(255,215,0,0.08);
-    border: 1px solid rgba(255,215,0,0.3);
-    border-radius: 2px;
-    padding: 1px 6px;
-    white-space: nowrap;
-    margin-right: 4px;
-    flex-shrink: 0;
-}
-/* 재료명 (하늘색, 계보 동일) */
-.codex-recipe-row .node-ing {
-    font-size: 0.72rem; font-weight: 600;
-    color: #87CEEB;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-/* + 구분자 */
-.codex-recipe-row .node-sep {
-    font-size: 0.68rem;
-    color: #444;
-    margin: 0 3px;
-    flex-shrink: 0;
-}
-
-/* 수량 조절 컨트롤 */
-.codex-qty {
-    display: flex; align-items: stretch;
-    border: 1px solid #252525;
-    border-radius: 0 var(--radius) var(--radius) 0;
-    background: rgba(0,0,0,0.3);
-    overflow: hidden;
-    flex-shrink: 0;
-}
-.codex-qty .qty-btn {
-    width: 34px; font-size: 1.3rem; font-weight: 900;
-    background: transparent; border: none;
-    color: var(--text-sub);
-    cursor: pointer; transition: 0.15s;
-    display: flex; align-items: center; justify-content: center;
-    touch-action: manipulation;
-}
-.codex-qty .qty-btn:hover { color: var(--g); background: rgba(0,255,65,0.14); }
-.codex-qty .qty-num {
-    min-width: 22px; text-align: center;
-    font-family: var(--font-body); font-size: 0.95rem; font-weight: 900;
-    color: var(--text-muted);
-    border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0 2px;
-}
-.codex-item.selected .codex-qty .qty-num { color: var(--g); }
-.codex-item.selected .codex-qty { border-color: var(--g-border); }
-
-/* 선택 개수 구분선 */
-.codex-section-divider {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 4px;
-    margin: 0;
-    flex-shrink: 0;
-}
-.codex-section-divider-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, var(--g-dim), transparent);
-}
-.codex-section-divider-label {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    white-space: nowrap;
-}
-/* 구분자는 선택됨 영역 없을 때 숨김 */
-.codex-section-divider { display: none; }
-.selected-area.has-items ~ .codex-section-divider { display: flex; }
-
-#tabContent { flex: 1; overflow-y: auto; }
-
-/* ── 유닛 카드 — 3컬럼: [유닛명+조합] | [수량] | [코스트+정수] ── */
-.unit-card {
-    display: grid;
-    grid-template-columns: 1fr 110px; /* 유닛명+조합 | 수량 — 우측 빈칸 제거 */
-    align-items: stretch;
-    gap: 0;
-    background: rgba(0,0,0,0.5);
-    border: 1px solid #161616;
-    border-left: 3px solid transparent;
-    border-radius: var(--radius);
-    margin-bottom: 4px;
-    cursor: pointer;
-    transition: all 0.18s;
-    overflow: hidden;
-    min-height: 54px;
-}
-.unit-card:hover { background: #0f0f0f; border-color: #2a2a2a; }
-.unit-card.active {
-    border-left-color: var(--g);
-    background: var(--g-faint);
-    border-color: var(--g-border);
-}
-
-/* 1열: 유닛명 + 조합조건 */
-.uc-left {
-    padding: 7px 9px; min-width: 0;
-    display: flex; flex-direction: column; justify-content: center; gap: 3px;
-}
-.uc-name-row {
-    display: flex; align-items: center; gap: 4px;
-    font-weight: 800; font-size: 0.9rem;
-    flex-wrap: wrap; overflow: hidden;
-}
-.uc-recipe {
-    font-size: 0.7rem; color: var(--text-sub);
-    line-height: 1.5; word-break: keep-all;
-    white-space: normal;
-}
-
-/* 2열: 수량 조절 [−][수][+] — 크고 눈에 띄게 */
-.uc-qty {
-    border-left: 1px solid #1c1c1c;
-    background: rgba(0,0,0,0.25);
-    display: flex; flex-direction: row;
-    align-items: stretch; justify-content: stretch;
-    gap: 0; padding: 0; min-width: 0;
-}
-.qty-btn {
-    background: transparent; border: none;
-    color: var(--text-sub);
-    /* 크게! 기능이 눈에 띄도록 */
-    font-size: 1.5rem; font-weight: 900;
-    flex: 1; width: 100%; min-height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: 0.15s;
-    font-family: var(--font-body); padding: 0;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-.qty-btn:hover  { color: var(--g); background: rgba(0,255,65,0.14); }
-.qty-btn:active { background: rgba(0,255,65,0.25); }
-.unit-card.active .qty-btn { color: var(--g-dim); }
-.unit-card.active .qty-btn:hover { color: var(--g); }
-.qty-num {
-    font-family: var(--font-body); font-size: 1.1rem; font-weight: 900;
-    color: var(--text-muted); min-width: 22px; text-align: center; line-height: 1;
-    flex-shrink: 0;
-    border-left: 1px solid #1c1c1c;
-    border-right: 1px solid #1c1c1c;
-    padding: 0 2px;
-    display: flex; align-items: center; justify-content: center;
-    align-self: stretch;
-}
-.unit-card.active .qty-num { color: var(--g); }
-
-/* 3열: 코스트 + 정수확보 */
-.uc-right {
-    border-left: 1px solid #1c1c1c;
-    background: rgba(0,0,0,0.3);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 3px; padding: 5px 4px; min-width: 0;
-}
-.uc-cost-badge {
-    font-family: var(--font-body);
-    font-size: 0.72rem; color: var(--text-muted);
-    font-weight: 700;
-    background: rgba(0,255,65,0.04);
-    border: 1px solid #252525; border-radius: 2px;
-    padding: 2px 4px; white-space: nowrap;
-    text-align: center; line-height: 1.2;
-}
-.unit-card.active .uc-cost-badge { color: var(--g); border-color: var(--g-border); }
-.uc-cost-badge.multi {
-    color: #FFD700; border-color: rgba(255,215,0,0.35);
-    background: rgba(255,215,0,0.06); font-size: 0.68rem;
-}
-.essence-label {
-    font-size: 0.6rem; color: var(--g);
-    font-weight: 800;
-    background: rgba(0,255,65,0.1);
-    border: 1px solid var(--g-border); border-radius: 2px;
-    padding: 1px 3px; white-space: nowrap;
-    animation: ess-pulse 2s ease infinite;
-}
-@keyframes ess-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-/* 등급 태그 */
-.gtag {
-    font-family: var(--font-body); font-size: 0.62rem;
-    padding: 1px 3px; border: 1px solid currentColor;
-    border-radius: 2px; opacity: 0.85; flex-shrink: 0;
-}
-
-/* ================================================================
-   ▣ TREE PANEL — 계보 & 조합 트리 (중앙 패널)
-   ▸ 제목/초기화/사용방법은 헤더로 이동 — 패널 자체 헤더는 단순 표시용
-================================================================ */
-.empty-hud {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    height: 100%; min-height: 160px;
-    color: var(--text-muted); text-align: center;
-    font-family: var(--font-body); gap: 6px;
-}
-.empty-hud-tree-title {
-    font-size: 1.4rem; font-weight: 900;
-    color: var(--g); letter-spacing: 0.04em;
-    text-shadow: 0 0 16px var(--g-glow);
-    margin-bottom: 8px; opacity: 0.85;
-}
-.empty-hud-icon { font-size: 1.6rem; opacity: 0.35; }
-.empty-hud-msg  { font-size: 1rem; opacity: 0.55; font-weight: 700; }
-.empty-hud-sub  { font-size: 0.82rem; opacity: 0.3; }
-
-.analysis-card {
-    background: rgba(0,0,0,0.3); border: 1px solid #1e1e1e;
-    border-left: 3px solid var(--g);
-    padding: 12px; margin-bottom: 12px; border-radius: var(--radius);
-}
-.analysis-card h3 {
-    font-size: 1.05rem;
-    border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 10px;
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 10px; flex-wrap: wrap;
-    font-family: var(--font-body); font-weight: 900;
-}
-/* 카드 제목 클릭 버튼 */
-.card-title-btn {
-    display: inline-flex; align-items: center; gap: 2px;
-    border-radius: 2px; padding: 2px 4px;
-    transition: background 0.15s;
-    user-select: none;
-}
-.card-title-btn:hover { background: rgba(0,255,65,0.08); }
-/* 카드 접힘 상태 — h3 하단 선 제거 */
-.analysis-card[data-card-state="closed"] h3 { border-bottom-color: transparent; margin-bottom: 0; padding-bottom: 6px; }
-.analysis-card[data-card-state="closed"] .card-title-arrow { color: var(--text-muted) !important; }
-
-/* 트리 구조 */
-.tree-ul { list-style: none; padding-left: 22px; margin-top: 6px; border-left: 1px dashed #2a2a2a; }
-.tree-ul.root-ul { border-left: none; padding-left: 0; }
-.tree-li { position: relative; margin-top: 8px; }
-.tree-li::before { content: ""; position: absolute; top: 16px; left: -22px; width: 16px; height: 1px; background: #2a2a2a; }
-.root-ul > .tree-li::before { display: none; }
-
-/* ── 통합 노드 버튼 — 유닛명 + 조건 + 수량 한 덩어리 ── */
-.tree-node-wrapper { display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; }
-
-/* 메인 노드 버튼 */
-.node-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    background: #0c0c0c;
-    border: 1px solid #252525;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.18s;
-    overflow: hidden;
-    font-family: var(--font-body);
-    min-height: 34px;
-}
-.node-btn:hover { border-color: var(--g); }
-.node-btn.has-children:hover { box-shadow: 0 0 8px rgba(0,255,65,0.2); }
-
-/* 유닛명 영역 */
-.node-name {
-    padding: 5px 12px;
-    font-size: 0.9rem; font-weight: 700;
-    color: inherit;
-    white-space: nowrap;
-    border-right: 1px solid #1e1e1e;
-}
-
-/* 조건 영역 (조건 있을 때만) */
-.node-cond {
-    padding: 5px 8px;
-    font-size: 0.75rem; font-weight: 700;
-    color: #FFD700;
-    background: rgba(255,215,0,0.07);
-    border-right: 1px solid rgba(255,215,0,0.2);
-    white-space: nowrap;
-    line-height: 1.3;
-    display: flex; align-items: center;
-}
-
-/* 수량 영역 (수량 있을 때만) */
-.node-cnt {
-    padding: 5px 8px;
-    font-size: 0.82rem; font-weight: 900;
-    color: #34D399;
-    white-space: nowrap;
-    display: flex; align-items: center;
-}
-
-/* 토글 화살표 영역 */
-.node-toggle {
-    padding: 5px 8px;
-    font-size: 0.62rem; color: var(--g);
-    border-left: 1px solid #1e1e1e;
-    display: flex; align-items: center;
-    background: rgba(0,255,65,0.03);
-}
-
-/* 중복 노드 */
-.node-btn.duplicate {
-    opacity: 0.4;
-    cursor: default;
-}
-.node-btn.duplicate:hover { border-color: #252525; box-shadow: none; }
-
-/* ── 비용 블록 — 트리 하단, 들여쓰기 없음 ── */
-.bullet-cost {
-    font-size: 0.82rem;
-    padding: 5px 10px;
-    margin-top: 5px;
-    margin-left: 0;
-    border: 1px solid #1a2a1a;
-    border-left: 2px solid var(--g-dim);
-    background: rgba(0,255,65,0.03);
-    border-radius: 0 2px 2px 0;
-    line-height: 1.9;
-    font-family: var(--font-body);
-    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px;
-}
-.bullet-cost .lbl-cost {
-    color: var(--g-dim); font-size: 0.72rem; font-weight: 700;
-    margin-right: 4px; white-space: nowrap; flex-shrink: 0;
-}
-.bullet-cost .cost-unit-name { color: #7ec87e; font-weight: 600; }
-.bullet-cost .cost-unit-cnt  { color: var(--g); font-weight: 700; }
-
-/* 트리 내부의 구 뱃지 스타일은 더 이상 사용 안 함 (node-btn으로 대체) */
-/* 상위 조합 목록에서만 .compat-badge 사용 */
-.compat-badge {
-    background: #0c0c0c; border: 1px solid #252525;
-    padding: 5px 12px; font-size: 0.88rem; font-weight: 700;
-    cursor: pointer; border-radius: var(--radius); transition: 0.2s;
-    font-family: var(--font-body);
-}
-.compat-badge:hover { border-color: var(--g); filter: brightness(1.3); }
-
-/* 탭 버튼 아이콘 정렬 */
-.tab-btn { display: inline-flex; align-items: center; }
-
-.btn-small {
-    background: transparent; color: var(--g);
-    border: 1px solid var(--g-border); border-radius: var(--radius);
-    padding: 4px 10px; font-size: 0.8rem;
-    font-family: var(--font-body); font-weight: 700;
-    cursor: pointer; transition: 0.2s;
-}
-.btn-small:hover { background: var(--g); color: #000; }
-
-/* ================================================================
-   ▣ MODAL — 사용방법 팝업
-================================================================ */
-.modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.88);
-    z-index: 9000;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-    backdrop-filter: blur(6px);
-}
-.modal-backdrop.active { opacity: 1; pointer-events: auto; }
-.modal-box {
-    background: #060606; border: 1px solid var(--g-dim);
-    border-radius: var(--radius);
-    width: min(700px, 92vw); max-height: 80vh;
-    display: flex; flex-direction: column;
-    box-shadow: 0 0 60px rgba(0,255,65,0.15);
-    transform: translateY(-16px); transition: transform 0.3s;
-}
-.modal-backdrop.active .modal-box { transform: translateY(0); }
-.modal-head {
-    padding: 18px 20px; border-bottom: 1px solid #181818;
-    display: flex; justify-content: space-between; align-items: center;
-    background: rgba(0,255,65,0.03); flex-shrink: 0;
-}
-.modal-head h2 { font-size: 1.2rem; color: var(--g); font-weight: 800; }
-.btn-close {
-    background: none; border: 1px solid #333;
-    color: var(--text-sub); font-size: 1.5rem;
-    cursor: pointer; padding: 0 8px; line-height: 1.4;
-    border-radius: var(--radius); transition: 0.2s;
-}
-.btn-close:hover { border-color: var(--grade-unique); color: var(--grade-unique); }
-.modal-body-scroll { padding: 20px; overflow-y: auto; flex: 1; }
-
-.guide-section {
-    margin-bottom: 20px; border-left: 2px solid var(--g-dim);
-    padding: 10px 14px; background: rgba(0,0,0,0.3);
-    border-radius: 0 var(--radius) var(--radius) 0;
-}
-.guide-section h3 {
-    font-size: 1rem; font-weight: 800; color: var(--text);
-    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
-}
-.guide-section h3::before { content: "■"; color: var(--g); font-size: 0.7rem; }
-.guide-section ul { list-style: none; }
-.guide-section li {
-    color: var(--text-sub); font-size: 0.88rem;
-    padding-left: 14px; position: relative;
-    margin-bottom: 8px; line-height: 1.7; word-break: keep-all;
-}
-.guide-section li::before { content: "—"; color: var(--g-dim); position: absolute; left: 0; }
-.hl { color: var(--g); font-weight: 700; }
-
-/* ================================================================
-   ▣ UTILITY
-================================================================ */
-.no-select { user-select: none; }
-
-/* ================================================================
-   ▣ RESPONSIVE — PC/노트북 반응형 (마우스 포인터 장치)
-   ▸ 1280×720 이하에서도 레이아웃 유지, 그 이하면 스크롤
-================================================================ */
-/* 넓은 화면 (1920px 이상) */
-@media (min-width: 1920px) and (pointer: fine) {
-    :root { --header-h: 68px; }
-    .header-title { font-size: 2rem; }
-    .btn-header { height: 44px; padding: 0 28px; font-size: 1.05rem; }
-}
-
-/* 일반 노트북/데스크탑 (1280~1919px) */
-@media (max-width: 1919px) and (min-width: 1280px) and (pointer: fine) {
-    :root { --header-h: 60px; }
-}
-
-/* 작은 노트북 (900~1279px) — 헤더 컴팩트 */
-@media (max-width: 1279px) and (min-width: 900px) and (pointer: fine) {
-    :root { --header-h: 56px; }
-    .header-title { font-size: 1.2rem; }
-    .btn-header { height: 34px; padding: 0 14px; font-size: 0.85rem; }
-    .header-author { font-size: 0.6rem; }
-}
-
-/* PC 최소 폭 고정 — 900px 아래로 줄면 모바일 레이아웃으로 전환 */
-@media (min-width: 900px) and (pointer: fine) {
-    body { min-width: 900px; overflow-x: auto; }
-    .main-layout { min-width: 884px; }
-}
-
-/* 세로 모니터 (PC, 가로 < 세로) */
-@media (max-aspect-ratio: 1/1) and (min-width: 900px) and (pointer: fine) {
-    .main-layout {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        height: calc(100vh - var(--header-h) - var(--safe-top) - 16px);
-    }
-    .panel-codex   { grid-column: 1; grid-row: 1; }
-    .panel-tree    { grid-column: 2; grid-row: 1; }
-    .panel-unified { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
-    /* 통합박스 세로 모니터에서 가로 배치 */
-    .unified-body {
-        grid-template-columns: repeat(5, 1fr);
-        grid-template-rows: repeat(5, 1fr);
-    }
-}
-
-/* ================================================================
-   ▣ RESPONSIVE — 모바일/태블릿 (터치 장치 또는 좁은 화면)
-   ▸ 세로 정렬: 헤더 / 통합코스트 / 유닛도감 / 계보
-   ▸ iOS, Android 세로/가로 회전 완벽 지원
-================================================================ */
-@media (max-width: 899px), (pointer: coarse) and (max-width: 1100px) {
-    /* 모바일 body */
-    body { min-width: unset !important; overflow-x: hidden !important; }
-
-    /* 헤더 모바일 최적화 */
-    :root { --header-h: 54px; }
-    .header-title { font-size: clamp(1rem, 4vw, 1.3rem); }
-    .header-author { display: none; } /* 모바일에서 제작자 숨김 (공간 절약) */
-    .btn-header { height: 32px; padding: 0 10px; font-size: 0.82rem; }
-    .site-icon { width: 34px; height: 34px; }
-
-    /* 메인 레이아웃 — 세로 스크롤 */
-    .main-layout {
-        display: flex !important;
-        flex-direction: column !important;
-        height: auto !important;
-        min-height: calc(100vh - var(--header-h) - var(--safe-top));
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        padding: calc(var(--header-h) + var(--safe-top) + 6px) 6px calc(var(--safe-bot) + 20px) 6px !important;
-        gap: 6px !important;
-        min-width: unset !important;
-    }
-
-    /* 모바일 세로 순서: 통합코스트 → 유닛도감 → 계보 */
-    .panel-unified { order: 1; flex: none; }
-    .panel-codex   { order: 2; flex: none; }
-    .panel-tree    { order: 3; flex: none; }
-
-    /* 패널 높이 자동 */
-    .panel-codex, .panel-tree, .panel-unified {
-        grid-column: unset !important; grid-row: unset !important;
-        min-height: auto !important; height: auto !important;
-        width: 100% !important;
-    }
-
-    /* 통합 코스트 5×5 모바일 고정 높이 */
-    .unified-body {
-        height: auto;
-        grid-template-rows: repeat(5, 56px);
-    }
-    .u-cell { min-height: 48px; }
-    .u-val { font-size: clamp(0.85rem, 3.5vw, 1.1rem); }
-    .u-label { font-size: clamp(0.5rem, 1.8vw, 0.62rem); }
-
-    /* 유닛도감 최대높이 */
-    .panel-codex .panel-body { max-height: 65vh; overflow-y: auto; }
-    /* 계보 최대높이 */
-    .panel-tree .panel-body { max-height: 80vh; overflow-y: auto; }
-
-    /* 수량 버튼 모바일 크게 */
-    .unit-card { grid-template-columns: 1fr 110px; min-height: 58px; }
-    .codex-qty .qty-btn { width: 40px; font-size: 1.4rem; min-height: 48px; }
-    .qty-btn { font-size: 1.5rem; min-height: 50px; }
-    .qty-num { font-size: 1.1rem; }
-}
-
-/* 매우 작은 폰 (480px 이하) */
-@media (max-width: 480px) {
-    .header-btns { gap: 5px; }
-    .btn-header { height: 30px; padding: 0 8px; font-size: 0.78rem; }
-    .header-title { font-size: clamp(0.88rem, 3.8vw, 1.1rem); }
-    .unit-card { grid-template-columns: 1fr 100px; min-height: 56px; }
-    .codex-qty .qty-btn { width: 36px; font-size: 1.3rem; }
-    .qty-btn { font-size: 1.3rem; }
-    .u-val { font-size: clamp(0.8rem, 3vw, 1rem); }
-    .u-label { font-size: 0.48rem; }
-}
-
-/* 가로 회전 (모바일 landscape) — PC 레이아웃에 가깝게 */
-@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
-    :root { --header-h: 44px; }
-    .main-layout {
-        display: grid !important;
-        grid-template-columns: 35fr 35fr 30fr !important;
-        grid-template-rows: 1fr !important;
-        height: calc(100vh - var(--header-h) - var(--safe-top)) !important;
-        overflow-y: hidden !important;
-        padding: calc(var(--header-h) + var(--safe-top) + 5px) 5px calc(var(--safe-bot) + 5px) 5px !important;
-    }
-    .panel-unified { order: unset !important; flex-direction: column !important; }
-    .panel-codex   { order: unset !important; height: 100% !important; }
-    .panel-tree    { order: unset !important; height: 100% !important; }
-    .panel-codex .panel-body { max-height: unset !important; }
-    .panel-tree .panel-body  { max-height: unset !important; }
-    .unified-body { grid-template-rows: repeat(5, 1fr) !important; height: 100% !important; }
-    .u-cell { min-height: 0 !important; }
-    .btn-header { height: 28px; padding: 0 8px; font-size: 0.76rem; }
-    .header-title { font-size: clamp(0.85rem, 2.5vw, 1.1rem); }
-}
-
-/* 태블릿 세로 (600~899px) */
-@media (min-width: 600px) and (max-width: 899px) {
-    .unified-body { grid-template-rows: repeat(5, 64px); }
-    .u-cell { min-height: 56px; }
-    .u-val { font-size: 1.1rem; }
-    .u-label { font-size: 0.6rem; }
-    .btn-header { height: 36px; padding: 0 14px; font-size: 0.88rem; }
-    .header-title { font-size: clamp(1.1rem, 3vw, 1.5rem); }
-    .header-author { display: block; font-size: 0.62rem; }
-}
-    </style>
+    <style>:root{--void:#000000;--panel:#080808;--panel-b:#0d0d0d;--surface:#111111;--g:#00FF41;--g-dim:#007a1e;--g-faint:rgba(0,255,65,0.07);--g-border:rgba(0,255,65,0.22);--g-glow:rgba(0,255,65,0.5);--scan:rgba(0,255,65,0.03);--grade-magic:#87CEEB;--grade-rare:#FBBF24;--grade-epic:#FB923C;--grade-unique:#EF4444;--grade-hell:#EC4899;--grade-legend:#A78BFA;--grade-hidden:#34D399;--grade-super:#FFD700;--text:#D8E4D0;--text-sub:#7A9A7A;--text-muted:#3A5A3A;--font-body:'Noto Sans KR','Malgun Gothic','맑은 고딕',sans-serif;--font-mono:'Noto Sans KR','Malgun Gothic',sans-serif;--header-h:78px;--radius:3px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{height:100%}body{background:var(--void);color:var(--text);font-family:var(--font-body);height:100%;min-height:100%;background-image:repeating-linear-gradient(
+0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px
+);user-select:none;overflow-x:hidden}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#050505}::-webkit-scrollbar-thumb{background:var(--g-dim);border-radius:2px}::-webkit-scrollbar-thumb:hover{background:var(--g)}*{scrollbar-width:thin;scrollbar-color:var(--g-dim) #050505}#intro-screen{position:fixed;inset:0;z-index:10000;background:var(--void);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:opacity 0.8s ease;overflow:hidden}#intro-screen.fade-out{opacity:0;pointer-events:none}#matrixCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;opacity:0;transition:opacity 1s ease}#matrixCanvas.visible{opacity:1}#intro-screen::before{content:"";position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.85) 100%);pointer-events:none}.scan-sweep{position:absolute;inset:0;z-index:3;background:linear-gradient(
+to bottom,transparent 0%,rgba(0,255,65,0.04) 49%,rgba(0,255,65,0.09) 50%,rgba(0,255,65,0.04) 51%,transparent 100%
+);background-size:100% 200%;animation:sweep 3s linear infinite;pointer-events:none}@keyframes sweep{0%{background-position:0 -100%}100%{background-position:0 200%}}.intro-corner{position:absolute;z-index:4;width:60px;height:60px;pointer-events:none}.intro-corner.tl{top:24px;left:24px;border-top:2px solid var(--g);border-left:2px solid var(--g)}.intro-corner.tr{top:24px;right:24px;border-top:2px solid var(--g);border-right:2px solid var(--g)}.intro-corner.bl{bottom:24px;left:24px;border-bottom:2px solid var(--g);border-left:2px solid var(--g)}.intro-corner.br{bottom:24px;right:24px;border-bottom:2px solid var(--g);border-right:2px solid var(--g)}.intro-hud{position:relative;z-index:5;width:min(620px,92vw);font-family:var(--font-body);color:var(--g);padding:28px 32px 24px;border:1px solid var(--g-dim);background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);box-shadow:0 0 40px rgba(0,255,65,0.12),inset 0 0 30px rgba(0,0,0,0.5);animation:hud-appear 0.6s ease forwards;opacity:0}@keyframes hud-appear{to{opacity:1}}.intro-hud-top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--g-dim);padding-bottom:12px;margin-bottom:18px;font-size:0.75rem;color:var(--text-sub)}.intro-hud-id{font-size:0.8rem;color:var(--g);letter-spacing:0.1em}.intro-title{font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;letter-spacing:0.12em;color:var(--g);text-shadow:0 0 20px var(--g-glow),0 0 50px rgba(0,255,65,0.3);margin-bottom:6px;font-family:var(--font-mono);overflow:hidden;white-space:nowrap;border-right:3px solid var(--g);width:0;animation:title-type 0.8s steps(7,end) 0.5s forwards,blink-cursor 0.6s step-end infinite 0.5s}@keyframes title-type{to{width:100%}}@keyframes blink-cursor{50%{border-color:transparent}}.intro-subtitle{font-size:0.85rem;color:var(--text-sub);letter-spacing:0.2em;margin-bottom:22px;opacity:0;animation:fade-in 0.4s ease 1.4s forwards}@keyframes fade-in{to{opacity:1}}.term-log{list-style:none;font-size:0.82rem;line-height:2;margin-bottom:20px;min-height:80px}.term-log li{opacity:0;color:var(--text-sub);display:flex;align-items:center;gap:8px}.term-log li::before{content:">";color:var(--g);flex-shrink:0}.term-log li.ok{color:var(--g)}.term-log li.warn{color:var(--grade-rare)}.term-log li.err{color:var(--grade-unique)}.term-log li.show{opacity:1}.prog-row{display:flex;align-items:center;gap:12px;font-size:0.78rem;color:var(--text-sub);margin-bottom:6px;opacity:0;animation:fade-in 0.4s ease 1.6s forwards}.prog-track{flex:1;height:4px;background:rgba(0,255,65,0.1);border-radius:2px;overflow:hidden}.prog-fill{height:100%;background:linear-gradient(90deg,var(--g-dim),var(--g));width:0%;transition:width 0.05s linear;box-shadow:0 0 8px var(--g-glow)}.prog-pct{font-family:var(--font-mono);color:var(--g);font-size:0.9rem;min-width:44px;text-align:right}.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;opacity:0;animation:fade-in 0.4s ease 2s forwards}.sys-item{background:rgba(0,255,65,0.04);border:1px solid rgba(0,255,65,0.12);padding:8px 10px;border-radius:var(--radius)}.sys-item-label{font-size:0.65rem;color:var(--text-sub);margin-bottom:4px;letter-spacing:0.1em}.sys-item-bar{height:2px;background:rgba(0,255,65,0.1);border-radius:1px;overflow:hidden}.sys-item-fill{height:100%;background:var(--g);width:0%;animation:sys-fill 1s ease 2.2s forwards;box-shadow:0 0 4px var(--g)}@keyframes sys-fill{to{width:100%}}.sys-item-fill.d1{animation-delay:2.2s}.sys-item-fill.d2{animation-delay:2.4s}.sys-item-fill.d3{animation-delay:2.6s}.sys-item-fill.d4{animation-delay:2.8s}.sys-item-fill.d5{animation-delay:3.0s}.sys-item-fill.d6{animation-delay:3.2s}.skip-hint{position:absolute;bottom:32px;right:32px;z-index:6;font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);letter-spacing:0.15em;opacity:0;animation:fade-in 0.6s ease 2.5s forwards}.skip-hint span{display:inline-block;animation:pulse 2s ease infinite}@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}.header-inner{width:100%;height:100%;display:flex;align-items:stretch;justify-content:center;gap:0}.site-icon{width:40px;height:40px;flex-shrink:0;margin:auto 0 auto 12px;align-self:center}.site-icon svg{width:100%;height:100%}.header-brand{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;flex-shrink:0;padding:0 16px 0 10px;align-self:center}.header-brand-top{display:none}.header-title{font-family:var(--font-mono);font-size:clamp(1rem,1.8vw,1.6rem);font-weight:900;color:var(--g);letter-spacing:0.06em;white-space:nowrap;text-shadow:0 0 18px var(--g-glow);border-right:3px solid var(--g);padding-right:5px;animation:blink-cursor 0.7s step-end infinite}.header-author{font-size:clamp(0.55rem,0.85vw,0.68rem);color:var(--text-sub);white-space:nowrap;opacity:0.75}.header-author span{color:var(--grade-rare);font-weight:700}.header-btns{display:flex;align-items:stretch;gap:0;align-self:stretch;padding:0}.btn-header{height:100%;padding:0 20px;background:transparent;border:none;border-left:1px solid var(--g-border);border-radius:0;color:var(--g);font-family:var(--font-body);font-size:clamp(0.75rem,0.95vw,0.88rem);font-weight:900;cursor:pointer;transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;justify-content:center}.btn-header:first-child{border-left:1px solid #1a1a1a}.btn-header:hover{background:rgba(0,255,65,0.12);color:var(--g);box-shadow:inset 0 0 20px rgba(0,255,65,0.08)}.btn-header.btn-reset{color:var(--g)}.btn-header.btn-reset:hover{background:rgba(0,255,65,0.18)}.header-divider{display:none}.main-layout{display:grid;grid-template-columns:40fr 40fr 20fr;grid-template-rows:60px 1fr;gap:8px;padding:calc(var(--safe-top) + 8px) 8px calc(var(--safe-bot) + 8px) 8px;height:100vh;min-height:0;opacity:0;transform:translateY(8px);transition:opacity 0.5s ease,transform 0.5s ease}.main-layout.visible{opacity:1;transform:translateY(0)}.panel-title{grid-column:1 / 3;grid-row:1;min-height:0}.panel-codex{grid-column:1;grid-row:2;min-height:0}.panel-unified{grid-column:2;grid-row:2;min-height:0;display:flex;flex-direction:column;gap:0}.panel-tree{grid-column:3;grid-row:1 / 3;min-height:0}@media (orientation:portrait) and (min-width:600px){.main-layout{grid-template-columns:1fr 1fr;grid-template-rows:60px 1fr 1fr}.panel-title{grid-column:1 / 3;grid-row:1}.panel-codex{grid-column:1;grid-row:2}.panel-unified{grid-column:2;grid-row:2}.panel-tree{grid-column:1 / 3;grid-row:3;grid-row:3}}.panel-title{background:var(--panel);border:1px solid #181818;border-radius:var(--radius);overflow:hidden;position:relative;display:flex;align-items:stretch;width:100%;height:100%;container-type:inline-size;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.panel-title::before{content:"";position:absolute;top:0;left:0;width:2px;height:100%;background:var(--g-dim);z-index:1}.panel-title:hover::before{background:var(--g)}.panel-title .header-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;min-width:0}.header-author-standalone{font-size:clamp(0.75rem,1.8cqw,1.1rem);color:var(--text-sub);white-space:nowrap;opacity:0.85;flex-shrink:0;font-weight:700}.header-author-standalone span{color:var(--grade-rare);font-weight:900}.panel-title .site-icon{width:clamp(28px,4cqw,44px);height:clamp(28px,4cqw,44px);flex-shrink:0}.panel-title .site-icon svg{width:100%;height:100%}.panel-title .header-title{font-size:clamp(0.75rem,1.8cqw,1.3rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;border-right:2px solid var(--g);padding-right:5px;animation:blink-cursor 0.7s step-end infinite}.panel-title .header-btns{display:flex;align-items:center;gap:4px;flex-shrink:0}.panel-title .btn-header{height:100%;padding:0 14px;font-size:clamp(0.75rem,1.8cqw,1.1rem);border-left:1px solid #1a1a1a;border-radius:0;display:flex;align-items:center;justify-content:center;white-space:nowrap}.hud-panel{background:var(--panel);border:1px solid #181818;border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;position:relative;min-height:0;height:100%}.hud-panel::before{content:"";position:absolute;top:0;left:0;width:2px;height:100%;background:var(--g-dim)}.hud-panel:hover::before{background:var(--g)}.panel-header{padding:10px 14px;background:rgba(0,255,65,0.025);border-bottom:1px solid #161616;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;position:relative}.panel-header::after{content:"";position:absolute;bottom:0;left:0;width:40%;height:1px;background:linear-gradient(90deg,var(--g-dim),transparent)}.ph-icon{font-family:var(--font-mono);font-size:0.68rem;color:var(--g-dim);background:rgba(0,255,65,0.06);border:1px solid var(--g-dim);border-radius:2px;padding:1px 5px;flex-shrink:0}.ph-title{font-weight:700;font-size:0.88rem;color:var(--g);letter-spacing:0.04em}.ph-spacer{flex:1}.panel-body{flex:1;overflow:hidden;padding:12px;min-height:0;display:flex;flex-direction:column;gap:0;font-family:var(--font-body)}.codex-body{padding:8px 8px 0 8px}.codex-scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;display:flex;flex-direction:column;padding:4px 4px 12px 4px}.panel-unified{background:var(--panel);border:1px solid #181818;border-radius:var(--radius);position:relative;overflow:hidden}.panel-unified::before{content:"";position:absolute;top:0;left:0;width:2px;height:100%;background:var(--g-dim)}.panel-unified:hover::before{background:var(--g)}.unified-header{padding:10px 14px;background:rgba(0,255,65,0.025);border-bottom:1px solid #161616;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;position:relative}.unified-header::after{content:"";position:absolute;bottom:0;left:0;width:40%;height:1px;background:linear-gradient(90deg,var(--g-dim),transparent)}.unified-body{flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,minmax(60px,1fr));gap:3px;padding:5px;min-height:0;height:100%;overflow:hidden}.u-cell{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 2px;transition:all 0.2s;min-height:0;min-width:0;overflow:hidden;position:relative}.u-cell.summary{background:rgba(0,255,65,0.04);border-color:var(--g-border)}.u-cell.summary.total-magic{background:rgba(0,255,65,0.08);border-color:rgba(0,255,65,0.4);box-shadow:inset 0 0 10px rgba(0,255,65,0.05)}.u-cell.summary.total-magic::after{content:"";position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--g),transparent)}.u-val{font-family:var(--font-body);font-size:clamp(1.5rem,3vw,3rem);font-weight:900;line-height:1;color:var(--text-muted)}.u-cell.summary .u-val{color:var(--g);text-shadow:0 0 10px var(--g-glow)}.u-val.nonzero{color:var(--g);text-shadow:0 0 10px var(--g-glow)}.u-label{font-size:clamp(0.58rem,1.1vw,1.0rem);margin-top:3px;font-weight:700;color:var(--text-sub);letter-spacing:0.01em;text-align:center;line-height:1.25;white-space:normal;word-break:keep-all;font-family:var(--font-body);overflow:hidden;width:100%;padding:0 2px}.u-cell.summary .u-label{color:var(--text)}.u-cell.cost-slot{cursor:default}.u-cell.cost-slot.active{background:rgba(0,255,65,0.06);border-color:var(--g-border);box-shadow:0 0 8px rgba(0,255,65,0.1)}.u-cell.cost-slot .u-val{color:var(--text-muted)}.u-cell.cost-slot.active .u-val{color:var(--g);text-shadow:0 0 8px var(--g-glow)}.u-cell.cost-slot .u-label{color:var(--text-sub)}.u-cell[data-kind="coral"] .u-label{color:#FF6B6B}.u-cell[data-kind="aiur"]  .u-label{color:var(--grade-rare)}.u-cell[data-kind="zerus"] .u-label{color:var(--grade-legend)}.u-cell.summary.total-magic{background:rgba(135,206,235,0.10) !important;border-color:rgba(135,206,235,0.45) !important;box-shadow:inset 0 0 14px rgba(135,206,235,0.08) !important}.u-cell.summary.total-magic .u-val{color:#87CEEB;text-shadow:0 0 12px rgba(135,206,235,0.6)}.u-cell.summary.total-magic .u-label{color:#87CEEB;opacity:0.8}.codex-tabs{display:flex;flex-direction:row;gap:3px;background:rgba(0,0,0,0.4);padding:4px;border-radius:var(--radius);margin-bottom:8px;flex-shrink:0;overflow:hidden}.codex-tabs::-webkit-scrollbar{display:none}.tab-btn{background:none;border:1px solid transparent;color:var(--text-muted);font-family:var(--font-body);font-size:clamp(1rem,1.4vw,1.25rem);font-weight:700;padding:10px 4px;cursor:pointer;transition:all 0.2s;border-radius:2px;position:relative;letter-spacing:0.02em;flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}.tab-btn .tab-count{font-size:clamp(0.82rem,1vw,0.95rem);font-weight:500;color:var(--text-muted);opacity:0.6}.tab-btn:hover{color:var(--text);background:rgba(0,255,65,0.06)}.tab-btn.active{background:rgba(0,255,65,0.12);color:var(--g);border:1px solid var(--g-border)}.tab-btn.has-selection{border-color:var(--g);color:var(--g);box-shadow:0 0 8px rgba(0,255,65,0.35),inset 0 0 6px rgba(0,255,65,0.08)}.tab-btn.has-selection.active{background:rgba(0,255,65,0.18);box-shadow:0 0 12px rgba(0,255,65,0.5),inset 0 0 8px rgba(0,255,65,0.12)}.tab-sel-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--g);color:#000;font-size:0.82rem;font-weight:900;border-radius:8px;padding:0 4px;margin-left:4px;vertical-align:middle;line-height:1}.selected-area{margin-bottom:0;flex-shrink:0;display:none}.selected-area.has-items{display:block}.selected-area-header{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(0,255,65,0.08);border:1px solid var(--g-border);border-radius:2px 2px 0 0;font-size:1rem;font-weight:800;color:var(--g);letter-spacing:0.06em}.selected-area-header::before{content:"▶";font-size:0.6rem}.selected-items-list{border:1px solid var(--g-border);border-top:none;border-radius:0 0 2px 2px;background:rgba(0,0,0,0.5)}.btn-select-all{width:100%;padding:9px 0;background:rgba(0,0,0,0.4);border:1px solid #2a2a2a;border-radius:2px;color:var(--text-muted);font-family:var(--font-body);font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;margin-bottom:8px;display:block}.btn-select-all:hover{background:rgba(0,255,65,0.1);border-color:var(--g-border);color:var(--g)}.btn-select-all.is-all-selected{background:rgba(0,255,65,0.15);border-color:var(--g-border);color:var(--g)}.codex-item{margin-bottom:8px}.codex-item.selected .codex-node{border-color:var(--g-border);background:var(--g-faint)}.codex-node-row{display:flex;align-items:stretch;gap:0}.codex-node{flex:1;min-width:0;border-radius:var(--radius) 0 0 var(--radius) !important;border-right:none !important;flex-direction:column !important;align-items:flex-start !important;gap:6px !important;padding:10px 14px !important}.codex-node:hover{border-color:var(--g) !important}.codex-node .node-name{width:100%;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;font-size:1.15rem;font-weight:800}.codex-recipe-row{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;overflow:visible;width:100%}.codex-recipe-item{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0}.codex-recipe-row .node-ing{font-size:0.95rem;font-weight:700;color:#87CEEB;white-space:nowrap;flex-shrink:0}.codex-recipe-row .node-cond{font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#FFD700;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:2px;padding:1px 5px;white-space:nowrap;flex-shrink:0}.codex-recipe-row .node-sep{display:none}.codex-qty{display:flex;align-items:stretch;border:1px solid #252525;border-radius:0 var(--radius) var(--radius) 0;background:rgba(0,0,0,0.3);overflow:hidden;flex-shrink:0;width:140px}.codex-qty .qty-btn{flex:1;font-size:1.6rem;font-weight:900;background:transparent;border:none;color:var(--text-sub);cursor:pointer;transition:0.15s;display:flex;align-items:center;justify-content:center;touch-action:manipulation;min-height:52px}.codex-qty .qty-btn:hover{color:var(--g);background:rgba(0,255,65,0.14)}.codex-qty .qty-num{flex:2;text-align:center;font-family:var(--font-body);font-size:1.2rem;font-weight:900;color:var(--text-muted);border-left:1px solid #1c1c1c;border-right:1px solid #1c1c1c;display:flex;align-items:center;justify-content:center}.codex-item.selected .codex-qty .qty-num{color:var(--g)}.codex-item.selected .codex-qty{border-color:var(--g-border)}.codex-section-divider{display:flex;align-items:center;gap:8px;padding:6px 4px;margin:0;flex-shrink:0}.codex-section-divider-line{flex:1;height:1px;background:linear-gradient(90deg,var(--g-dim),transparent)}.codex-section-divider-label{font-size:0.9rem;color:var(--text-muted);font-weight:700;letter-spacing:0.06em;white-space:nowrap}.codex-section-divider{display:none}.selected-area.has-items ~ .codex-section-divider{display:flex}#tabContent{flex:1}.unit-card{display:grid;grid-template-columns:1fr 110px;align-items:stretch;gap:0;background:rgba(0,0,0,0.5);border:1px solid #161616;border-left:3px solid transparent;border-radius:var(--radius);margin-bottom:4px;cursor:pointer;transition:all 0.18s;overflow:hidden;min-height:54px}.unit-card:hover{background:#0f0f0f;border-color:#2a2a2a}.unit-card.active{border-left-color:var(--g);background:var(--g-faint);border-color:var(--g-border)}.uc-left{padding:7px 9px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px}.uc-name-row{display:flex;align-items:center;gap:4px;font-weight:800;font-size:0.9rem;flex-wrap:wrap;overflow:hidden}.uc-recipe{font-size:0.7rem;color:var(--text-sub);line-height:1.5;word-break:keep-all;white-space:normal}.uc-qty{border-left:1px solid #1c1c1c;background:rgba(0,0,0,0.25);display:flex;flex-direction:row;align-items:stretch;justify-content:stretch;gap:0;padding:0;min-width:0}.qty-btn{background:transparent;border:none;color:var(--text-sub);font-size:1.5rem;font-weight:900;flex:1;width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.15s;font-family:var(--font-body);padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.qty-btn:hover{color:var(--g);background:rgba(0,255,65,0.14)}.qty-btn:active{background:rgba(0,255,65,0.25)}.unit-card.active .qty-btn{color:var(--g-dim)}.unit-card.active .qty-btn:hover{color:var(--g)}.qty-num{font-family:var(--font-body);font-size:1.1rem;font-weight:900;color:var(--text-muted);min-width:22px;text-align:center;line-height:1;flex-shrink:0;border-left:1px solid #1c1c1c;border-right:1px solid #1c1c1c;padding:0 2px;display:flex;align-items:center;justify-content:center;align-self:stretch}.unit-card.active .qty-num{color:var(--g)}.uc-right{border-left:1px solid #1c1c1c;background:rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 4px;min-width:0}.uc-cost-badge{font-family:var(--font-body);font-size:0.72rem;color:var(--text-muted);font-weight:700;background:rgba(0,255,65,0.04);border:1px solid #252525;border-radius:2px;padding:2px 4px;white-space:nowrap;text-align:center;line-height:1.2}.unit-card.active .uc-cost-badge{color:var(--g);border-color:var(--g-border)}.uc-cost-badge.multi{color:#FFD700;border-color:rgba(255,215,0,0.35);background:rgba(255,215,0,0.06);font-size:0.68rem}.essence-label{font-size:0.6rem;color:var(--g);font-weight:800;background:rgba(0,255,65,0.1);border:1px solid var(--g-border);border-radius:2px;padding:1px 3px;white-space:nowrap;animation:ess-pulse 2s ease infinite}@keyframes ess-pulse{0%,100%{opacity:1}50%{opacity:0.5}}.gtag{font-family:var(--font-body);font-size:0.85rem;padding:1px 3px;border:1px solid currentColor;border-radius:2px;opacity:0.85;flex-shrink:0}.empty-hud{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:160px;color:var(--text-muted);text-align:center;font-family:var(--font-body);gap:6px}.empty-hud-tree-title{font-size:1.4rem;font-weight:900;color:var(--g);letter-spacing:0.04em;text-shadow:0 0 16px var(--g-glow);margin-bottom:8px;opacity:0.85}.empty-hud-icon{font-size:1.6rem;opacity:0.35}.empty-hud-msg{font-size:1rem;opacity:0.55;font-weight:700}.empty-hud-sub{font-size:0.82rem;opacity:0.3}.analysis-card{background:rgba(0,0,0,0.3);border:1px solid #1e1e1e;border-left:3px solid var(--g);padding:12px;margin-bottom:12px;border-radius:var(--radius)}.analysis-card h3{font-size:1.05rem;border-bottom:1px solid #222;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--font-body);font-weight:900}.card-title-btn{display:inline-flex;align-items:center;gap:2px;border-radius:2px;padding:2px 4px;transition:background 0.15s;user-select:none}.card-title-btn:hover{background:rgba(0,255,65,0.08)}.analysis-card[data-card-state="closed"] h3{border-bottom-color:transparent;margin-bottom:0;padding-bottom:6px}.analysis-card[data-card-state="closed"] .card-title-arrow{color:var(--text-muted) !important}.tree-ul{list-style:none;padding-left:22px;margin-top:6px;border-left:1px dashed #2a2a2a}.tree-ul.root-ul{border-left:none;padding-left:0}.tree-li{position:relative;margin-top:8px}.tree-li::before{content:"";position:absolute;top:16px;left:-22px;width:16px;height:1px;background:#2a2a2a}.root-ul > .tree-li::before{display:none}.tree-node-wrapper{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap}.node-btn{display:inline-flex;align-items:center;gap:0;background:#0c0c0c;border:1px solid #252525;border-radius:var(--radius);cursor:pointer;transition:all 0.18s;overflow:hidden;font-family:var(--font-body);min-height:42px}.node-btn:hover{border-color:var(--g)}.node-btn.has-children:hover{box-shadow:0 0 8px rgba(0,255,65,0.2)}.node-name{padding:7px 14px;font-size:1.05rem;font-weight:700;color:inherit;white-space:nowrap;border-right:1px solid #1e1e1e}.node-cond{padding:6px 10px;font-size:0.88rem;font-weight:700;color:#FFD700;background:rgba(255,215,0,0.07);border-right:1px solid rgba(255,215,0,0.2);white-space:nowrap;line-height:1.3;display:flex;align-items:center}.node-cnt{padding:6px 10px;font-size:0.92rem;font-weight:900;color:#34D399;white-space:nowrap;display:flex;align-items:center}.node-toggle{padding:6px 10px;font-size:0.82rem;color:var(--g);border-left:1px solid #1e1e1e;display:flex;align-items:center;background:rgba(0,255,65,0.03)}.node-btn.duplicate{opacity:0.4;cursor:default}.node-btn.duplicate:hover{border-color:#252525;box-shadow:none}.bullet-cost{font-size:0.95rem;padding:8px 14px;margin-top:6px;margin-left:0;border:1px solid rgba(0,255,65,0.18);border-left:3px solid var(--g-dim);background:rgba(0,255,65,0.06);border-radius:0 4px 4px 0;line-height:2.0;font-family:var(--font-body);display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;box-shadow:inset 0 0 12px rgba(0,255,65,0.03)}.bullet-cost .lbl-cost{color:var(--g);font-size:0.82rem;font-weight:800;margin-right:6px;white-space:nowrap;flex-shrink:0;letter-spacing:0.06em;border-right:1px solid var(--g-border);padding-right:8px}.bullet-cost .cost-unit-name{color:#a0dea0;font-weight:600;font-size:0.92rem}.bullet-cost .cost-unit-cnt{color:var(--g);font-weight:800;font-size:0.92rem;text-shadow:0 0 6px rgba(0,255,65,0.4)}.compat-badge{background:#0c0c0c;border:1px solid #252525;padding:5px 12px;font-size:0.88rem;font-weight:700;cursor:pointer;border-radius:var(--radius);transition:0.2s;font-family:var(--font-body)}.compat-badge:hover{border-color:var(--g);filter:brightness(1.3)}.tab-btn{display:inline-flex;align-items:center}.btn-small{background:transparent;color:var(--g);border:1px solid var(--g-border);border-radius:var(--radius);padding:4px 10px;font-size:0.8rem;font-family:var(--font-body);font-weight:700;cursor:pointer;transition:0.2s}.btn-small:hover{background:var(--g);color:#000}.no-select{user-select:none}@media (min-width:900px) and (pointer:fine){body{min-width:900px;overflow-x:auto}.main-layout{min-width:884px}}@media (orientation:portrait) and (min-width:600px) and (pointer:fine){.main-layout{grid-template-columns:1fr 1fr !important;grid-template-rows:60px 1fr 40vh !important;height:100vh;overflow-y:auto}.panel-title{grid-column:1 / 3 !important;grid-row:1 !important;position:sticky !important;top:0 !important;z-index:100;height:60px !important}.panel-codex{grid-column:1 !important;grid-row:2 !important}.panel-unified{grid-column:2 !important;grid-row:2 !important}.panel-tree{grid-column:1 / 3 !important;grid-row:3 !important}.unified-body{grid-template-rows:repeat(5,1fr)}}@media (max-width:899px) and (min-width:480px) and (pointer:coarse) and (orientation:portrait){body{min-width:unset !important;overflow-x:hidden !important}.main-layout{display:flex !important;flex-direction:column !important;height:auto !important;min-height:100svh;overflow-y:auto !important;overflow-x:hidden !important;padding:calc(var(--safe-top) + 6px) 6px calc(var(--safe-bot) + 16px) 6px !important;gap:6px !important}.panel-title{order:1;flex:none;height:60px !important;width:100% !important;position:sticky !important;top:0 !important;z-index:100}.panel-unified{order:2;flex:none;width:100% !important;height:auto !important}.panel-codex{order:3;flex:none;width:100% !important;height:auto !important}.panel-tree{order:4;flex:none;width:100% !important;height:auto !important;grid-column:unset !important;grid-row:unset !important}.unified-body{height:auto;grid-template-rows:repeat(5,60px)}.u-cell{min-height:52px}.u-val{font-size:clamp(1rem,3vw,1.4rem)}.u-label{font-size:clamp(0.58rem,1.6vw,0.72rem)}.codex-qty{width:110px}.codex-qty .qty-btn{width:auto;font-size:1.4rem;min-height:50px}.qty-btn{font-size:1.4rem;min-height:50px}}@media (max-width:479px) and (pointer:coarse) and (orientation:portrait){body{min-width:unset !important;overflow-x:hidden !important}.main-layout{display:flex !important;flex-direction:column !important;height:auto !important;min-height:100svh;overflow-y:auto !important;overflow-x:hidden !important;padding:calc(var(--safe-top) + 4px) 4px calc(var(--safe-bot) + 12px) 4px !important;gap:5px !important}.panel-title{order:1;flex:none;height:52px !important;width:100% !important;position:sticky !important;top:0 !important;z-index:100}.panel-unified{order:2;flex:none;width:100% !important}.panel-codex{order:3;flex:none;width:100% !important;grid-column:unset !important;grid-row:unset !important}.panel-tree{order:4;flex:none;width:100% !important;grid-column:unset !important;grid-row:unset !important}.unified-body{height:auto;grid-template-rows:repeat(5,52px)}.u-cell{min-height:44px}.u-val{font-size:clamp(0.9rem,4vw,1.2rem)}.u-label{font-size:clamp(0.5rem,2vw,0.65rem)}.codex-qty .qty-btn{font-size:1.3rem;min-height:46px}.qty-btn{font-size:1.3rem}.header-author-standalone{font-size:clamp(0.6rem,3vw,0.85rem)}.panel-title .header-title{font-size:clamp(0.7rem,4vw,1rem)}.panel-title .btn-header{font-size:clamp(0.65rem,3vw,0.85rem);padding:0 10px}.panel-title .site-icon{width:28px;height:28px}}@media (orientation:landscape) and (pointer:coarse){body{min-width:unset !important;overflow-x:hidden !important}.main-layout{display:grid !important;grid-template-columns:40fr 40fr 20fr !important;grid-template-rows:50px 1fr !important;height:100svh !important;overflow:hidden !important;padding:calc(var(--safe-top) + 4px) 4px calc(var(--safe-bot) + 4px) 4px !important;gap:4px !important}.panel-title{grid-column:1 / 3 !important;grid-row:1 !important;order:unset !important;height:auto !important;width:auto !important}.panel-codex{grid-column:1 !important;grid-row:2 !important;order:unset !important;height:100% !important;width:auto !important}.panel-unified{grid-column:2 !important;grid-row:2 !important;order:unset !important;height:100% !important;width:auto !important}.panel-tree{grid-column:3 !important;grid-row:1 / 3 !important;order:unset !important;height:100% !important;width:auto !important}.unified-body{grid-template-rows:repeat(5,1fr) !important;height:100%}.u-cell{min-height:0 !important}.u-val{font-size:clamp(0.8rem,2vw,1.2rem) !important}.u-label{font-size:clamp(0.48rem,1vw,0.65rem) !important}.panel-tree .panel-body{max-height:unset !important;overflow-y:auto}.panel-codex .codex-scroll-area{max-height:calc(100svh - 60px)}}</style>
 </head>
 <body oncontextmenu="return false">
 
@@ -1386,58 +87,46 @@ body {
 </div>
 
 <!-- ================================================================
-     ▣ SITE HEADER — 최상단 고정 헤더
-     ▸ 왼쪽: 아이콘 + 제목 + 제작자
-     ▸ 가운데: 빈공간
-     ▸ 오른쪽: [초기화] [사용방법]
-================================================================ -->
-<header class="site-header" id="siteHeader">
-    <div class="header-inner">
-        <!-- 아이콘 -->
-        <div class="site-icon" id="siteIcon">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g id="hex-rotate" style="transform-origin:22px 22px;">
-                    <polygon points="22,2 38,11 38,33 22,42 6,33 6,11"
-                        fill="none" stroke="#007a1e" stroke-width="1"/>
-                </g>
-                <g id="diamond-counter" style="transform-origin:22px 22px;">
-                    <polygon points="22,8 36,22 22,36 8,22"
-                        fill="none" stroke="#00FF41" stroke-width="1" opacity="0.5"/>
-                </g>
-                <circle cx="22" cy="22" r="5" fill="#00FF41" id="core-pulse"/>
-                <circle cx="22" cy="22" r="9" fill="none" stroke="#00FF41" stroke-width="0.5" id="ring1"/>
-                <circle cx="22" cy="22" r="14" fill="none" stroke="#007a1e" stroke-width="0.5" id="ring2"/>
-                <line x1="22" y1="2" x2="22" y2="10" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
-                <line x1="22" y1="34" x2="22" y2="42" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
-                <line x1="2" y1="22" x2="10" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
-                <line x1="34" y1="22" x2="42" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
-            </svg>
-        </div>
-
-        <!-- 제목 + 제작자 -->
-        <div class="header-brand">
-            <div class="header-title" id="headerTitle">개복디 넥서스</div>
-            <div class="header-author">
-                제작자 <span>회장</span> | 3-S2-1-2461127
-            </div>
-        </div>
-
-        <!-- 구분선 -->
-        <div class="header-divider"></div>
-
-        <!-- 버튼들 — 제목 바로 옆 -->
-        <div class="header-btns">
-            <button class="btn-header btn-reset" onclick="resetAll()">초기화</button>
-            <button class="btn-header" onclick="openHelpModal()">사용방법</button>
-        </div>
-    </div>
-</header>
-
-<!-- ================================================================
      ▣ MAIN LAYOUT — 3열 그리드
-     순서: 유닛도감(좌) | 계보트리(중) | 통합코스트(우)
+     순서: 유닛도감(좌) | 통합코스트(중) | 계보트리(우)
 ================================================================ -->
 <main class="main-layout" id="mainLayout">
+
+    <!-- ── 제목 패널 (중앙 상단) ── -->
+    <div class="panel-title">
+        <div class="header-inner">
+
+            <!-- 제작자 -->
+            <div class="header-author-standalone">제작자 <span>회장</span> | 3-S2-1-2461127</div>
+
+            <!-- 아이콘 (애니메이션 SVG) -->
+            <div class="site-icon" id="siteIcon">
+                <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="hex-rotate" style="transform-origin:22px 22px;">
+                        <polygon points="22,2 38,11 38,33 22,42 6,33 6,11" fill="none" stroke="#007a1e" stroke-width="1"/>
+                    </g>
+                    <g id="diamond-counter" style="transform-origin:22px 22px;">
+                        <polygon points="22,8 36,22 22,36 8,22" fill="none" stroke="#00FF41" stroke-width="1" opacity="0.5"/>
+                    </g>
+                    <circle cx="22" cy="22" r="5" fill="#00FF41" id="core-pulse"/>
+                    <circle cx="22" cy="22" r="9" fill="none" stroke="#00FF41" stroke-width="0.5" id="ring1"/>
+                    <circle cx="22" cy="22" r="14" fill="none" stroke="#007a1e" stroke-width="0.5" id="ring2"/>
+                    <line x1="22" y1="2" x2="22" y2="10" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                    <line x1="22" y1="34" x2="22" y2="42" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                    <line x1="2" y1="22" x2="10" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                    <line x1="34" y1="22" x2="42" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                </svg>
+            </div>
+
+            <!-- 메인 제목 -->
+            <div class="header-title" id="headerTitle">개복디 넥서스</div>
+
+            <!-- 버튼 -->
+            <div class="header-btns">
+                <button class="btn-header btn-reset" onclick="resetAll()">초기화</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ── 유닛 도감 (왼쪽) ── -->
     <div class="hud-panel panel-codex">
@@ -1445,26 +134,38 @@ body {
             <span class="ph-icon">DB</span>
             <span class="ph-title">유닛 도감 데이터베이스</span>
         </div>
-        <div class="panel-body">
-            <!-- 탭 버튼 -->
+        <div class="panel-body codex-body">
+            <!-- 탭 버튼 — 고정 영역 -->
             <div class="codex-tabs" id="codexTabs"></div>
-            <!-- 선택됨 영역 -->
-            <div class="selected-area" id="selectedArea">
-                <div class="selected-area-header">선택됨</div>
-                <div class="selected-items-list" id="selectedItemsList"></div>
+            <!-- 통합 스크롤 영역: 선택됨 + 구분선 + 도감목록 한 흐름으로 -->
+            <div class="codex-scroll-area">
+                <!-- 선택됨 영역 -->
+                <div class="selected-area" id="selectedArea">
+                    <div class="selected-area-header">선택됨</div>
+                    <div class="selected-items-list" id="selectedItemsList"></div>
+                </div>
+                <!-- 선택됨 ↔ 도감 구분선 -->
+                <div class="codex-section-divider" id="codexDivider">
+                    <div class="codex-section-divider-line"></div>
+                    <div class="codex-section-divider-label">도감 목록</div>
+                    <div class="codex-section-divider-line" style="background:linear-gradient(90deg,transparent,var(--g-dim));"></div>
+                </div>
+                <!-- 탭 내용 -->
+                <div id="tabContent"></div>
             </div>
-            <!-- 선택됨 ↔ 도감 구분선 (선택됨 있을 때만 표시) -->
-            <div class="codex-section-divider" id="codexDivider">
-                <div class="codex-section-divider-line"></div>
-                <div class="codex-section-divider-label">도감 목록</div>
-                <div class="codex-section-divider-line" style="background:linear-gradient(90deg,transparent,var(--g-dim));"></div>
-            </div>
-            <!-- 탭 내용 -->
-            <div id="tabContent"></div>
         </div>
     </div>
 
-    <!-- ── 계보 & 조합 트리 (가운데) ── -->
+    <!-- ── 통합 코스트 패널 (가운데) 5×5 ── -->
+    <div class="panel-unified">
+        <div class="unified-header">
+            <span class="ph-icon">COST</span>
+            <span class="ph-title">코스트 &amp; 정수 통합 매트릭스</span>
+        </div>
+        <div class="unified-body" id="unifiedBody"></div>
+    </div>
+
+    <!-- ── 계보 & 조합 트리 (오른쪽) ── -->
     <div class="hud-panel panel-tree">
         <div class="panel-header">
             <span class="ph-icon">TREE</span>
@@ -1480,137 +181,188 @@ body {
         </div>
     </div>
 
-    <!-- ── 통합 코스트 패널 (오른쪽) 5×5 ── -->
-    <div class="panel-unified">
-        <div class="unified-header">
-            <span class="ph-icon">COST</span>
-            <span class="ph-title">코스트 &amp; 정수 통합 매트릭스</span>
-        </div>
-        <!--
-            5×5 그리드 구성:
-            Row 1 (summary): 총매직코스트 / 총정수합산 / 코랄 / 아이어 / 제루스
-            Row 2~5 (cost-slot): 매직 코스트 유닛 20칸
-        -->
-        <div class="unified-body" id="unifiedBody">
-            <!-- Row 1: 요약 셀 5개 (JS에서 렌더) -->
-            <!-- Row 2~5: 매직코스트 셀 20개 (JS에서 렌더) -->
-        </div>
-    </div>
-
 </main>
 
-<!-- ================================================================
-     ▣ HELP MODAL — 사용방법 팝업
-================================================================ -->
-<div class="modal-backdrop" id="helpModal" onclick="closeHelpModal(event)">
-    <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-head">
-            <h2>개복디 넥서스 사용 가이드</h2>
-            <button class="btn-close" onclick="closeHelpModal()">&times;</button>
-        </div>
-        <div class="modal-body-scroll">
-
-            <div class="guide-section">
-                <h3>화면 구성</h3>
-                <ul>
-                    <li>상단 <span class="hl">헤더</span>에 사이트 아이콘 · 제목 · 제작자 정보가 표시됩니다. 오른쪽 <span class="hl">[초기화]</span>로 전체 리셋, <span class="hl">[사용방법]</span>으로 이 가이드를 열 수 있습니다.</li>
-                    <li>하단은 3개 패널로 구성됩니다 — <span class="hl">유닛 도감</span>(왼쪽) · <span class="hl">계보 &amp; 조합 트리</span>(가운데) · <span class="hl">코스트 &amp; 정수 매트릭스</span>(오른쪽).</li>
-                    <li>모바일 세로: 매트릭스 → 도감 → 계보 순으로 세로 배치. 가로 회전 시 PC 3열 레이아웃으로 자동 전환됩니다.</li>
-                </ul>
-            </div>
-
-            <div class="guide-section">
-                <h3>유닛 도감 — 종족 탭</h3>
-                <ul>
-                    <li>종족 탭은 <span class="hl">3×2 그리드</span>(테바·테메·토바 / 토메·저그중립·혼종)로 배치됩니다. 각 탭 아이콘은 종족별로 구분됩니다.</li>
-                    <li>탭에 선택된 유닛이 있으면 <span class="hl">초록 테두리 + 선택 수량 뱃지</span>로 강조 표시됩니다.</li>
-                    <li>목록은 <span class="hl">레전드 · 히든 · 슈퍼히든</span> 등급만 표시되며, 총 매직코스트 높은 순으로 자동 정렬됩니다.</li>
-                </ul>
-            </div>
-
-            <div class="guide-section">
-                <h3>유닛 도감 — 카드 선택 &amp; 수량</h3>
-                <ul>
-                    <li>각 카드는 <span class="hl">위: 등급태그 + 유닛명</span> / <span class="hl">아래: 조합조건(재료명·조건·수량 가로 나열)</span> 2줄 구조입니다.</li>
-                    <li>카드를 <span class="hl">클릭</span>하면 선택되어 도감 상단 <span class="hl">[선택됨]</span> 영역으로 이동합니다. 다시 클릭하면 해제되어 목록으로 복귀합니다.</li>
-                    <li>카드 오른쪽 <span class="hl">[−] 숫자 [+]</span>로 제작 수량을 1~8 사이에서 조절합니다. 여러 유닛 선택 시 코스트가 <span class="hl">자동 합산</span>됩니다.</li>
-                    <li>오늘 정수를 이미 확보한 유닛은 유닛명 옆에 <span class="hl">[정수확보]</span> 배지가 표시됩니다.</li>
-                </ul>
-            </div>
-
-            <div class="guide-section">
-                <h3>계보 &amp; 조합 트리</h3>
-                <ul>
-                    <li>유닛을 선택하면 계보 트리가 자동 표시됩니다. 기본 상태는 <span class="hl">1단계 직속 재료</span>만 펼쳐지며, 비용은 최하단에 표시됩니다.</li>
-                    <li>각 재료 노드는 <span class="hl">유닛명</span> · <span class="hl" style="color:#FFD700;">조건(노란색)</span> · <span class="hl" style="color:#34D399;">수량(초록색)</span> · <span class="hl">▶</span> 가 하나의 버튼으로 통합됩니다. 클릭하면 하위 재료가 <span class="hl">1단계씩</span> 펼쳐집니다.</li>
-                    <li>카드 <span class="hl">유닛명 제목</span>을 클릭하면 전체 접기 ↔ 1단계 펼치기를 토글합니다.</li>
-                    <li><span class="hl">[모두 펼치기]</span> 버튼으로 전체 계보를 한번에 펼칩니다. 다시 클릭하면 1단계 상태로 복귀합니다.</li>
-                    <li>단일 유닛 선택 시 해당 유닛을 재료로 쓰는 <span class="hl">상위 조합 유닛</span> 목록이 트리 위에 추가 표시됩니다.</li>
-                </ul>
-            </div>
-
-            <div class="guide-section">
-                <h3>코스트 &amp; 정수 통합 매트릭스 (5×5)</h3>
-                <ul>
-                    <li><span class="hl">1행</span>: 총 매직코스트 · 총 정수합산 · <span class="hl" style="color:#FF6B6B;">코랄</span>(테바·테메) · <span class="hl" style="color:var(--grade-rare);">아이어</span>(토바·토메) · <span class="hl" style="color:var(--grade-legend);">제루스</span>(저그중립) 정수를 한눈에 표시합니다.</li>
-                    <li><span class="hl">2~5행 (20칸)</span>: 선택 유닛 제작에 필요한 기초 매직 유닛 수를 역산해 표시합니다. 값이 있는 칸은 초록색으로 활성화됩니다.</li>
-                    <li>혼종 유닛은 코랄·아이어·제루스 세 종족 정수에 <span class="hl">모두 중복</span> 집계됩니다.</li>
-                </ul>
-            </div>
-
-            <div class="guide-section">
-                <h3>등급 색상 안내</h3>
-                <ul>
-                    <li>
-                        <span class="hl" style="color:#87CEEB;">■ 매직</span> &nbsp;
-                        <span class="hl" style="color:#FBBF24;">■ 레어</span> &nbsp;
-                        <span class="hl" style="color:#FB923C;">■ 에픽</span> &nbsp;
-                        <span class="hl" style="color:#EF4444;">■ 유니크</span> &nbsp;
-                        <span class="hl" style="color:#EC4899;">■ 헬</span> &nbsp;
-                        <span class="hl" style="color:#A78BFA;">■ 레전드</span> &nbsp;
-                        <span class="hl" style="color:#34D399;">■ 히든</span> &nbsp;
-                        <span class="hl" style="color:#FFD700;">■ 슈퍼히든</span>
-                    </li>
-                    <li>도감에는 <span class="hl">레전드 · 히든 · 슈퍼히든</span>만 표시됩니다. 매직~헬은 조합 재료로만 등장합니다.</li>
-                </ul>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ================================================================
-     ▣ JAVASCRIPT 영역
-     순서: 상태관리 → 코스트파싱 → UI업데이트 → 도감탭 → 매직대시보드 → 모달 → 인트로 → INIT → [섹션15: 설정+유닛DB]
-================================================================ -->
 <script>
-/* 도감 탭 카테고리 목록 */
-const TAB_CATEGORIES = [
-    {key:"테바",    label:"테바",    icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><rect x="2" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><rect x="10" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><rect x="2" y="10" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="13" cy="13" r="3" stroke="currentColor" stroke-width="1.4" fill="none"/><line x1="9" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.4"/></svg>`},
-    {key:"테메",    label:"테메",    icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,1 17,5 17,13 9,17 1,13 1,5" stroke="currentColor" stroke-width="1.4" fill="none"/><line x1="9" y1="1" x2="9" y2="17" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1" opacity="0.5"/></svg>`},
-    {key:"토바",    label:"토바",    icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4" fill="none"/><polygon points="9,4 13,12 5,12" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>`},
-    {key:"토메",    label:"토메",    icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,2 16,6 16,12 9,16 2,12 2,6" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>`},
-    {key:"저그중립", label:"저그중립", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><path d="M9 2 C4 2 2 6 2 9 C2 14 6 16 9 16 C12 16 16 14 16 9 C16 6 14 2 9 2Z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M6 7 Q9 4 12 7 Q14 10 12 13 Q9 15 6 13 Q4 10 6 7Z" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/><circle cx="9" cy="9" r="1.5" fill="currentColor" opacity="0.8"/></svg>`},
-    {key:"혼종",    label:"혼종",    icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,1 17,9 9,17 1,9" stroke="currentColor" stroke-width="1.4" fill="none"/><polygon points="9,4 14,9 9,14 4,9" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/><line x1="9" y1="1" x2="9" y2="17" stroke="currentColor" stroke-width="0.8" opacity="0.35"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="0.8" opacity="0.35"/></svg>`}
+/* ================================================================
+   ▣ RAW_UNIT_DATABASE — 신규 유닛을 이곳에 추가하세요.
+   양식: ["유닛이름", "등급", "종족", "조합식", "기초코스트"]
+   * 조합식과 기초코스트가 없는 매직 등급은 3개만 작성 가능합니다.
+================================================================ */
+const RAW_UNIT_DATABASE = [
+  // ─── 테란 바이오닉 (테바) ───
+  ["전쟁광","매직","테바"],
+  ["저격수","매직","테바"],
+  ["망치경호대","매직","테바"],
+  ["죽음의머리","레어","테바","전쟁광[1]+망치경호대[1]","전쟁광[1],망치경호대[1]"],
+  ["악령","레어","테바","저격수[1]+망치경호대[1]","저격수[1],망치경호대[1]"],
+  ["짐레이너","에픽","테바","죽음의머리[1]+악령[1]","전쟁광[1],저격수[1],망치경호대[2]"],
+  ["스투코프","유니크","테바","짐레이너[1]+케리건[1]","전쟁광[1],저격수[1],망치경호대[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+  ["노바","헬","테바","스투코프[2]+혼종파멸자[1]","전쟁광[3],저격수[3],망치경호대[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"],
+  ["특공대레이너","레전드","테바","노바[1]+워필드장군[1]","전쟁광[4],저격수[8],망치경호대[12],암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"],
+  ["가브리엘토시","히든","테바","악령[2]+망치경호대[3]","저격수[2],망치경호대[5]"],
+  ["광부","히든","테바","도우미(500킬↑)[1]+타우렌화장실[1]","전쟁광[4],암흑불멸자[4],도우미[1]"],
+  ["로리스완","히든","테바","자치령불곰[2]+낮까마귀[1]+자동포탑[1]","전쟁광[8],망치경호대[6],낮까마귀[1],자동포탑[5]"],
+  ["마일스블레이즈루이스","히든","테바","프로메테우스중대(X,90%↑)+자치령불곰[2]+빨정관(10킬이상)[1]","암흑집정관[4],전쟁광[8],망치경호대[6]저격수[4],망치경호대[10],스파르타중대[4]"],
+  ["멀록해병","히든","테바","죽음의머리[3]+라바사우르스(잠복)[2]","전쟁광[3],망치경호대[3],원시바퀴[2],원시히드라리스크[2]"],
+  ["워필드장군","히든","테바","스투코프[1]+악령[4]","전쟁광[1],저격수[5],망치경호대[6],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+  ["이곤스텟먼","히든","테바","멀록해병[1]+타우렌화장실[1]","전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"],
+  ["자치령불곰","히든","테바","타우렌우주해병[2]+망치경호대[3]","전쟁광[4],망치경호대[3]"],
+  ["타우렌우주해병","히든","테바","전쟁광(SS↑)[2]","전쟁광[2]"],
+  ["타우렌화장실","히든","테바","타우렌우주해병[2]+말살자[1]","전쟁광[4],암흑불멸자[4]"],
+  ["타이커스핀들레이","히든","테바","로리스완(X↑)[1]+이곤스텟먼(X↑)[1]","전쟁광[15],망치경호대[9],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2],자동포탑[5]"],
+  ["프로메테우스중대","히든","테바","가브리엘토시(SSS↑)[2]+스파르타중대[4]","저격수[4],망치경호대[10],스파르타중대[4]"],
+  ["비밀작전노바","슈퍼히든","테바","특공대레이너(SXD,300%↑,300킬↑)[1]+타이커스핀들레이(SXD,300%↑,300킬↑)[1]+오메가리스크(X↑,150%↑)[2]","전쟁광[19],저격수[8],망치경호대[21],암흑광전사[5],암흑고위기사[5],암흑집정관[10],원시바퀴[15],변종가시지옥[13],원시히드라리스크[28],자동포탑[5]"],
+
+  // ─── 테란 메카닉 (테메) ───
+  ["스파르타중대","매직","테메"],
+  ["코브라","매직","테메"],
+  ["공성파괴단","매직","테메"],
+  ["검은망치","레어","테메","스파르타중대[1]+공성파괴단[1]","스파르타중대[1],공성파괴단[1]"],
+  ["A.R.E.S","레어","테메","코브라[1]+공성파괴단[1]","코브라[1],공성파괴단[1]"],
+  ["대천사","에픽","테메","검은망치[1]+A.R.E.S[1]","코브라[1],스파르타중대[1],공성파괴단[2]"],
+  ["오딘","유니크","테메","대천사[2]","코브라[2],스파르타중대[2],공성파괴단[4]"],
+  ["히페리온","헬","테메","오딘[2]+공허포격기[1]","코브라[5],스파르타중대[5],공성파괴단[10],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["고르곤전투순양함","레전드","테메","히페리온[1]+과학선[1]","코브라[11],스파르타중대[7],공성파괴단[18],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["과학선","히든","테메","오딘[1]+A.R.E.S[4]","코브라[6],스파르타중대[2],공성파괴단[8]"],
+  ["낮까마귀","히든","테메","땅거미지뢰[2]+투견[3]+통기레쓰[1]","시체매-지뢰매설[24],코브라[3],스파르타중대[6],암흑광전사[2]"],
+  ["대천사전투기","히든","테메","대천사(SSS↑)[4]","코브라[4],스파르타중대[4],공성파괴단[8]"],
+  ["드라켄레이저천공기","히든","테메","공성파괴단[3]+A.R.E.S[2]","코브라[2],공성파괴단[5]"],
+  ["땅거미지뢰","히든","테메","거미지뢰(시체매로매설)[12]","시체매-지뢰매설[12]"],
+  ["아우구스트그라드의자랑","히든","테메","고르곤전투순양함(남은강화횟수0,1000킬)[1]+검은망치(SSS)[4]","코브라[11],스파르타중대[11],공성파괴단[22],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["제우스폭격기","히든","테메","해적주력함(Lv11)[1]+폭격기(Lv11)[1]+메시브디제스터(스킬사용)[1]","스파르타중대[21],코브라[22],공성파괴단[34],암흑광전사[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2],시체매-지뢰매설[24],메시브디제스터[1]"],
+  ["창공의분노","히든","테메","대천사전투기(한계돌파3↑,500킬↑)[1]+분노수호자(X↑)[1]","코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[2],암흑추적자[2],암흑불멸자[4]"],
+  ["통기레쓰","히든","테메","코브라[3]+암흑광전사[2]","코브라[3],암흑광전사[2]"],
+  ["투견","히든","테메","스파르타중대(SS↑)[2]","스파르타중대[2]"],
+  ["폭격기","히든","테메","낮까마귀(X↑)[1]+과학선(X↑)[1]","시체매-지뢰매설[24],코브라[9],스파르타중대[8],공성파괴단[8],암흑광전사[2]"],
+  ["핵의원천","히든","테메","타우렌화장실[1]+통기레쓰[2]+빨정관[1]","전쟁광[4],코브라[6],암흑광전사[4],암흑집정관[4],암흑불멸자[4]"],
+  ["해적주력함","히든","테메","대천사전투기[2]+히페리온(X↑,90%↑)[1]","코브라[13],스파르타중대[13],공성파괴단[26],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["테라트론","슈퍼히든","테메","고르곤전투순양함(SXD,300%↑,300킬↑)[1]+해적주력함(SXD,300%↑,300킬↑)[1]+로리스완(XD↑)[2]","전쟁광[16],망치경호대[12],코브라[24],스파르타중대[20],공성파괴단[44],암흑파수기[2],암흑추적자[2],암흑불멸자[4],자동포탑[10]"],
+
+  // ─── 프로토스 바이오닉 (토바) ───
+  ["암흑광전사","매직","토바"],
+  ["암흑고위기사","매직","토바"],
+  ["암흑집정관","매직","토바"],
+  ["광전사석상","레어","토바","암흑광전사[1]+암흑집정관[1]","암흑광전사[1],암흑집정관[1]"],
+  ["정화자사도","레어","토바","암흑고위기사[1]+암흑집정관[1]","암흑고위기사[1],암흑집정관[1]"],
+  ["제라툴","에픽","토바","광전사석상[1]+정화자사도[1]","암흑광전사[1],암흑고위기사[1],암흑집정관[2]"],
+  ["혼종파멸자","유니크","토바","제라툴[1]+짐레이너[1]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[1],암흑집정관[2]"],
+  ["보라준","헬","토바","혼종파멸자[2]+혼종약탈자[1]","전쟁광[3],저격수[3],망치경호대[6],암흑광전사[3],암흑고위기사[3],암흑집정관[6]"],
+  ["아르타니스","레전드","토바","보라준[1]+테사다르[1]","전쟁광[3],저격수[3],망치경호대[6],암흑광전사[4],암흑고위기사[8],암흑집정관[12],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+  ["라사라","히든","토바","빨정관[1]+광전사석상[3]","암흑광전사[3],암흑집정관[7]"],
+  ["말라쉬","히든","토바","알라라크(XD↑,200%↑)[1]+드라켄레이저천공기(알라라크죽이기)[1]","전쟁광[1],저격수[1],망치경호대[2],코브라[2],공성파괴단[5],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"],
+  ["백인대장","히든","토바","암흑기사(SSS)[2]","암흑광전사[2],암흑고위기사[2]"],
+  ["빨정관","히든","토바","암흑집정관[4]","암흑집정관[4]"],
+  ["승천자","히든","토바","파수병[2]+광전사석상[2]","암흑광전사[6],암흑고위기사[4],암흑집정관[2]"],
+  ["알라라크","히든","토바","피의사냥꾼[2]+혼종파멸자(X↑)[1]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"],
+  ["암흑기사","히든","토바","암흑고위기사(SS↑)[1]+암흑광전사(SS↑)[1]","암흑고위기사[1],암흑광전사[1]"],
+  ["카락스","히든","토바","승천자[2]+혼종파멸자(X↑)[1]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[13],암흑고위기사[9],암흑집정관[6]"],
+  ["탈란다르","히든","토바","카락스(X↑,90%↑)[1]+알라라크(X↑,90%↑)[1]","전쟁광[2],저격수[2],망치경호대[4],암흑광전사[22],암흑고위기사[22],암흑집정관[12]"],
+  ["테사다르","히든","토바","혼종파멸자[1]+정화자사도[4]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[5],암흑집정관[6]"],
+  ["파수병","히든","토바","암흑기사(SS)[2]","암흑광전사[2],암흑고위기사[2]"],
+  ["피의사냥꾼","히든","토바","백인대장[2]+정화자사도[2]","암흑광전사[4],암흑고위기사[6],암흑집정관[2]"],
+  ["아몬","슈퍼히든","토바","탈란다르(SXD,300%↑,300킬↑)[1]+아르타니스(SXD,300%↑,300킬↑)[1]+탈다림폭풍함(XD↑)[2]","전쟁광[5],저격수[5],망치경호대[10],암흑광전사[26],암흑고위기사[30],암흑집정관[40],암흑파수기[8],암흑불멸자[20],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+
+  // ─── 프로토스 메카닉 (토메) ───
+  ["암흑파수기","매직","토메"],
+  ["암흑추적자","매직","토메"],
+  ["암흑불멸자","매직","토메"],
+  ["선동자","레어","토메","암흑추적자[1]+암흑불멸자[1]","암흑추적자[1],암흑불멸자[1]"],
+  ["교란기","레어","토메","암흑파수기[1]+암흑불멸자[1]","암흑파수기[1],암흑불멸자[1]"],
+  ["거신","에픽","토메","교란기[1]+선동자[1]","암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["공허포격기","유니크","토메","대천사[1]+거신[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"],
+  ["분노수호자","유니크","토메","거신[2]","암흑파수기[2],암흑추적자[2],암흑불멸자[4]"],
+  ["공허의구도자","헬","토메","분노수호자[2]+공허포격기[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[5],암흑추적자[5],암흑불멸자[10]"],
+  ["셀렌디스","레전드","토메","공허의구도자[1]+정화자거신[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[11],암흑불멸자[18]"],
+  ["동력기","히든","토메","암흑파수기(SS↑)[2]","암흑파수기[2]"],
+  ["말살자","히든","토메","암흑불멸자[4]","암흑불멸자[4]"],
+  ["모선핵","히든","토메","차원분광기[1]+공허포격기[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[3],암흑추적자[1],암흑불멸자[6]"],
+  ["모한다르","히든","토메","정화자거신(X↑)[1]+공허포격기[4]","코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"],
+  ["정화모선","히든","토메","분노수호자[2]+모선핵[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[5],암흑불멸자[14]"],
+  ["정화자감시자","히든","토메","정화모선(Lv11,남은강화횟수0회,스킬사용)[3]","코브라[3],스파르타중대[3],공성파괴단[6],암흑파수기[21],암흑추적자[15],암흑불멸자[42]"],
+  ["정화자거신","히든","토메","분노수호자[1]+선동자[4]","암흑파수기[2],암흑추적자[6],암흑불멸자[8]"],
+  ["차원분광기","히든","토메","말살자[1]+동력기[1]","암흑파수기[2],암흑불멸자[4]"],
+  ["케이다린초석","히든","토메","선동자(SSS↑)[9]","암흑추적자[9],암흑불멸자[9]"],
+  ["탈다림모선","히든","토메","정화모선(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[5],암흑불멸자[24]"],
+  ["탈다림폭풍함","히든","토메","폭풍함[2]+빨정관[2]","암흑집정관[8],암흑파수기[4],암흑불멸자[10]"],
+  ["폭풍함","히든","토메","교란기[2]+암흑불멸자[3]","암흑파수기[2],암흑불멸자[5]"],
+  ["하늘군주","히든","토메","셀렌디스(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]","코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[11],암흑불멸자[28]"],
+  ["아둔의창","슈퍼히든","토메","셀렌디스(SXD,300%↑,300킬↑)[1]+탈다림모선(SXD,300%↑,300킬↑)[1]+카락스(X↑,150%↑)[2]","전쟁광[2],저격수[2],망치경호대[4],코브라[2],스파르타중대[2],공성파괴단[4],암흑광전사[26],암흑고위기사[18],암흑집정관[20],암흑파수기[18],암흑추적자[16],암흑불멸자[42]"],
+
+  // ─── 저그 & 중립 (저그중립) ───
+  ["원시바퀴","매직","저그중립"],
+  ["변종가시지옥","매직","저그중립"],
+  ["원시히드라리스크","매직","저그중립"],
+  ["브루탈리스크","레어","저그중립","변종가시지옥[1]+원시히드라리스크[1]","변종가시지옥[1],원시히드라리스크[1]"],
+  ["라바사우르스","레어","저그중립","원시바퀴[1]+원시히드라리스크[1]","원시바퀴[1],원시히드라리스크[1]"],
+  ["케리건","에픽","저그중립","브루탈리스크[1]+라바사우르스[1]","원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+  ["혼종약탈자","유니크","저그중립","케리건[1]+제라툴[1]","암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"],
+  ["거대괴수","헬","저그중립","혼종약탈자[2]+스투코프[1]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"],
+  ["아토실로프","헬","저그중립","우르사돈[암][2]","우르사돈[암][2]"],
+  ["테이스틀로프","헬","저그중립","우르사돈[수][2]","우르사돈[수][2]"],
+  ["원시케리건","레전드","저그중립","거대괴수[1]+크레이스[1]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[3],암흑고위기사[3],암흑집정관[6],원시바퀴[4],변종가시지옥[8],원시히드라리스크[12]"],
+  ["고름바퀴","히든","저그중립","원시바퀴[3]+암흑추적자[2]","원시바퀴[3],암흑추적자[2]"],
+  ["군단숙주","히든","저그중립","변종가시지옥(SS↑)[2]","변종가시지옥[2]"],
+  ["데하카","히든","저그중립","데하카고치[1]+퀸(SXD)[1]","전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[3],변종가시지옥[4],원시히드라리스크[3]"],
+  ["데하카고치","히든","저그중립","데하카의오른팔[1]+이곤스텟먼(SXD)[1]","전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"],
+  ["데하카의오른팔","히든","저그중립","100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]","없음"],
+  ["땅굴파괴자","히든","저그중립","아토실로프(X↑,200%↑,Lv7)[4]","우르사돈[암][8]"],
+  ["무리군주","히든","저그중립","퀸[2]+크레이스[1]","암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"],
+  ["살모사","히든","저그중립","퀸[1]+일벌레(SS↑)[3]","원시바퀴[2],변종가시지옥[4],원시히드라리스크[3]"],
+  ["수호군주","히든","저그중립","살모사(X↑)[1]+군단숙주(잠복)[2]","원시바퀴[2],변종가시지옥[8],원시히드라리스크[3]"],
+  ["아포칼리스크","히든","저그중립","오메가리스크(X↑,90%↑,100킬↑)[2]+오딘(10킬↑)[1]","스파르타중대[2],코브라[2],공성파괴단[4],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[10],변종가시지옥[10],원시히드라리스크[20]"],
+  ["알렉산더","히든","저그중립","포식귀[1]+수호군주[1]+히페리온(풀강화)[1]+스투코프(SXD)[1]","전쟁광[1],저격수[1],망치경호대[2],스파르타중대[5],코브라[5],공성파괴단[10],암흑파수기[1],암흑추적자[3],암흑불멸자[2],원시바퀴[8],변종가시지옥[13],원시히드라리스크[8]"],
+  ["오메가리스크","히든","저그중립","혼종약탈자[2]+케리건[3]","암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[5],변종가시지옥[5],원시히드라리스크[10]"],
+  ["일벌레","히든","저그중립","원시바퀴(잠복)[1]+원시히드라리스크(잠복)[2]","원시바퀴[1],원시히드라리스크[2]"],
+  ["크레이스","히든","저그중립","혼종약탈자[1]+브루탈리스크[4]","암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[5],원시히드라리스크[6]"],
+  ["토라스크","히든","저그중립","오메가리스크(X↑,90%↑)[1]+고름바퀴[2]","암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10]"],
+  ["포식귀","히든","저그중립","살모사[1]+고름바퀴(X↑)[1]","암흑추적자[2],원시바퀴[5],변종가시지옥[4],원시히드라리스크[3]"],
+  ["포자주둥이","히든","저그중립","일벌레(미니성큰스킬사용,히든성소배치)SSS↑)[12]","원시바퀴[8],원시히드라리스크[4]"],
+  ["퀸","히든","저그중립","군단숙주[2]+라바사우르스[1]","원시바퀴[1],변종가시지옥[4],원시히드라리스크[1]"],
+  ["하이브리드로프","히든","저그중립","아토실로프(Lv7)[1]+테이스틀로프(Lv7)[1]","우르사돈[암][2],우르사돈[수][2]"],
+  ["불새케리건","슈퍼히든","저그중립","원시케리건(SXD,300%↑,300킬↑)[1]+토라스크(SXD,300%↑,300킬↑)[1]+낮까마귀(X↑,150%↑)[2]","시체매-지뢰매설[48],전쟁광[1],저격수[1],망치경호대[2],코브라[6],스파르타중대[12],암흑광전사[9],암흑고위기사[5],암흑집정관[10],암흑추적자[4],원시바퀴[15],변종가시지옥[13],원시히드라리스크[22]"],
+  ["초월체","슈퍼히든","저그중립","하이브리드로프(SXD↑,300%↑,Lv7)[2]+테사다르(XD↑)[1]+크레이스(XD↑)[1]+과학선(XD↑)[1]+정화자거신(XD↑)[1]+워필드장군(XD↑)[1]","전쟁광[2],저격수[6],망치경호대[8],코브라[6],스파르타중대[2],공성파괴단[8],암흑광전사[2],암흑고위기사[6],암흑집정관[8],암흑파수기[2],암흑추적자[6],암흑불멸자[8],원시바퀴[2],변종가시지옥[6],원시히드라리스크[8],우르사돈[암][4],우르사돈[수][4]"],
+
+  // ─── 혼종 (혼종) ───
+  ["공허분쇄자","히든","혼종","혼종네메시스(XD↑,200%↑,11Lv)[1]+파멸자(XD↑,200%↑,11Lv)[1]","전쟁광[2],저격수[2],망치경호대[4],암흑광전사[3],암흑고위기사[11],암흑집정관[14],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"],
+  ["사라케리건","히든","혼종","노바(X↑,90%↑)[1]+원시케리건(X↑,90%↑)[1]","전쟁광[4],저격수[4],망치경호대[8],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[6],변종가시지옥[10],원시히드라리스크[16]"],
+  ["아몬의젤나가피조물","히든","혼종","젤나가피조물(RXD)[1]+파멸자(XD↑)[1]","시체매-지뢰매설[8],전쟁광[1],저격수[1],망치경호대[2],코브라[17],스파르타중대[16],공성파괴단[24],암흑광전사[15],암흑고위기사[9],암흑집정관[6],암흑파수기[12],암흑추적자[20],암흑불멸자[32]"],
+  ["유물","히든","혼종","유물조각[5]","유물조각[5]"],
+  ["젤나가피조물","히든","혼종","카락스(XD↑)[1]+모한다르(X↑)[1]","전쟁광[1],저격수[1],망치경호대[2],코브라[4],스파르타중대[4],공성파괴단[8],암흑광전사[13],암흑고위기사[9],암흑집정관[6],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"],
+  ["티라노조르","히든","혼종","토라스크(XD↑)[1]+테이스틀로프(X↑)[2]","암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10],우르사돈[수][4]"],
+  ["파멸자","히든","혼종","모한다르(X↑,90%↑)[1]+폭격기(X↑,90%↑)[1]","시체매-지뢰매설[24],코브라[13],스파르타중대[12],공성파괴단[16],암흑광전사[2],암흑파수기[6],암흑추적자[10],암흑불멸자[14]"],
+  ["혼종네메시스","히든","혼종","무리군주(X↑,90%↑)[1]+테사다르(X↑)[2]","전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[6],암흑집정관[8],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"],
+  ["혼종뫼비우스","히든","혼종","해적주력함(X↑,한계돌파3↑)[1]+탈다림모선(X↑,한계돌파3↑)[1]+갓오브타임(스킬사용)[1]","코브라[14],스파르타중대[14],공성파괴단[28],암흑집정관[8],암흑파수기[12],암흑추적자[6],암흑불멸자[26],갓오브타임[1]"],
+  ["혼종베히모스","히든","혼종","알라라크(X↑,90%↑)[1]+워필드장군(X↑)[2]","전쟁광[3],저격수[11],망치경호대[14],암흑고위기사[13],암흑광전사[9],암흑집정관[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"],
+  ["혼종종언자","히든","혼종","사라케리건(XD↑,200%↑,Lv11)[1]+혼종베히모스(XD↑,200%↑,Lv11)[1]","전쟁광[7],저격수[15],망치경호대[22],암흑광전사[13],암흑고위기사[17],암흑집정관[14],원시바퀴[8],변종가시지옥[12],원시히드라리스크[20]"],
+  ["나루드","슈퍼히든","혼종","공허분쇄자(SXD,300%↑,300~999kill)[2]+사라케리건(X↑,150%↑)[2]","전쟁광[12],저격수[12],망치경호대[24],코브라[26],스파르타중대[24],공성파괴단[32],암흑광전사[18],암흑고위기사[30],암흑집정관[44],암흑파수기[12],암흑추적자[20],암흑불멸자[32],원시바퀴[18],변종가시지옥[46],원시히드라리스크[48],시체매-지뢰매설[48]"]
 ];
 
-/* 등급 약자 표기 */
+/* 위 배열 데이터를 기반으로 시스템용 객체 배열로 자동 변환 */
+const unitDatabase = RAW_UNIT_DATABASE.map(row => ({
+    name: row[0],
+    grade: row[1],
+    category: row[2],
+    recipe: row[3] || "",
+    cost: row[4] || ""
+}));
+
+const TAB_CATEGORIES = [
+{key:"테바", label:"테바", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><rect x="2" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><rect x="10" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><rect x="2" y="10" width="6" height="6" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="13" cy="13" r="3" stroke="currentColor" stroke-width="1.4" fill="none"/><line x1="9" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.4"/></svg>`},
+{key:"테메", label:"테메", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,1 17,5 17,13 9,17 1,13 1,5" stroke="currentColor" stroke-width="1.4" fill="none"/><line x1="9" y1="1" x2="9" y2="17" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1" opacity="0.5"/></svg>`},
+{key:"토바", label:"토바", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4" fill="none"/><polygon points="9,4 13,12 5,12" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>`},
+{key:"토메", label:"토메", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,2 16,6 16,12 9,16 2,12 2,6" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>`},
+{key:"저그중립", label:"저그중립", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><path d="M9 2 C4 2 2 6 2 9 C2 14 6 16 9 16 C12 16 16 14 16 9 C16 6 14 2 9 2Z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M6 7 Q9 4 12 7 Q14 10 12 13 Q9 15 6 13 Q4 10 6 7Z" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/><circle cx="9" cy="9" r="1.5" fill="currentColor" opacity="0.8"/></svg>`},
+{key:"혼종", label:"혼종", icon:`<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;flex-shrink:0;"><polygon points="9,1 17,9 9,17 1,9" stroke="currentColor" stroke-width="1.4" fill="none"/><polygon points="9,4 14,9 9,14 4,9" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/><line x1="9" y1="1" x2="9" y2="17" stroke="currentColor" stroke-width="0.8" opacity="0.35"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="0.8" opacity="0.35"/></svg>`}
+];
 const GRADE_SHORT = {매직:'M',레어:'R',에픽:'E',유니크:'U',헬:'HE',레전드:'L',히든:'H',슈퍼히든:'SH'};
 
-/* ====================================================================
-   ▣ SECTION 2: 상태 관리
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   activeUnits  : Map<cleanName, quantity> — 현재 선택된 유닛+수량
-   essenceUnits : Set<cleanName>           — 정수확보된 유닛 집합
-   unitMap      : Map<cleanName, unitObj>  — 전체 유닛 데이터 맵
-   DOM          : 자주 쓰는 DOM 요소 캐시
-==================================================================== */
 const unitMap     = new Map(); /* 유닛 이름(소문자,공백제거) → 유닛 객체 */
 const activeUnits  = new Map(); /* 선택된 유닛 이름 → 수량 */
 const essenceUnits = new Set(); /* 정수확보된 유닛 이름 집합 */
 const DOM = {}; /* DOM 캐시 객체 */
 
-/* 문자열 정규화 함수 — 소문자 변환 + 공백 제거 */
+/* 유닛이름 정규화 — 대소문자·공백 무시하고 비교하기 위해 통일 */
 const clean = s => s ? s.replace(/\s+/g,'').toLowerCase() : '';
 
 /* 유닛 색상 반환 */
@@ -1619,55 +371,12 @@ function getUnitColor(name){
     return u && gradeColorsRaw[u.grade] ? gradeColorsRaw[u.grade] : "var(--text)";
 }
 
-/* 등급 태그 HTML 생성 */
+/* 등급 표시 뱃지(HTML) 만들기 — 예: [H] [SH] */
 function gradeTag(grade){
     return `<span class="gtag" style="color:${gradeColorsRaw[grade]||'#fff'};border-color:${gradeColorsRaw[grade]||'#fff'}44;">${GRADE_SHORT[grade]||grade}</span>`;
 }
 
-/* 디바운스 함수 — 연속 호출 방지 */
-function debounce(f,t){
-    let timer;
-    return(...args)=>{clearTimeout(timer);timer=setTimeout(()=>f(...args),t);};
-}
-
-/* 유닛 검색 — 단일 */
-function findUnit(input){
-    if(!input) return null;
-    const ckey=clean(input); if(!ckey) return null;
-    if(UNIT_ALIASES[input.trim()]) return unitMap.get(clean(UNIT_ALIASES[input.trim()]));
-    if(UNIT_ALIASES[ckey]) return unitMap.get(clean(UNIT_ALIASES[ckey]));
-    if(unitMap.get(ckey)) return unitMap.get(ckey);
-    const all=[...unitMap.values()];
-    const sw=all.filter(u=>clean(u.name).startsWith(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade)-GRADE_ORDER.indexOf(a.grade));
-    if(sw.length) return sw[0];
-    const inc=all.filter(u=>clean(u.name).includes(ckey)).sort((a,b)=>GRADE_ORDER.indexOf(b.grade)-GRADE_ORDER.indexOf(a.grade));
-    return inc.length ? inc[0] : null;
-}
-
-/* 유닛 검색 — 복수 매칭 */
-function findAllMatchingUnits(input,limit=8){
-    if(!input||!input.trim()) return [];
-    const ckey=clean(input); const all=[...unitMap.values()];
-    const found=new Set(); const result=[];
-    Object.entries(UNIT_ALIASES).forEach(([alias,target])=>{
-        if(clean(alias).startsWith(ckey)||clean(alias)===ckey){
-            const u=unitMap.get(clean(target));
-            if(u&&!found.has(u.name)){found.add(u.name);result.push({unit:u,alias});}
-        }
-    });
-    all.forEach(u=>{if(!found.has(u.name)&&clean(u.name).startsWith(ckey)){found.add(u.name);result.push({unit:u,alias:null});}});
-    all.forEach(u=>{if(!found.has(u.name)&&clean(u.name).includes(ckey)){found.add(u.name);result.push({unit:u,alias:null});}});
-    result.sort((a,b)=>GRADE_ORDER.indexOf(b.unit.grade)-GRADE_ORDER.indexOf(a.unit.grade));
-    return result.slice(0,limit);
-}
-
-/* ====================================================================
-   ▣ SECTION 3: 코스트 파싱 함수
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   parseFixedCost : cost 문자열 → 대시보드 map에 누산
-   calculateRecursiveCost : recipe 재귀 탐색으로 원소 환산
-   calculateTotalCostScore : cost 문자열의 총 숫자합 반환
-==================================================================== */
+/* ▣ SECTION 3: 코스트 파싱 함수 */
 function processCostKeyword(rawName,amount,map){
     let matched=false;
     const cName=clean(rawName);
@@ -1728,15 +437,7 @@ function calculateTotalCostScore(costStr){
     return total;
 }
 
-/* ====================================================================
-   ▣ SECTION 4: UI 업데이트 함수
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   toggleUnitSelection : 유닛 선택/해제 토글
-   changeQty           : 수량 증감
-   updateAllPanels     : 트리 + 코스트 + 정수 + 도감하이라이트 동시 갱신
-   updateEssence       : 정수 카운터 갱신
-   refreshCodexHighlight : 도감 카드 선택 상태 동기화
-==================================================================== */
+/* ▣ SECTION 4: UI 업데이트 함수 */
 function toggleUnitSelection(name){
     const cName=clean(name);
     if(activeUnits.has(cName)){
@@ -1799,9 +500,11 @@ function updateEssence(){
     const allTotal  =coralTotal+aiurTotal+zerusTotal;
 
     /* 통합 패널 요약 셀 업데이트 */
+    const cap=v=>Math.min(v,9999); /* 최대값 9999 제한 */
     const setU=(id,v)=>{
         const el=document.getElementById(id);
-        if(el){el.innerText=v;el.className='u-val'+(v>0?' nonzero':'');}
+        const capped=cap(v);
+        if(el){el.innerText=capped;el.className='u-val'+(capped>0?' nonzero':'');}
     };
     setU('u-total-essence',allTotal);
     setU('u-coral',coralTotal);
@@ -1884,14 +587,7 @@ function updateTabDots(){
     });
 }
 
-/* ====================================================================
-   ▣ SECTION 5: 트리 & 코스트 렌더링
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   renderTreeAndMagic : 계보 트리 + 통합 코스트 한번에 렌더
-   formatRecipeHTML   : 조합법 문자열 → 색상 HTML
-   formatCostHTML     : 비용 문자열 → 색상 HTML
-   buildTree          : 재귀 트리 HTML 생성
-==================================================================== */
+/* ▣ SECTION 5: 트리 & 코스트 렌더링 */
 function renderTreeAndMagic(){
     /* 통합 코스트 초기화 */
     resetUnifiedCostSlots();
@@ -1966,7 +662,7 @@ function renderTreeAndMagic(){
     /* 총 매직코스트 셀 업데이트 */
     const totalMagicEl=document.getElementById('u-total-magic');
     if(totalMagicEl){
-        totalMagicEl.innerText=Math.ceil(totalMagicCost);
+        totalMagicEl.innerText=Math.min(Math.ceil(totalMagicCost),9999);
         totalMagicEl.className='u-val'+(totalMagicCost>0?' nonzero':'');
     }
 
@@ -1995,22 +691,6 @@ function renderTreeAndMagic(){
 }
 
 /* 조합법 문자열 → 색상 HTML */
-function formatRecipeHTML(recipe){
-    if(!recipe||["미발견","없음",""].includes(recipe)) return '';
-    return recipe.split('+').map(part=>{
-        part=part.trim();
-        const m=part.match(/^([^(\[]+)(?:\(([^)]*)\))?(?:\[(\d+)\])?/);
-        if(!m) return `<span class="ing-name">${part}</span>`;
-        const nm=m[1]?m[1].trim():'';
-        const cond=m[2]?m[2]:'';
-        const cnt=m[3]?m[3]:'';
-        return [
-            nm?`<span class="ing-name">${nm}</span>`:'',
-            cond?`<span class="ing-cond">(${cond})</span>`:'',
-            cnt?`<span class="ing-cnt">[${cnt}]</span>`:''
-        ].filter(Boolean).join('');
-    }).join('<span style="color:#444;margin:0 2px;">+</span>');
-}
 
 /* 비용 문자열 → 색상 HTML */
 function formatCostHTML(cost){
@@ -2158,18 +838,19 @@ function buildTree(key,visited=new Set(),isRoot=false,conditionStr='',depth=0){
 /* 도감용 조합조건 가로 렌더 — 재료명+조건 뱃지를 가로로 나열 */
 function buildRecipeRow(recipe){
     if(!recipe||["미발견","없음",""].includes(recipe)) return '';
-    return recipe.split('+').map((part,i)=>{
+    /* 재료마다 한 줄(.codex-recipe-item)로 세로 나열 */
+    return recipe.split('+').map((part)=>{
         part=part.trim();
         const m=part.match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
-        if(!m) return `<span class="node-ing">${part}</span>`;
+        if(!m) return `<span class="codex-recipe-item"><span class="node-ing">${part}</span></span>`;
         const nm=(m[1]||'').trim();
         const cond=m[2]?m[2]:'';
         const cnt=m[3]?`×${m[3]}`:'';
-        const sep=i>0?`<span class="node-sep">+</span>`:'';
-        return sep
+        return `<span class="codex-recipe-item">`
             + (nm?`<span class="node-ing">${nm}</span>`:'')
             + (cond?`<span class="node-cond">${cond}</span>`:'')
-            + (cnt?`<span class="node-cnt" style="font-size:0.7rem;padding:1px 5px;">${cnt}</span>`:'');
+            + (cnt?`<span class="node-cnt" style="font-size:0.82rem;padding:1px 5px;">${cnt}</span>`:'')
+            + `</span>`;
     }).join('');
 }
 
@@ -2267,17 +948,45 @@ function toggleTreeNode(el){
     if(tog) tog.textContent=isOpen?'▶':'▼';
 }
 
-/* ====================================================================
-   ▣ SECTION 6: 도감 탭
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   renderTabs : 탭 버튼 생성
-   selectTab  : 탭 전환 + 유닛 카드 렌더
-==================================================================== */
+/* ▣ SECTION 6: 도감 탭 */
+/* 탭 전체선택 — 매직코스트는 전체 수량 합산, 정수는 유닛당 1개만 계산 */
+function selectAllInTab(idx){
+    const catKey=TAB_CATEGORIES[idx].key;
+    const items=unitDatabase.filter(u=>
+        u.category===catKey && ["슈퍼히든","히든","레전드"].includes(u.grade)
+    );
+    const allSelected=items.every(item=>activeUnits.has(clean(item.name)));
+    if(allSelected){
+        /* 전체 해제 */
+        items.forEach(item=>{
+            const cName=clean(item.name);
+            activeUnits.delete(cName);
+            essenceUnits.delete(cName);
+        });
+    } else {
+        /* 전체 선택 — 수량 1, 정수는 essenceUnits에 추가(1개 계산) */
+        items.forEach(item=>{
+            const cName=clean(item.name);
+            if(!activeUnits.has(cName)){
+                activeUnits.set(cName,1);
+                essenceUnits.add(cName); /* 정수: 1개 기준 */
+            }
+        });
+    }
+    updateAllPanels();
+    selectTab(idx);
+    renderSelectedArea();
+    updateTabDots();
+}
+
 function renderTabs(){
     let h='';
     TAB_CATEGORIES.forEach((cat,idx)=>{
-        const count=unitDatabase.filter(u=>u.category===cat.key&&["슈퍼히든","히든","레전드"].includes(u.grade)).length;
-        h+=`<button class="tab-btn" onclick="selectTab(${idx})">${cat.icon||''}${cat.label} <span style="font-size:0.72rem;opacity:0.6;">(${count})</span></button>`;
+        const total=unitDatabase.filter(u=>u.category===cat.key&&["슈퍼히든","히든","레전드"].includes(u.grade)).length;
+        h+=`<button class="tab-btn" onclick="selectTab(${idx})">
+            <span style="display:flex;align-items:center;gap:4px;">${cat.icon||''}<span>${cat.label}</span></span>
+            <span class="tab-count">${total}개</span>
+        </button>`;
     });
     document.getElementById('codexTabs').innerHTML=h;
     selectTab(0);
@@ -2296,12 +1005,17 @@ function selectTab(idx){
         if(b.grade==="슈퍼히든"&&a.grade!=="슈퍼히든") return 1;
         return calculateTotalCostScore(b.cost)-calculateTotalCostScore(a.cost);
     });
-    let h='<div>';
+    /* 전체선택 버튼 */
+    const allSelected=items.every(item=>activeUnits.has(clean(item.name)));
+    let h=`<div>
+        <button class="btn-select-all${allSelected?' is-all-selected':''}"
+            onclick="selectAllInTab(${idx})">
+            ${allSelected?'✓ 전체 해제':'전체 선택'}
+        </button>`;
     items.forEach(item=>{
         const cName=clean(item.name);
         const isEssence=essenceUnits.has(cName);
         const essenceBadge=isEssence?`<span class="essence-label" style="font-size:0.6rem;padding:1px 4px;">정수확보</span>`:'';
-        /* 조합조건 파싱 — recipe에서 조건 추출 */
         const recipeText=item.recipe&&!["","미발견","없음"].includes(item.recipe)?item.recipe:'';
         h+=`<div class="codex-item" data-name="${item.name}">
             <div class="codex-node-row">
@@ -2317,17 +1031,12 @@ function selectTab(idx){
             </div>
         </div>`;
     });
-    h+='</div>';
+    h+='</div></div>';
     document.getElementById('tabContent').innerHTML=h;
     updateTabDots();
 }
 
-/* ====================================================================
-   ▣ SECTION 7: 통합 코스트 패널 렌더링 (5×5 그리드)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Row 1 (summary, 5칸): 총매직코스트 | 총정수합산 | 코랄 | 아이어 | 제루스
-   Row 2~5 (cost-slot, 20칸): dashboardAtoms 20개
-==================================================================== */
+/* ▣ SECTION 7: 통합 코스트 패널 렌더링 (5×5 그리드) */
 function renderUnifiedPanel(){
     const body=document.getElementById('unifiedBody');
     if(!body) return;
@@ -2392,9 +1101,7 @@ function resetUnifiedCostSlots(){
     });
 }
 
-/* ====================================================================
-   ▣ SECTION 8: 초기화 함수
-==================================================================== */
+/* ▣ SECTION 8: 초기화 함수 */
 function resetAll(){
     activeUnits.clear();
     essenceUnits.clear();
@@ -2414,22 +1121,7 @@ function resetAll(){
     updateTabDots();
 }
 
-/* ====================================================================
-   ▣ SECTION 9: 모달 — 사용방법 팝업
-==================================================================== */
-function openHelpModal(){
-    document.getElementById('helpModal').classList.add('active');
-}
-function closeHelpModal(e){
-    if(e===undefined||e.target.id==='helpModal')
-        document.getElementById('helpModal').classList.remove('active');
-}
-
-/* ====================================================================
-   ▣ SECTION 10: 인트로 시네마틱
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   매트릭스 레인 + 진행 바 + 터미널 로그 시퀀스
-==================================================================== */
+/* ▣ SECTION 10: 인트로 시네마틱 */
 function runIntro(){
     const introScreen=document.getElementById('intro-screen');
     const canvas=document.getElementById('matrixCanvas');
@@ -2496,6 +1188,7 @@ function runIntro(){
         setTimeout(()=>{
             introScreen.remove();
             document.getElementById('mainLayout').classList.add('visible');
+            document.getElementById('mainLayout').style.opacity='1';
         },800);
     };
     introScreen.addEventListener('click',dismiss);
@@ -2503,17 +1196,14 @@ function runIntro(){
     setTimeout(dismiss,introDuration+500);
 }
 
-/* ====================================================================
-   ▣ SECTION 11: 사이트 아이콘 SVG 애니메이션
-==================================================================== */
+/* ▣ SECTION 11: 사이트 아이콘 SVG 애니메이션 */
 function initIconAnimation(){
     const hexRotate=document.getElementById('hex-rotate');
+    if(!hexRotate) return;
     const diamondCounter=document.getElementById('diamond-counter');
     const corePulse=document.getElementById('core-pulse');
     const ring1=document.getElementById('ring1');
     const ring2=document.getElementById('ring2');
-
-    if(!hexRotate) return;
 
     let angle=0;
     let pulsePhase=0;
@@ -2541,22 +1231,15 @@ function initIconAnimation(){
     requestAnimationFrame(animateIcon);
 }
 
-/* ====================================================================
-   ▣ SECTION 12: 초기화 (INIT) — 페이지 로드 시 실행
-==================================================================== */
+/* ▣ SECTION 12: 초기화 (INIT) — 페이지 로드 시 실행 */
 window.addEventListener('load',()=>{
     /* 유닛 맵 빌드 */
     unitDatabase.forEach(u=>{ if(!u.key) u.key=clean(u.name); unitMap.set(u.key,u); });
 
     /* DOM 캐시 */
     DOM.treeView       = document.getElementById('treeView');
-    DOM.unifiedBody    = document.getElementById('unifiedBody');
-
-    /* 검색바 없음 — 더미 객체로 오류 방지 */
-    DOM.comboInput     = {value:'',addEventListener:()=>{},setAttribute:()=>{},focus:()=>{}};
-    DOM.highlightLayer = {innerHTML:'',scrollLeft:0};
-    DOM.suggestions    = {classList:{add:()=>{},remove:()=>{},contains:()=>false},innerHTML:'',querySelectorAll:()=>[]};
-
+    DOM.unifiedBody    = document.getElementById('unifiedBody');        
+    
     /* 통합 패널 렌더 */
     renderUnifiedPanel();
 
@@ -2588,30 +1271,7 @@ window.addEventListener('load',()=>{
     runIntro();
 });
 
-/* ====================================================================
-   ▣ SECTION 13: 검색 시스템 (더미 — 검색바 없음, 호환성 유지)
-==================================================================== */
-const debounceSearch=debounce(()=>{
-    const val=DOM.comboInput.value.trim();
-    activeUnits.clear();
-    if(val){
-        const terms=val.split(/[,\/]/).map(t=>t.trim()).filter(t=>t!=="");
-        terms.forEach(raw=>{
-            let[t,c]=raw.split('*');
-            const found=findUnit(t.trim());
-            if(found) activeUnits.set(clean(found.name),parseInt(c)||1);
-        });
-    }
-    updateAllPanels();
-},300);
-
-function hideSuggestions(){ /* 더미 */ }
-
-/* ====================================================================
-   ▣ SECTION 14: 보안 코드 (HTML 방어 코드 — 맨 마지막)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   우클릭/드래그/텍스트선택/개발자도구 방지
-==================================================================== */
+/* ▣ SECTION 14: 보안 코드 (HTML 방어 코드 — 맨 마지막) */
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dragstart',   e => e.preventDefault());
 document.addEventListener('selectstart', e => { if(e.target.tagName!=='INPUT') e.preventDefault(); });
@@ -2623,24 +1283,7 @@ window.addEventListener('keydown', e => {
     ) e.preventDefault();
 });
 
-/* ====================================================================
-   ▣ SECTION 15: 게임 데이터 설정 + 유닛 데이터베이스 (최하단 통합)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ★ 유닛/조합/비용 수정은 이 섹션 하나에서만 하면 됩니다 ★
-   ─────────────────────────────────────────────────────────────────
-   [설정값 수정 위치]
-     등급 색상       → gradeColorsRaw  (이 섹션 상단)
-     등급 순서       → GRADE_ORDER
-     코스트 원소     → dashboardAtoms
-     특수 키워드     → specialKeywordMap
-     유닛 별칭       → UNIT_ALIASES
-   ─────────────────────────────────────────────────────────────────
-   [유닛DB 형식]
-     {name:"유닛명", grade:"등급", category:"카테고리",
-      recipe:"조합법", cost:"비용"}
-     등급: 매직/레어/에픽/유니크/헬/레전드/히든/슈퍼히든
-     카테고리: 테바/테메/토바/토메/저그중립/혼종
-==================================================================== */
+/* ▣ SECTION 15: 게임 설정값 (색상/등급/코스트 원소) */
 
 /* 등급별 색상 — 등급명: 16진수 색상코드 */
 const gradeColorsRaw = {
@@ -2656,174 +1299,20 @@ const IGNORE_PARSE_RECIPES = [
     "미발견","없음","",
     "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"
 ];
-
-/* 매직코스트 대시보드 기초 원소 유닛 (총 20개, 5열×4행) */
 const dashboardAtoms = [
-    {name:"전쟁광"},     {name:"스파르타중대"}, {name:"암흑광전사"}, {name:"암흑파수기"}, {name:"원시바퀴"},
-    {name:"저격수"},     {name:"코브라"},       {name:"암흑고위기사"},{name:"암흑추적자"}, {name:"변종가시지옥"},
-    {name:"망치경호대"}, {name:"공성파괴단"},   {name:"암흑집정관"}, {name:"암흑불멸자"}, {name:"원시히드라리스크"},
-    {name:"땅거미지뢰"}, {name:"자동포탑"},     {name:"우르사돈[암]"},{name:"우르사돈[수]"},{name:"갓오타/메시브"}
+{name:"전쟁광"}, {name:"스파르타중대"}, {name:"암흑광전사"}, {name:"암흑파수기"}, {name:"원시바퀴"},
+{name:"저격수"}, {name:"코브라"}, {name:"암흑고위기사"},{name:"암흑추적자"}, {name:"변종가시지옥"},
+{name:"망치경호대"}, {name:"공성파괴단"}, {name:"암흑집정관"}, {name:"암흑불멸자"}, {name:"원시히드라리스크"},
+{name:"땅거미지뢰"}, {name:"자동포탑"}, {name:"우르사돈[암]"},{name:"우르사돈[수]"},{name:"갓오타/메시브"}
 ];
-
-/* 특수 키워드 → 대시보드 원소 매핑 */
 const specialKeywordMap = [
-    {keys:["자동포탑"],   atom:"자동포탑"},
-    {keys:["잠복"],       atom:"잠복"},
-    {keys:["지뢰","시체매"], atom:"땅거미지뢰", divider:12},
-    {keys:["우르사돈[암]","우르사돈암"], atom:"우르사돈[암]"},
-    {keys:["우르사돈[수]","우르사돈수"], atom:"우르사돈[수]"},
-    {keys:["메시브","디제스터"], atom:"갓오타/메시브", subKey:"메시브"},
-    {keys:["갓오브타임","갓오타"],  atom:"갓오타/메시브", subKey:"갓오타"}
-];
-
-/* 유닛 약어 별칭 (검색 단축어) */
-const UNIT_ALIASES = {
-    "불새":"불새케리건","아몬":"아몬","나루드":"나루드","비작노":"비밀작전노바","초월":"초월체",
-    "테라":"테라트론","아둔":"아둔의창","토시":"가브리엘토시","타이커스":"타이커스핀들레이",
-    "이곤":"이곤스텟먼","스텟먼":"이곤스텟먼","워필드":"워필드장군","탈란":"탈란다르",
-    "테사":"테사다르","카락":"카락스","알라":"알라라크","셀렌":"셀렌디스","모선":"모선핵",
-    "원케":"원시케리건","토라":"토라스크","데하카":"데하카","아포":"아포칼리스크",
-    "공허분":"공허분쇄자","사라":"사라케리건","유물":"유물","네메":"혼종네메시스",
-    "스투":"스투코프","짐레":"짐레이너","오딘":"오딘","고르곤":"고르곤전투순양함"
-};
-
-/* ── 유닛 데이터베이스 ─────────────────────────────────────────── */
-const unitDatabase = [
-  {name:"전쟁광",grade:"매직",category:"테바",recipe:"",cost:""},
-  {name:"저격수",grade:"매직",category:"테바",recipe:"",cost:""},
-  {name:"망치경호대",grade:"매직",category:"테바",recipe:"",cost:""},
-  {name:"죽음의머리",grade:"레어",category:"테바",recipe:"전쟁광[1]+망치경호대[1]",cost:"전쟁광[1],망치경호대[1]"},
-  {name:"악령",grade:"레어",category:"테바",recipe:"저격수[1]+망치경호대[1]",cost:"저격수[1],망치경호대[1]"},
-  {name:"짐레이너",grade:"에픽",category:"테바",recipe:"죽음의머리[1]+악령[1]",cost:"전쟁광[1],저격수[1],망치경호대[2]"},
-  {name:"스투코프",grade:"유니크",category:"테바",recipe:"짐레이너[1]+케리건[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"노바",grade:"헬",category:"테바",recipe:"스투코프[2]+혼종파멸자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
-  {name:"특공대레이너",grade:"레전드",category:"테바",recipe:"노바[1]+워필드장군[1]",cost:"전쟁광[4],저격수[8],망치경호대[12],암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
-  {name:"가브리엘토시",grade:"히든",category:"테바",recipe:"악령[2]+망치경호대[3]",cost:"저격수[2],망치경호대[5]"},
-  {name:"광부",grade:"히든",category:"테바",recipe:"도우미(500킬↑)[1]+타우렌화장실[1]",cost:"전쟁광[4],암흑불멸자[4],도우미[1]"},
-  {name:"로리스완",grade:"히든",category:"테바",recipe:"자치령불곰[2]+낮까마귀[1]+자동포탑[1]",cost:"전쟁광[8],망치경호대[6],낮까마귀[1],자동포탑[5]"},
-  {name:"마일스블레이즈루이스",grade:"히든",category:"테바",recipe:"프로메테우스중대(X,90%↑)+자치령불곰[2]+빨정관(10킬이상)[1]",cost:"암흑집정관[4],전쟁광[8],망치경호대[6]저격수[4],망치경호대[10],스파르타중대[4]"},
-  {name:"멀록해병",grade:"히든",category:"테바",recipe:"죽음의머리[3]+라바사우르스(잠복)[2]",cost:"전쟁광[3],망치경호대[3],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"워필드장군",grade:"히든",category:"테바",recipe:"스투코프[1]+악령[4]",cost:"전쟁광[1],저격수[5],망치경호대[6],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"이곤스텟먼",grade:"히든",category:"테바",recipe:"멀록해병[1]+타우렌화장실[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"자치령불곰",grade:"히든",category:"테바",recipe:"타우렌우주해병[2]+망치경호대[3]",cost:"전쟁광[4],망치경호대[3]"},
-  {name:"타우렌우주해병",grade:"히든",category:"테바",recipe:"전쟁광(SS↑)[2]",cost:"전쟁광[2]"},
-  {name:"타우렌화장실",grade:"히든",category:"테바",recipe:"타우렌우주해병[2]+말살자[1]",cost:"전쟁광[4],암흑불멸자[4]"},
-  {name:"타이커스핀들레이",grade:"히든",category:"테바",recipe:"로리스완(X↑)[1]+이곤스텟먼(X↑)[1]",cost:"전쟁광[15],망치경호대[9],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2],자동포탑[5]"},
-  {name:"프로메테우스중대",grade:"히든",category:"테바",recipe:"가브리엘토시(SSS↑)[2]+스파르타중대[4]",cost:"저격수[4],망치경호대[10],스파르타중대[4]"},
-  {name:"비밀작전노바",grade:"슈퍼히든",category:"테바",recipe:"특공대레이너(SXD,300%↑,300킬↑)[1]+타이커스핀들레이(SXD,300%↑,300킬↑)[1]+오메가리스크(X↑,150%↑)[2]",cost:"전쟁광[19],저격수[8],망치경호대[21],암흑광전사[5],암흑고위기사[5],암흑집정관[10],원시바퀴[15],변종가시지옥[13],원시히드라리스크[28],자동포탑[5]"},
-  {name:"스파르타중대",grade:"매직",category:"테메",recipe:"",cost:""},
-  {name:"코브라",grade:"매직",category:"테메",recipe:"",cost:""},
-  {name:"공성파괴단",grade:"매직",category:"테메",recipe:"",cost:""},
-  {name:"검은망치",grade:"레어",category:"테메",recipe:"스파르타중대[1]+공성파괴단[1]",cost:"스파르타중대[1],공성파괴단[1]"},
-  {name:"A.R.E.S",grade:"레어",category:"테메",recipe:"코브라[1]+공성파괴단[1]",cost:"코브라[1],공성파괴단[1]"},
-  {name:"대천사",grade:"에픽",category:"테메",recipe:"검은망치[1]+A.R.E.S[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2]"},
-  {name:"오딘",grade:"유니크",category:"테메",recipe:"대천사[2]",cost:"코브라[2],스파르타중대[2],공성파괴단[4]"},
-  {name:"히페리온",grade:"헬",category:"테메",recipe:"오딘[2]+공허포격기[1]",cost:"코브라[5],스파르타중대[5],공성파괴단[10],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"고르곤전투순양함",grade:"레전드",category:"테메",recipe:"히페리온[1]+과학선[1]",cost:"코브라[11],스파르타중대[7],공성파괴단[18],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"과학선",grade:"히든",category:"테메",recipe:"오딘[1]+A.R.E.S[4]",cost:"코브라[6],스파르타중대[2],공성파괴단[8]"},
-  {name:"낮까마귀",grade:"히든",category:"테메",recipe:"땅거미지뢰[2]+투견[3]+통기레쓰[1]",cost:"시체매-지뢰매설[24],코브라[3],스파르타중대[6],암흑광전사[2]"},
-  {name:"대천사전투기",grade:"히든",category:"테메",recipe:"대천사(SSS↑)[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8]"},
-  {name:"드라켄레이저천공기",grade:"히든",category:"테메",recipe:"공성파괴단[3]+A.R.E.S[2]",cost:"코브라[2],공성파괴단[5]"},
-  {name:"땅거미지뢰",grade:"히든",category:"테메",recipe:"거미지뢰(시체매로매설)[12]",cost:"시체매-지뢰매설[12]"},
-  {name:"아우구스트그라드의자랑",grade:"히든",category:"테메",recipe:"고르곤전투순양함(남은강화횟수0,1000킬)[1]+검은망치(SSS)[4]",cost:"코브라[11],스파르타중대[11],공성파괴단[22],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"제우스폭격기",grade:"히든",category:"테메",recipe:"해적주력함(Lv11)[1]+폭격기(Lv11)[1]+메시브디제스터(스킬사용)[1]",cost:"스파르타중대[21],코브라[22],공성파괴단[34],암흑광전사[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2],시체매-지뢰매설[24],메시브디제스터[1]"},
-  {name:"창공의분노",grade:"히든",category:"테메",recipe:"대천사전투기(한계돌파3↑,500킬↑)[1]+분노수호자(X↑)[1]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
-  {name:"통기레쓰",grade:"히든",category:"테메",recipe:"코브라[3]+암흑광전사[2]",cost:"코브라[3],암흑광전사[2]"},
-  {name:"투견",grade:"히든",category:"테메",recipe:"스파르타중대(SS↑)[2]",cost:"스파르타중대[2]"},
-  {name:"폭격기",grade:"히든",category:"테메",recipe:"낮까마귀(X↑)[1]+과학선(X↑)[1]",cost:"시체매-지뢰매설[24],코브라[9],스파르타중대[8],공성파괴단[8],암흑광전사[2]"},
-  {name:"핵의원천",grade:"히든",category:"테메",recipe:"타우렌화장실[1]+통기레쓰[2]+빨정관[1]",cost:"전쟁광[4],코브라[6],암흑광전사[4],암흑집정관[4],암흑불멸자[4]"},
-  {name:"해적주력함",grade:"히든",category:"테메",recipe:"대천사전투기[2]+히페리온(X↑,90%↑)[1]",cost:"코브라[13],스파르타중대[13],공성파괴단[26],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"테라트론",grade:"슈퍼히든",category:"테메",recipe:"고르곤전투순양함(SXD,300%↑,300킬↑)[1]+해적주력함(SXD,300%↑,300킬↑)[1]+로리스완(XD↑)[2]",cost:"전쟁광[16],망치경호대[12],코브라[24],스파르타중대[20],공성파괴단[44],암흑파수기[2],암흑추적자[2],암흑불멸자[4],자동포탑[10]"},
-  {name:"암흑광전사",grade:"매직",category:"토바",recipe:"",cost:""},
-  {name:"암흑고위기사",grade:"매직",category:"토바",recipe:"",cost:""},
-  {name:"암흑집정관",grade:"매직",category:"토바",recipe:"",cost:""},
-  {name:"광전사석상",grade:"레어",category:"토바",recipe:"암흑광전사[1]+암흑집정관[1]",cost:"암흑광전사[1],암흑집정관[1]"},
-  {name:"정화자사도",grade:"레어",category:"토바",recipe:"암흑고위기사[1]+암흑집정관[1]",cost:"암흑고위기사[1],암흑집정관[1]"},
-  {name:"제라툴",grade:"에픽",category:"토바",recipe:"광전사석상[1]+정화자사도[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
-  {name:"혼종파멸자",grade:"유니크",category:"토바",recipe:"제라툴[1]+짐레이너[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[1],암흑집정관[2]"},
-  {name:"보라준",grade:"헬",category:"토바",recipe:"혼종파멸자[2]+혼종약탈자[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[3],암흑고위기사[3],암흑집정관[6]"},
-  {name:"아르타니스",grade:"레전드",category:"토바",recipe:"보라준[1]+테사다르[1]",cost:"전쟁광[3],저격수[3],망치경호대[6],암흑광전사[4],암흑고위기사[8],암흑집정관[12],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"라사라",grade:"히든",category:"토바",recipe:"빨정관[1]+광전사석상[3]",cost:"암흑광전사[3],암흑집정관[7]"},
-  {name:"말라쉬",grade:"히든",category:"토바",recipe:"알라라크(XD↑,200%↑)[1]+드라켄레이저천공기(알라라크죽이기)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[2],공성파괴단[5],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
-  {name:"백인대장",grade:"히든",category:"토바",recipe:"암흑기사(SSS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
-  {name:"빨정관",grade:"히든",category:"토바",recipe:"암흑집정관[4]",cost:"암흑집정관[4]"},
-  {name:"승천자",grade:"히든",category:"토바",recipe:"파수병[2]+광전사석상[2]",cost:"암흑광전사[6],암흑고위기사[4],암흑집정관[2]"},
-  {name:"알라라크",grade:"히든",category:"토바",recipe:"피의사냥꾼[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[9],암흑고위기사[13],암흑집정관[6]"},
-  {name:"암흑기사",grade:"히든",category:"토바",recipe:"암흑고위기사(SS↑)[1]+암흑광전사(SS↑)[1]",cost:"암흑고위기사[1],암흑광전사[1]"},
-  {name:"카락스",grade:"히든",category:"토바",recipe:"승천자[2]+혼종파멸자(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[13],암흑고위기사[9],암흑집정관[6]"},
-  {name:"탈란다르",grade:"히든",category:"토바",recipe:"카락스(X↑,90%↑)[1]+알라라크(X↑,90%↑)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[22],암흑고위기사[22],암흑집정관[12]"},
-  {name:"테사다르",grade:"히든",category:"토바",recipe:"혼종파멸자[1]+정화자사도[4]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[1],암흑고위기사[5],암흑집정관[6]"},
-  {name:"파수병",grade:"히든",category:"토바",recipe:"암흑기사(SS)[2]",cost:"암흑광전사[2],암흑고위기사[2]"},
-  {name:"피의사냥꾼",grade:"히든",category:"토바",recipe:"백인대장[2]+정화자사도[2]",cost:"암흑광전사[4],암흑고위기사[6],암흑집정관[2]"},
-  {name:"아몬",grade:"슈퍼히든",category:"토바",recipe:"탈란다르(SXD,300%↑,300킬↑)[1]+아르타니스(SXD,300%↑,300킬↑)[1]+탈다림폭풍함(XD↑)[2]",cost:"전쟁광[5],저격수[5],망치경호대[10],암흑광전사[26],암흑고위기사[30],암흑집정관[40],암흑파수기[8],암흑불멸자[20],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"암흑파수기",grade:"매직",category:"토메",recipe:"",cost:""},
-  {name:"암흑추적자",grade:"매직",category:"토메",recipe:"",cost:""},
-  {name:"암흑불멸자",grade:"매직",category:"토메",recipe:"",cost:""},
-  {name:"선동자",grade:"레어",category:"토메",recipe:"암흑추적자[1]+암흑불멸자[1]",cost:"암흑추적자[1],암흑불멸자[1]"},
-  {name:"교란기",grade:"레어",category:"토메",recipe:"암흑파수기[1]+암흑불멸자[1]",cost:"암흑파수기[1],암흑불멸자[1]"},
-  {name:"거신",grade:"에픽",category:"토메",recipe:"교란기[1]+선동자[1]",cost:"암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"공허포격기",grade:"유니크",category:"토메",recipe:"대천사[1]+거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[1],암흑추적자[1],암흑불멸자[2]"},
-  {name:"분노수호자",grade:"유니크",category:"토메",recipe:"거신[2]",cost:"암흑파수기[2],암흑추적자[2],암흑불멸자[4]"},
-  {name:"공허의구도자",grade:"헬",category:"토메",recipe:"분노수호자[2]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[5],암흑추적자[5],암흑불멸자[10]"},
-  {name:"셀렌디스",grade:"레전드",category:"토메",recipe:"공허의구도자[1]+정화자거신[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[11],암흑불멸자[18]"},
-  {name:"동력기",grade:"히든",category:"토메",recipe:"암흑파수기(SS↑)[2]",cost:"암흑파수기[2]"},
-  {name:"말살자",grade:"히든",category:"토메",recipe:"암흑불멸자[4]",cost:"암흑불멸자[4]"},
-  {name:"모선핵",grade:"히든",category:"토메",recipe:"차원분광기[1]+공허포격기[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[3],암흑추적자[1],암흑불멸자[6]"},
-  {name:"모한다르",grade:"히든",category:"토메",recipe:"정화자거신(X↑)[1]+공허포격기[4]",cost:"코브라[4],스파르타중대[4],공성파괴단[8],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
-  {name:"정화모선",grade:"히든",category:"토메",recipe:"분노수호자[2]+모선핵[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑파수기[7],암흑추적자[5],암흑불멸자[14]"},
-  {name:"정화자감시자",grade:"히든",category:"토메",recipe:"정화모선(Lv11,남은강화횟수0회,스킬사용)[3]",cost:"코브라[3],스파르타중대[3],공성파괴단[6],암흑파수기[21],암흑추적자[15],암흑불멸자[42]"},
-  {name:"정화자거신",grade:"히든",category:"토메",recipe:"분노수호자[1]+선동자[4]",cost:"암흑파수기[2],암흑추적자[6],암흑불멸자[8]"},
-  {name:"차원분광기",grade:"히든",category:"토메",recipe:"말살자[1]+동력기[1]",cost:"암흑파수기[2],암흑불멸자[4]"},
-  {name:"케이다린초석",grade:"히든",category:"토메",recipe:"선동자(SSS↑)[9]",cost:"암흑추적자[9],암흑불멸자[9]"},
-  {name:"탈다림모선",grade:"히든",category:"토메",recipe:"정화모선(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[5],암흑불멸자[24]"},
-  {name:"탈다림폭풍함",grade:"히든",category:"토메",recipe:"폭풍함[2]+빨정관[2]",cost:"암흑집정관[8],암흑파수기[4],암흑불멸자[10]"},
-  {name:"폭풍함",grade:"히든",category:"토메",recipe:"교란기[2]+암흑불멸자[3]",cost:"암흑파수기[2],암흑불멸자[5]"},
-  {name:"하늘군주",grade:"히든",category:"토메",recipe:"셀렌디스(X↑,90%↑)[1]+탈다림폭풍함(X↑)[1]",cost:"코브라[1],스파르타중대[1],공성파괴단[2],암흑집정관[8],암흑파수기[11],암흑추적자[11],암흑불멸자[28]"},
-  {name:"아둔의창",grade:"슈퍼히든",category:"토메",recipe:"셀렌디스(SXD,300%↑,300킬↑)[1]+탈다림모선(SXD,300%↑,300킬↑)[1]+카락스(X↑,150%↑)[2]",cost:"전쟁광[2],저격수[2],망치경호대[4],코브라[2],스파르타중대[2],공성파괴단[4],암흑광전사[26],암흑고위기사[18],암흑집정관[20],암흑파수기[18],암흑추적자[16],암흑불멸자[42]"},
-  {name:"원시바퀴",grade:"매직",category:"저그중립",recipe:"",cost:""},
-  {name:"변종가시지옥",grade:"매직",category:"저그중립",recipe:"",cost:""},
-  {name:"원시히드라리스크",grade:"매직",category:"저그중립",recipe:"",cost:""},
-  {name:"브루탈리스크",grade:"레어",category:"저그중립",recipe:"변종가시지옥[1]+원시히드라리스크[1]",cost:"변종가시지옥[1],원시히드라리스크[1]"},
-  {name:"라바사우르스",grade:"레어",category:"저그중립",recipe:"원시바퀴[1]+원시히드라리스크[1]",cost:"원시바퀴[1],원시히드라리스크[1]"},
-  {name:"케리건",grade:"에픽",category:"저그중립",recipe:"브루탈리스크[1]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"혼종약탈자",grade:"유니크",category:"저그중립",recipe:"케리건[1]+제라툴[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[1],원시히드라리스크[2]"},
-  {name:"거대괴수",grade:"헬",category:"저그중립",recipe:"혼종약탈자[2]+스투코프[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[3],변종가시지옥[3],원시히드라리스크[6]"},
-  {name:"아토실로프",grade:"헬",category:"저그중립",recipe:"우르사돈[암][2]",cost:"우르사돈[암][2]"},
-  {name:"테이스틀로프",grade:"헬",category:"저그중립",recipe:"우르사돈[수][2]",cost:"우르사돈[수][2]"},
-  {name:"원시케리건",grade:"레전드",category:"저그중립",recipe:"거대괴수[1]+크레이스[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[3],암흑고위기사[3],암흑집정관[6],원시바퀴[4],변종가시지옥[8],원시히드라리스크[12]"},
-  {name:"고름바퀴",grade:"히든",category:"저그중립",recipe:"원시바퀴[3]+암흑추적자[2]",cost:"원시바퀴[3],암흑추적자[2]"},
-  {name:"군단숙주",grade:"히든",category:"저그중립",recipe:"변종가시지옥(SS↑)[2]",cost:"변종가시지옥[2]"},
-  {name:"데하카",grade:"히든",category:"저그중립",recipe:"데하카고치[1]+퀸(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[3],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"데하카고치",grade:"히든",category:"저그중립",recipe:"데하카의오른팔[1]+이곤스텟먼(SXD)[1]",cost:"전쟁광[7],망치경호대[3],암흑불멸자[4],원시바퀴[2],원시히드라리스크[2]"},
-  {name:"데하카의오른팔",grade:"히든",category:"저그중립",recipe:"100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]",cost:"없음"},
-  {name:"땅굴파괴자",grade:"히든",category:"저그중립",recipe:"아토실로프(X↑,200%↑,Lv7)[4]",cost:"우르사돈[암][8]"},
-  {name:"무리군주",grade:"히든",category:"저그중립",recipe:"퀸[2]+크레이스[1]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"살모사",grade:"히든",category:"저그중립",recipe:"퀸[1]+일벌레(SS↑)[3]",cost:"원시바퀴[2],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"수호군주",grade:"히든",category:"저그중립",recipe:"살모사(X↑)[1]+군단숙주(잠복)[2]",cost:"원시바퀴[2],변종가시지옥[8],원시히드라리스크[3]"},
-  {name:"아포칼리스크",grade:"히든",category:"저그중립",recipe:"오메가리스크(X↑,90%↑,100킬↑)[2]+오딘(10킬↑)[1]",cost:"스파르타중대[2],코브라[2],공성파괴단[4],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[10],변종가시지옥[10],원시히드라리스크[20]"},
-  {name:"알렉산더",grade:"히든",category:"저그중립",recipe:"포식귀[1]+수호군주[1]+히페리온(풀강화)[1]+스투코프(SXD)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],스파르타중대[5],코브라[5],공성파괴단[10],암흑파수기[1],암흑추적자[3],암흑불멸자[2],원시바퀴[8],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"오메가리스크",grade:"히든",category:"저그중립",recipe:"혼종약탈자[2]+케리건[3]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],원시바퀴[5],변종가시지옥[5],원시히드라리스크[10]"},
-  {name:"일벌레",grade:"히든",category:"저그중립",recipe:"원시바퀴(잠복)[1]+원시히드라리스크(잠복)[2]",cost:"원시바퀴[1],원시히드라리스크[2]"},
-  {name:"크레이스",grade:"히든",category:"저그중립",recipe:"혼종약탈자[1]+브루탈리스크[4]",cost:"암흑광전사[1],암흑고위기사[1],암흑집정관[2],원시바퀴[1],변종가시지옥[5],원시히드라리스크[6]"},
-  {name:"토라스크",grade:"히든",category:"저그중립",recipe:"오메가리스크(X↑,90%↑)[1]+고름바퀴[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10]"},
-  {name:"포식귀",grade:"히든",category:"저그중립",recipe:"살모사[1]+고름바퀴(X↑)[1]",cost:"암흑추적자[2],원시바퀴[5],변종가시지옥[4],원시히드라리스크[3]"},
-  {name:"포자주둥이",grade:"히든",category:"저그중립",recipe:"일벌레(미니성큰스킬사용,히든성소배치)SSS↑)[12]",cost:"원시바퀴[8],원시히드라리스크[4]"},
-  {name:"퀸",grade:"히든",category:"저그중립",recipe:"군단숙주[2]+라바사우르스[1]",cost:"원시바퀴[1],변종가시지옥[4],원시히드라리스크[1]"},
-  {name:"하이브리드로프",grade:"히든",category:"저그중립",recipe:"아토실로프(Lv7)[1]+테이스틀로프(Lv7)[1]",cost:"우르사돈[암][2],우르사돈[수][2]"},
-  {name:"불새케리건",grade:"슈퍼히든",category:"저그중립",recipe:"원시케리건(SXD,300%↑,300킬↑)[1]+토라스크(SXD,300%↑,300킬↑)[1]+낮까마귀(X↑,150%↑)[2]",cost:"시체매-지뢰매설[48],전쟁광[1],저격수[1],망치경호대[2],코브라[6],스파르타중대[12],암흑광전사[9],암흑고위기사[5],암흑집정관[10],암흑추적자[4],원시바퀴[15],변종가시지옥[13],원시히드라리스크[22]"},
-  {name:"초월체",grade:"슈퍼히든",category:"저그중립",recipe:"하이브리드로프(SXD↑,300%↑,Lv7)[2]+테사다르(XD↑)[1]+크레이스(XD↑)[1]+과학선(XD↑)[1]+정화자거신(XD↑)[1]+워필드장군(XD↑)[1]",cost:"전쟁광[2],저격수[6],망치경호대[8],코브라[6],스파르타중대[2],공성파괴단[8],암흑광전사[2],암흑고위기사[6],암흑집정관[8],암흑파수기[2],암흑추적자[6],암흑불멸자[8],원시바퀴[2],변종가시지옥[6],원시히드라리스크[8],우르사돈[암][4],우르사돈[수][4]"},
-  {name:"공허분쇄자",grade:"히든",category:"혼종",recipe:"혼종네메시스(XD↑,200%↑,11Lv)[1]+파멸자(XD↑,200%↑,11Lv)[1]",cost:"전쟁광[2],저격수[2],망치경호대[4],암흑광전사[3],암흑고위기사[11],암흑집정관[14],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"사라케리건",grade:"히든",category:"혼종",recipe:"노바(X↑,90%↑)[1]+원시케리건(X↑,90%↑)[1]",cost:"전쟁광[4],저격수[4],망치경호대[8],암흑광전사[4],암흑고위기사[4],암흑집정관[8],원시바퀴[6],변종가시지옥[10],원시히드라리스크[16]"},
-  {name:"아몬의젤나가피조물",grade:"히든",category:"혼종",recipe:"젤나가피조물(RXD)[1]+파멸자(XD↑)[1]",cost:"시체매-지뢰매설[8],전쟁광[1],저격수[1],망치경호대[2],코브라[17],스파르타중대[16],공성파괴단[24],암흑광전사[15],암흑고위기사[9],암흑집정관[6],암흑파수기[12],암흑추적자[20],암흑불멸자[32]"},
-  {name:"유물",grade:"히든",category:"혼종",recipe:"유물조각[5]",cost:"유물조각[5]"},
-  {name:"젤나가피조물",grade:"히든",category:"혼종",recipe:"카락스(XD↑)[1]+모한다르(X↑)[1]",cost:"전쟁광[1],저격수[1],망치경호대[2],코브라[4],스파르타중대[4],공성파괴단[8],암흑광전사[13],암흑고위기사[9],암흑집정관[6],암흑파수기[6],암흑추적자[10],암흑불멸자[16]"},
-  {name:"티라노조르",grade:"히든",category:"혼종",recipe:"토라스크(XD↑)[1]+테이스틀로프(X↑)[2]",cost:"암흑광전사[2],암흑고위기사[2],암흑집정관[4],암흑추적자[4],원시바퀴[11],변종가시지옥[5],원시히드라리스크[10],우르사돈[수][4]"},
-  {name:"파멸자",grade:"히든",category:"혼종",recipe:"모한다르(X↑,90%↑)[1]+폭격기(X↑,90%↑)[1]",cost:"시체매-지뢰매설[24],코브라[13],스파르타중대[12],공성파괴단[16],암흑광전사[2],암흑파수기[6],암흑추적자[10],암흑불멸자[14]"},
-  {name:"혼종네메시스",grade:"히든",category:"혼종",recipe:"무리군주(X↑,90%↑)[1]+테사다르(X↑)[2]",cost:"전쟁광[1],저격수[1],망치경호대[2],암흑광전사[2],암흑고위기사[6],암흑집정관[8],원시바퀴[3],변종가시지옥[13],원시히드라리스크[8]"},
-  {name:"혼종뫼비우스",grade:"히든",category:"혼종",recipe:"해적주력함(X↑,한계돌파3↑)[1]+탈다림모선(X↑,한계돌파3↑)[1]+갓오브타임(스킬사용)[1]",cost:"코브라[14],스파르타중대[14],공성파괴단[28],암흑집정관[8],암흑파수기[12],암흑추적자[6],암흑불멸자[26],갓오브타임[1]"},
-  {name:"혼종베히모스",grade:"히든",category:"혼종",recipe:"알라라크(X↑,90%↑)[1]+워필드장군(X↑)[2]",cost:"전쟁광[3],저격수[11],망치경호대[14],암흑고위기사[13],암흑광전사[9],암흑집정관[6],원시바퀴[2],변종가시지옥[2],원시히드라리스크[4]"},
-  {name:"혼종종언자",grade:"히든",category:"혼종",recipe:"사라케리건(XD↑,200%↑,Lv11)[1]+혼종베히모스(XD↑,200%↑,Lv11)[1]",cost:"전쟁광[7],저격수[15],망치경호대[22],암흑광전사[13],암흑고위기사[17],암흑집정관[14],원시바퀴[8],변종가시지옥[12],원시히드라리스크[20]"},
-  {name:"나루드",grade:"슈퍼히든",category:"혼종",recipe:"공허분쇄자(SXD,300%↑,300~999kill)[2]+사라케리건(X↑,150%↑)[2]",cost:"전쟁광[12],저격수[12],망치경호대[24],코브라[26],스파르타중대[24],공성파괴단[32],암흑광전사[18],암흑고위기사[30],암흑집정관[44],암흑파수기[12],암흑추적자[20],암흑불멸자[32],원시바퀴[18],변종가시지옥[46],원시히드라리스크[48],시체매-지뢰매설[48]"}
+{keys:["자동포탑"], atom:"자동포탑"},
+{keys:["잠복"], atom:"잠복"},
+{keys:["지뢰","시체매"], atom:"땅거미지뢰", divider:12},
+{keys:["우르사돈[암]","우르사돈암"], atom:"우르사돈[암]"},
+{keys:["우르사돈[수]","우르사돈수"], atom:"우르사돈[수]"},
+{keys:["메시브","디제스터"], atom:"갓오타/메시브", subKey:"메시브"},
+{keys:["갓오브타임","갓오타"], atom:"갓오타/메시브", subKey:"갓오타"}
 ];
 </script>
 </body>
