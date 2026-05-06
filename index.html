@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>개복디 넥서스</title>
 
-<!-- 파비콘 설정 -->
+    <!-- 파비콘 설정 -->
     <link rel="icon" href="./icon.png" type="image/png">
     <link rel="shortcut icon" href="./icon.png" type="image/png">
     <link rel="apple-touch-icon" href="./icon.png">
@@ -19,7 +19,6 @@
     <meta property="og:title" content="개복디 넥서스 - MATRIX HUD">
     <meta property="og:description" content="히든 조합 계보 시뮬레이션 및 일일 정수 계산기">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="./logo.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ko_KR">
@@ -27,7 +26,6 @@
     <!-- 트위터 카드 설정 -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="개복디 넥서스">
-    <meta name="twitter:image" content="./logo.png">
     <meta name="twitter:description" content="유닛 조합 & 일일정수 계산기">
 
     <meta name="theme-color" content="#000000">
@@ -273,8 +271,15 @@
 <div id="intro-screen">
     <div class="intro-bg-text" id="introBgText"></div>
     <div class="intro-center-box">
-        <!-- SVG 요소들을 모두 제거하고 로고 이미지만 남깁니다 -->
-        <img src="./logo.png" class="intro-logo-svg" alt="Logo" style="object-fit: contain; width: 120px; height: 120px; margin-bottom: 20px;">
+        <svg class="intro-logo-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="22,2 38,11 38,33 22,42 6,33 6,11" fill="none" stroke="#00FF41" stroke-width="1.5"/>
+            <polygon points="22,8 36,22 22,36 8,22" fill="none" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+            <circle cx="22" cy="22" r="4" fill="none" stroke="#00FF41" stroke-width="2"/>
+            <line x1="22" y1="2" x2="22" y2="10" stroke="#00FF41" stroke-width="1.5"/>
+            <line x1="22" y1="34" x2="22" y2="42" stroke="#00FF41" stroke-width="1.5"/>
+            <line x1="2" y1="22" x2="10" y2="22" stroke="#00FF41" stroke-width="1.5"/>
+            <line x1="34" y1="22" x2="42" y2="22" stroke="#00FF41" stroke-width="1.5"/>
+        </svg>
         <div class="intro-glitch-title">개복디 넥서스</div>
         <div class="intro-pct" id="introPct">SYSTEM BOOT... 0%</div>
         <div class="intro-bar-wrap">
@@ -298,15 +303,30 @@
             <!-- 제작자 -->
             <div class="header-author-standalone">제작자 <span>회장</span> | 3-S2-1-2461127</div>
 
-           <!-- 중앙 고정: 아이콘 + 제목 -->
+            <!-- 중앙 고정: 아이콘 + 제목 -->
             <div style="flex:1;min-width:16px;"></div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                 <div class="site-icon" id="siteIcon">
-                    <img src="./logo.png" alt="Icon" style="width: 100%; height: 100%; object-fit: contain;">
+                    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g id="hex-rotate" style="transform-origin:22px 22px;">
+                            <polygon points="22,2 38,11 38,33 22,42 6,33 6,11" fill="none" stroke="#007a1e" stroke-width="1"/>
+                        </g>
+                        <g id="diamond-counter" style="transform-origin:22px 22px;">
+                            <polygon points="22,8 36,22 22,36 8,22" fill="none" stroke="#00FF41" stroke-width="1" opacity="0.5"/>
+                        </g>
+                        <circle cx="22" cy="22" r="5" fill="#00FF41" id="core-pulse"/>
+                        <circle cx="22" cy="22" r="9" fill="none" stroke="#00FF41" stroke-width="0.5" id="ring1"/>
+                        <circle cx="22" cy="22" r="14" fill="none" stroke="#007a1e" stroke-width="0.5" id="ring2"/>
+                        <line x1="22" y1="2" x2="22" y2="10" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                        <line x1="22" y1="34" x2="22" y2="42" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                        <line x1="2" y1="22" x2="10" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                        <line x1="34" y1="22" x2="42" y2="22" stroke="#00FF41" stroke-width="1" opacity="0.6"/>
+                    </svg>
                 </div>
                 <div class="header-title" id="headerTitle">개복디 넥서스</div>
             </div>
             <div style="flex:1;min-width:16px;"></div>
+
             <!-- 버튼 -->
             <div class="header-btns">
                 <button class="btn-header" onclick="openHelpModal()">사용방법</button>
@@ -1829,6 +1849,10 @@ window.addEventListener('load',()=>{
             headerTitleEl.style.animation='';
         },8000);
     }
+
+    /* 아이콘 애니메이션 시작 */
+    initIconAnimation();
+
     /* 인트로 실행 */
     runIntro();
 });
