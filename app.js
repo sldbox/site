@@ -3,12 +3,15 @@
 [파일 설명서] app.js
 - 시스템 초기화 및 코스트 수학 계산 (한국어 전용 개복디 넥서스)
 - 스마트 부분 검색(findBestUnitMatch) 및 *N 자동 합산 기능
-- 계보(Lineage) 보기 UI 복구: 조합/비용 텍스트 트리 형태 유지
+- 계보(Lineage) 보기 UI 복구: 조합/비용 텍스트 트리 형태 유지 (조합 텍스트 삭제 및 비용 하단 배치 적용)
 - 계보 트리의 노드 뱃지를 심플한 버튼 형태로 재정립
 - 매직 코스트 매트릭스 전체 칸 파란색 테마 동기화 로직 적용
 - [삭제됨] 쥬얼 상세 팝업 오픈/클로즈 로직 및 팝업 이벤트 폐기
 - [수정완료] 쥬얼 도감 리스트에 전설/신화 능력이 직접 노출되도록 렌더링 변경
 - [수정완료] 공지사항 전용 모달 오픈/클로즈 제어 함수 추가
+- [수정완료] 인트로 시네마틱 시간 연장 (3.2초 -> 4.5초) 및 트랜지션 타임스텝 조정
+- [수정완료] 유닛 카드 우측 컨트롤 박스 통합 렌더링 구조로 개선
+- [개선사항적용완료] 렌더링 반복문 내 index 매개변수 누락으로 인한 인트로 무한 로딩 오류(ReferenceError) 완벽 수정
 =============================================================================
 */
 
@@ -265,14 +268,13 @@ function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0){
                 ${nameDisp} ${conditionStr?`<span class="badge-cond">${conditionStr}</span>`:''} ${ch?`<span class="toggle-mark">${mark}</span>`:''}
             </div>
         </div>
-        ${(u.recipe&&!IGNORE_PARSE_RECIPES.includes(u.recipe))?`<div class="bullet-recipe" style="display:${bulletDisplay};">조합: ${u.recipe}</div>`:''}
-        ${(u.cost&&!IGNORE_PARSE_RECIPES.includes(u.cost))?`<div class="bullet-cost" style="display:${bulletDisplay};">비용: ${u.cost}</div>`:''}
         ${ch?`<ul class="tree-ul ${isRoot?'root-ul':''}" style="display:${ulStyle};">${ch}</ul>`:''}
+        ${(u.cost&&!IGNORE_PARSE_RECIPES.includes(u.cost))?`<div class="bullet-cost" style="display:${bulletDisplay};">비용: ${u.cost}</div>`:''}
     </li>`;
 }
 
-function toggleAllTree(btn){const card=btn.closest('.analysis-card'),isExpanded=btn.getAttribute('data-expanded')==='true';if(isExpanded){const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-recipe,.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶')}}btn.innerText="모두 펼치기";}else{card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');card.querySelectorAll('.bullet-recipe,.bullet-cost').forEach(el=>el.style.display='block');card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');btn.innerText="모두 접기";}btn.setAttribute('data-expanded',!isExpanded)}
-function toggleTreeNode(el){const p=el.closest('.tree-li'),r=p.querySelector(':scope>.bullet-recipe'),c=p.querySelector(':scope>.bullet-cost'),t=p.querySelector(':scope>.tree-ul'),m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');if(t)t.style.display=t.style.display==='none'?'block':'none';if(r)r.style.display=r.style.display==='none'?'block':'none';if(c)c.style.display=c.style.display==='none'?'block':'none';if(m)m.innerText=m.innerText==='▶'?'▼':'▶'}
+function toggleAllTree(btn){const card=btn.closest('.analysis-card'),isExpanded=btn.getAttribute('data-expanded')==='true';if(isExpanded){const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶')}}btn.innerText="모두 펼치기";}else{card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');card.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='block');card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');btn.innerText="모두 접기";}btn.setAttribute('data-expanded',!isExpanded)}
+function toggleTreeNode(el){const p=el.closest('.tree-li'),c=p.querySelector(':scope>.bullet-cost'),t=p.querySelector(':scope>.tree-ul'),m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');if(t)t.style.display=t.style.display==='none'?'block':'none';if(c)c.style.display=c.style.display==='none'?'block':'none';if(m)m.innerText=m.innerText==='▶'?'▼':'▶'}
 function resetAll(){ activeUnits.clear(); essenceUnits.clear(); expandedTrees.clear(); globalLineageState=false; const btn=document.getElementById('btnToggleLineage'); if(btn)btn.classList.remove('active'); document.getElementById('searchInput').value = ''; updateAllPanels(); }
 
 function renderTabs(){
@@ -419,7 +421,8 @@ function renderCurrentTabContent() {
         h += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">검색 결과가 없습니다.</div>`;
     }
     
-    items.forEach(item => {
+    // [오류고침] 누락되었던 (item, index) 매개변수를 다시 복구하여 ReferenceError 원천 차단
+    items.forEach((item, index) => {
         const isActive = activeUnits.has(item.id), qty = activeUnits.get(item.id) || 0;
         const unitEssence = getUnitEssenceTotal(item.id);
         const nameDisp = item.name;
@@ -446,11 +449,11 @@ function renderCurrentTabContent() {
         const badgeClass = item.grade === "SuperHidden" ? "badge-essence sh" : "badge-essence";
         const essenceBox = unitEssence > 0 ? `<div class="${badgeClass}">정수 [${unitEssence}]</div>` : '';
         
-        let rightControls = `<div class="uc-ctrl" onclick="event.stopPropagation()">${essenceBox}`;
+        let rightControls = `<div class="uc-ctrl" onclick="event.stopPropagation()"><div class="uc-ctrl-box">${essenceBox}`;
         if (item.grade !== "SuperHidden") rightControls += `<div class="ctrl-qty"><button class="ctrl-btn minus" onclick="changeUnitQty('${item.id}', -1)">−</button><div class="ctrl-val">${qty}</div><button class="ctrl-btn plus" onclick="changeUnitQty('${item.id}', 1)">+</button></div>`;
-        rightControls += `</div>`;
+        rightControls += `</div></div>`;
 
-        h+=`<div class="unit-card ${isActive?'active':''}" onclick="toggleUnitSelection('${item.id}', ${multi})">
+        h+=`<div class="unit-card ${isActive?'active':''}" style="animation-delay:${index * 0.03}s" onclick="toggleUnitSelection('${item.id}', ${multi})">
             <div class="uc-wrap">
                 <div class="uc-name">
                     <div style="color:${gradeColorsRaw[item.grade]}; font-weight:bold; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
@@ -492,7 +495,6 @@ function resetMagicDashboard(){
 function openHelpModal(){document.getElementById('helpModal').classList.add('active')}
 function closeHelpModal(e){if(e===undefined||e.target.id==='helpModal')document.getElementById('helpModal').classList.remove('active')}
 
-/* --- [수정완료] 공지사항 모달창 제어 함수 추가 --- */
 function openNoticeModal(){document.getElementById('noticeModal').classList.add('active')}
 function closeNoticeModal(e){if(e===undefined||e.target.id==='noticeModal')document.getElementById('noticeModal').classList.remove('active')}
 
