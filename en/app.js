@@ -356,7 +356,7 @@ function openJewelModal(){document.getElementById('jewelModal').classList.add('a
 function closeJewelModal(e){if(!e||e.target===document.getElementById('jewelModal'))document.getElementById('jewelModal').classList.remove('active');}
 function renderJewelGrid(){
     const g=document.getElementById('jewelGrid'); if(g.innerHTML!=='')return;
-    let h=''; const url="https://raw.githubusercontent.com/sldbox/site/main/jw/";
+    let h=''; const url="https://raw.githubusercontent.com/sldbox/site/main/image/jw/";
     const cMap={"Garnet":"#ff1e1e","Amethyst":"#9d4edd","Aquamarine":"#4cc9f0","Diamond":"#ffffff","Emerald":"#2ecc71","Pearl":"#fefae0","Ruby":"#e63946","Peridot":"#aacc00","Sapphire":"#0077b6","Opal":"#ffafcc","Topaz":"#ffd700","Turquoise":"#40e0d0","Bloodstone":"#8a0303","Spinel":"#ff4d4d","Fluorite":"#90ee90","Lapis":"#0000ff","Heliodor":"#dfdf00","Jet":"#1a1a1a","Agate":"#e0af1f","Olivine":"#9ab973","Hyacinth":"#ff8c00","Chrysoberyl":"#dfff00","Padparadscha":"#ff8b61","Tanzanite":"#483d8b","Rubellite":"#e0115f"};
     for(let i=0;i<JEWEL_RAW_DATA.length;i+=4){
         const en=JEWEL_RAW_DATA[i],kr=JEWEL_RAW_DATA[i+1],leg=JEWEL_RAW_DATA[i+2],myth=JEWEL_RAW_DATA[i+3],c=cMap[en]||"#fff"; if(!en) continue;
@@ -365,7 +365,7 @@ function renderJewelGrid(){
     g.innerHTML=h;
 }
 function openJewelPopup(e,l,m,c){
-    const url="https://raw.githubusercontent.com/sldbox/site/main/jw/";
+    const url="https://raw.githubusercontent.com/sldbox/site/main/image/jw/";
     document.getElementById('jp-img').src=`${url}${e}.png`; document.getElementById('jp-en').innerText=e.toUpperCase(); document.getElementById('jp-leg').innerText=l;
     const mArea=document.getElementById('jp-myth-area'); if(m&&m.trim()!==""){mArea.style.display='block';document.getElementById('jp-myth').innerText=m;}else{mArea.style.display='none';}
     document.getElementById('jp-color-border').style.borderColor=c; document.getElementById('jp-color-border').style.boxShadow=`0 0 20px ${c}`; document.getElementById('jewel-popup-overlay').style.display='flex';
