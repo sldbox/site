@@ -28,7 +28,30 @@
     <div class="intro-radar"></div>
     <div class="intro-content">
         <div class="intro-logo">
-            <img src="logo.jpg" alt="개복디 넥서스 로고" class="intro-logo-img">
+            <div class="taegeuk-logo intro">
+                <svg viewBox="0 0 100 100" class="logo-full">
+                    <g transform="rotate(-35 50 50)">
+                        <rect x="36" y="6" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <path d="M 22 50 A 28 28 0 0 1 78 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 22 50 Z" fill="#EF4444"/>
+                        <path d="M 78 50 A 28 28 0 0 1 22 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 78 50 Z" fill="#3B82F6"/>
+                    </g>
+                    <g transform="rotate(35 50 50)">
+                        <rect x="36" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="71" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                        <rect x="36" y="89" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="intro-text-wrap">
+                <span class="intro-sld glitch" data-text="개복디">개복디</span>
+                <span class="intro-nexus glitch" data-text="넥서스">넥서스</span>
+            </div>
         </div>
         <div class="intro-sys-text">
             <span class="sys-typing">SYSTEM INITIALIZING... MATRIX HUB ONLINE</span>
@@ -45,15 +68,22 @@
 <main class="main-layout" id="mainLayout">
     <header class="site-header">
         <div class="brand-title" id="brandTitle">
-            <img src="logo.jpg" alt="로고" class="header-logo-symbol">
-            <span>개복디 넥서스</span>
+            <div class="taegeuk-logo header">
+                <svg viewBox="0 0 100 100" class="logo-simple">
+                    <g transform="rotate(-35 50 50)">
+                        <path d="M 10 50 A 40 40 0 0 1 90 50 A 20 20 0 0 0 50 50 A 20 20 0 0 1 10 50 Z" fill="#EF4444"/>
+                        <path d="M 90 50 A 40 40 0 0 1 10 50 A 20 20 0 0 0 50 50 A 20 20 0 0 1 90 50 Z" fill="#3B82F6"/>
+                    </g>
+                </svg>
+            </div>
+            개복디 넥서스
         </div>
 
         <div class="hdr-btns">
-            <button class="btn-hdr neon-btn" onclick="resetAll()"><span style="margin-right:4px;">⟲</span> 시스템 초기화</button>
-            <button class="btn-hdr" style="color:var(--g); border-color:rgba(0,229,255,0.4);" onclick="openNoticeModal()"><span style="margin-right:4px;">⚑</span> 공지사항</button>
-            <button class="btn-hdr" onclick="openHelpModal()"><span style="margin-right:4px;">ⓘ</span> 가이드</button>
-            <button class="btn-hdr" onclick="openJewelModal()"><span style="margin-right:4px;">✦</span> 쥬얼 도감</button>
+            <button class="btn-hdr neon-btn" onclick="resetAll()">⟲ 시스템 초기화</button>
+            <button class="btn-hdr" style="color:var(--g); border-color:rgba(0,229,255,0.4);" onclick="openNoticeModal()">⚑ 공지사항</button>
+            <button class="btn-hdr" onclick="openHelpModal()">ⓘ 가이드</button>
+            <button class="btn-hdr" onclick="openJewelModal()">✦ 쥬얼 도감</button>
         </div>
 
         <div class="brand-creator">
@@ -105,7 +135,32 @@
 
 <div class="modal-backdrop" id="helpModal" onclick="closeHelpModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2><span style="margin-right:8px;">ⓘ</span>전술 시스템 가이드 (초보자용)</h2><button class="btn-close" onclick="closeHelpModal()">&times;</button></div>
+        <div class="modal-head">
+            <h2>
+                <div class="taegeuk-logo modal-icon">
+                    <svg viewBox="0 0 100 100" class="logo-full">
+                        <g transform="rotate(-35 50 50)">
+                            <rect x="36" y="6" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <path d="M 22 50 A 28 28 0 0 1 78 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 22 50 Z" fill="#EF4444"/>
+                            <path d="M 78 50 A 28 28 0 0 1 22 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 78 50 Z" fill="#3B82F6"/>
+                        </g>
+                        <g transform="rotate(35 50 50)">
+                            <rect x="36" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="71" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/>
+                            <rect x="36" y="89" width="28" height="5" fill="#a1b0b8" rx="1.5"/>
+                        </g>
+                    </svg>
+                </div>
+                전술 시스템 가이드 (초보자용)
+            </h2>
+            <button class="btn-close" onclick="closeHelpModal()">&times;</button>
+        </div>
         <div class="modal-body-scroll">
             <div style="text-align:center; margin-bottom:24px; padding-top:10px;">
                 <h3 style="color:var(--g); font-size:1.4rem; text-shadow:0 0 10px var(--g-glow);">[ 개복디 넥서스 100% 활용법 ]</h3>
@@ -128,11 +183,11 @@
                 </p>
             </div>
             <div class="step-card">
-                <h3><span class="step-num">3</span> <span>우측 상단 탭 2: 계보(트리)</span></h3>
-                <p>선택한 유닛의 <span class="highlight">하위 조합식(트리)</span>을 상세히 파악합니다.</p>
+                <h3><span class="step-num">3</span> <span>우측 상단 탭 2: 계보(트리) 및 코스트 확인</span></h3>
+                <p>선택한 유닛의 <span class="highlight">하위 조합식(트리)과 개별 비용</span>을 상세히 파악합니다.</p>
                 <p class="sub-txt">
-                    - <b>자동 렌더링:</b> 좌측에서 유닛을 선택한 후 우측 '계보' 탭을 누르면, 해당 유닛의 트리 구조가 즉시 나타납니다.<br>
-                    - <b>상세 조건 확인:</b> 킬수, 전설의 쥬얼 등 특수 조건과 각 유닛별 요구 비용이 한 줄로 통합되어 표시됩니다.
+                    - <b>자동 렌더링:</b> 좌측에서 유닛을 선택한 후 우측 '계보' 탭을 누르면 트리 구조가 즉시 나타납니다.<br>
+                    - <b>📊 코스트 확인 버튼:</b> 트리에 있는 개별 하위 유닛의 재료를 확인하고 싶다면, 옆에 있는 버튼을 눌러보세요. 다중 수량까지 모두 누적 곱셈되어 정확한 요구량이 미니 메트릭스로 출력됩니다.
                 </p>
             </div>
         </div>
@@ -142,7 +197,15 @@
 <div class="modal-backdrop" id="noticeModal" onclick="closeNoticeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <div class="modal-head">
-            <h2 style="font-family:'Orbitron', 'Song Myung', sans-serif;"><span style="margin-right:8px;">⚑</span>공지사항</h2>
+            <h2 style="font-family:'Orbitron', 'Song Myung', sans-serif;">
+                <div class="taegeuk-logo modal-icon">
+                    <svg viewBox="0 0 100 100" class="logo-full">
+                        <g transform="rotate(-35 50 50)"><rect x="36" y="6" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><path d="M 22 50 A 28 28 0 0 1 78 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 22 50 Z" fill="#EF4444"/><path d="M 78 50 A 28 28 0 0 1 22 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 78 50 Z" fill="#3B82F6"/></g>
+                        <g transform="rotate(35 50 50)"><rect x="36" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="71" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="89" width="28" height="5" fill="#a1b0b8" rx="1.5"/></g>
+                    </svg>
+                </div>
+                공지사항
+            </h2>
             <button class="btn-close" onclick="closeNoticeModal()">&times;</button>
         </div>
         <div class="modal-body-scroll">
@@ -178,7 +241,18 @@
 
 <div class="modal-backdrop" id="jewelModal" onclick="closeJewelModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()" style="width:min(1100px, 95vw); max-height:85vh;">
-        <div class="modal-head"><h2 style="font-family:'Orbitron', sans-serif;"><span style="margin-right:8px;">✦</span>쥬얼 도감</h2><button class="btn-close" onclick="closeJewelModal()">&times;</button></div>
+        <div class="modal-head">
+            <h2 style="font-family:'Orbitron', sans-serif;">
+                <div class="taegeuk-logo modal-icon">
+                    <svg viewBox="0 0 100 100" class="logo-full">
+                        <g transform="rotate(-35 50 50)"><rect x="36" y="6" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="71" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="89" width="12" height="5" fill="#a1b0b8" rx="1.5"/><path d="M 22 50 A 28 28 0 0 1 78 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 22 50 Z" fill="#EF4444"/><path d="M 78 50 A 28 28 0 0 1 22 50 A 14 14 0 0 0 50 50 A 14 14 0 0 1 78 50 Z" fill="#3B82F6"/></g>
+                        <g transform="rotate(35 50 50)"><rect x="36" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="6" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="15" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="24" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="71" width="28" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="52" y="80" width="12" height="5" fill="#a1b0b8" rx="1.5"/><rect x="36" y="89" width="28" height="5" fill="#a1b0b8" rx="1.5"/></g>
+                    </svg>
+                </div>
+                쥬얼 도감
+            </h2>
+            <button class="btn-close" onclick="closeJewelModal()">&times;</button>
+        </div>
         <div class="modal-body-scroll" style="background:var(--panel-b);">
             <div id="jewelGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:20px;"></div>
         </div>

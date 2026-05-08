@@ -1,6 +1,8 @@
 /*
 =============================================================================
 [파일 설명서] app.js
+- 시스템 초기화 및 코스트 수학 계산 (한국어 전용 개복디 넥서스)
+- [수정완료] 좌측 유닛도감 탭 아이콘을 SVG에서 기존 이모지(특수기호)로 원복
 =============================================================================
 */
 
@@ -89,20 +91,20 @@ function calculateRecursiveCost(nameKo,m,map,visited=new Set()){
 function updateAllPanels() { updateMagicDashboard(); updateEssence(); renderTabs(); renderCurrentTabContent(); renderLineageBoard(); }
 
 function switchRightTab(tab) {
-    document.getElementById('btnTabMatrix').classList.toggle('active', tab === 'matrix');
-    document.getElementById('btnTabLineage').classList.toggle('active', tab === 'lineage');
+    DOM.btnTabMatrix.classList.toggle('active', tab === 'matrix');
+    DOM.btnTabLineage.classList.toggle('active', tab === 'lineage');
     if(tab === 'matrix') {
-        document.getElementById('viewMatrix').style.display = 'flex';
-        document.getElementById('viewLineage').style.display = 'none';
+        DOM.viewMatrix.style.display = 'flex';
+        DOM.viewLineage.style.display = 'none';
     } else {
-        document.getElementById('viewMatrix').style.display = 'none';
-        document.getElementById('viewLineage').style.display = 'flex';
+        DOM.viewMatrix.style.display = 'none';
+        DOM.viewLineage.style.display = 'flex';
         renderLineageBoard();
     }
 }
 
 function toggleSelectAllInCurrentTab() {
-    const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
+    const q = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
     const catKey = TAB_CATEGORIES[_activeTabIdx].key;
 
     let items = Array.from(unitMap.values()).filter(u => ["SuperHidden","Hidden","Legend"].includes(u.grade));
@@ -280,7 +282,23 @@ function getUnitTotalMatrixHtml(u, qty) {
     return h;
 }
 
-function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0){
+function toggleTreeMatrix(e, btn, uid, qty) {
+    e.stopPropagation();
+    const container = btn.closest('.bullet-cost').querySelector('.tree-matrix-container');
+    if (container.style.display === 'none') {
+        if (!container.innerHTML) {
+            const u = unitMap.get(uid);
+            container.innerHTML = getUnitTotalMatrixHtml(u, qty);
+        }
+        container.style.display = 'block';
+        btn.classList.add('active');
+    } else {
+        container.style.display = 'none';
+        btn.classList.remove('active');
+    }
+}
+
+function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0,accumulatedQty=1){
     const u=unitMap.get(uid);
     if(!u) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted); border-left-color:var(--text-muted);">${uid} ${conditionStr?`<span class="badge-cond">${conditionStr}</span>`:''}</div></div></li>`;
 
@@ -301,25 +319,38 @@ function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0){
                 let qtyTxt = match[3] ? `[${match[3]}]` : '[1]';
                 let combined = `${condTxt}${qtyTxt}`;
                 const target=unitMap.get(childUid);
+                
+                const childQty = match[3] ? parseInt(match[3]) : 1;
+                const totalChildQty = accumulatedQty * childQty;
 
                 if(target&&target.id!==u.id) {
-                    ch+=buildTree(target.id,newV,false,combined,depth+1);
+                    ch+=buildTree(target.id,newV,false,combined,depth+1,totalChildQty);
                 } else {
                     ch+=`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted); border-left-color:var(--text-muted);">${match[1].trim()} ${combined?`<span class="badge-cond">${combined}</span>`:''}</div></div></li>`;
                 }
             } else {
                 const childUid=getUnitId(part), target=unitMap.get(childUid);
-                if(target&&target.id!==u.id) ch+=buildTree(target.id,newV,false,'',depth+1);
+                if(target&&target.id!==u.id) ch+=buildTree(target.id,newV,false,'',depth+1,accumulatedQty);
             }
         });
     }
 
     const ulStyle=depth===0?'block':'none', mark=depth===0?'▼':'▶', bulletDisplay=depth===0?'block':'none';
 
+    if (depth === 0) {
+        return ch; 
+    }
+
     let costHtml = '';
     if(u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)){
-        const costItems = u.cost.replace(/0\.3333/g, '1').replace(/0\.6666/g, '2').split(',').map(item => `<span class="cost-tag">${item.trim()}</span>`).join('');
-        costHtml = `<div class="bullet-cost" style="display:${bulletDisplay};"><div class="cost-inner-wrap"><span class="cost-label">↳ 요구재료 :</span> <div class="cost-tags-wrap">${costItems}</div></div></div>`;
+        costHtml = `
+            <div class="bullet-cost" style="display:${bulletDisplay};">
+                <div class="cost-inner-wrap">
+                    <span class="cost-label">↳ 요구재료 :</span> 
+                    <button class="btn-tree-matrix" onclick="toggleTreeMatrix(event, this, '${u.id}', ${accumulatedQty})">📊 코스트 확인 (x${accumulatedQty})</button>
+                </div>
+                <div class="tree-matrix-container" style="display:none; margin-top:8px;"></div>
+            </div>`;
     }
 
     return `<li class="tree-li">
@@ -334,11 +365,10 @@ function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0){
 }
 
 function renderLineageBoard() {
-    const board = document.getElementById('lineageBoard');
-    if (!board) return;
+    if (!DOM.lineageBoard) return;
 
     if (activeUnits.size === 0) {
-        board.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold;">좌측 유닛도감에서 계보를 확인할 유닛을 선택하세요.</div>';
+        DOM.lineageBoard.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold;">좌측 유닛도감에서 계보를 확인할 유닛을 선택하세요.</div>';
         return;
     }
 
@@ -368,28 +398,28 @@ function renderLineageBoard() {
         if (["SuperHidden", "Hidden", "Legend"].includes(u.grade)) {
             rootMatrixHtml = `
             <div style="margin-bottom:20px;">
-                <div class="ul-title" style="margin-bottom:12px;"><span style="color:var(--grade-epic); margin-right:6px;">❖</span> [${u.name} x ${qty}] 총 요구재료 메트릭스</div>
+                <div class="ul-title" style="margin-bottom:12px;"><span style="color:var(--grade-epic); margin-right:6px;">❖</span> [${u.name}] 총 요구재료 메트릭스 (x${qty})</div>
                 ${getUnitTotalMatrixHtml(u, qty)}
             </div>`;
         }
 
         h += `<div class="analysis-card" style="margin-bottom:0; width:100%; border-left-color:var(--g); background:var(--badge-bg);">
                 <h3 style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                    <div><span style="color:${gradeColorsRaw[u.grade]}; font-size:1.05rem;">${u.name}</span> <span style="font-size:0.85rem; color:var(--text-muted); margin-left:6px;">[수량: ${qty}]</span></div>
+                    <div><span style="color:${gradeColorsRaw[u.grade]}; font-size:1.05rem;">${u.name}</span></div>
                     <button class="btn-small" data-expanded="false" onclick="toggleAllTree(this)">모두 펼치기</button>
                 </h3>
                 ${upperHtml}
                 ${rootMatrixHtml}
-                <ul class="tree-ul root-ul" style="display:block; padding-left:0;">${buildTree(u.id, new Set(), true, '', 0)}</ul>
+                <ul class="tree-ul root-ul" style="display:block; padding-left:0;">${buildTree(u.id, new Set(), true, '', 0, qty)}</ul>
               </div>`;
     });
     h += '</div>';
-    board.innerHTML = h;
+    DOM.lineageBoard.innerHTML = h;
 }
 
-function toggleAllTree(btn){const card=btn.closest('.analysis-card'),isExpanded=btn.getAttribute('data-expanded')==='true';if(isExpanded){const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶')}}btn.innerText="모두 펼치기";}else{card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');card.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='block');card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');btn.innerText="모두 접기";}btn.setAttribute('data-expanded',!isExpanded)}
+function toggleAllTree(btn){const card=btn.closest('.analysis-card'),isExpanded=btn.getAttribute('data-expanded')==='true';if(isExpanded){const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶');firstLevelUl.querySelectorAll('.tree-matrix-container').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.btn-tree-matrix').forEach(el=>el.classList.remove('active'));}}btn.innerText="모두 펼치기";}else{card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');card.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='block');card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');btn.innerText="모두 접기";}btn.setAttribute('data-expanded',!isExpanded)}
 function toggleTreeNode(el){const p=el.closest('.tree-li'),c=p.querySelector(':scope>.bullet-cost'),t=p.querySelector(':scope>.tree-ul'),m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');if(t)t.style.display=t.style.display==='none'?'block':'none';if(c)c.style.display=c.style.display==='none'?'block':'none';if(m)m.innerText=m.innerText==='▶'?'▼':'▶'}
-function resetAll(){ activeUnits.clear(); essenceUnits.clear(); document.getElementById('searchInput').value = ''; updateAllPanels(); }
+function resetAll(){ activeUnits.clear(); essenceUnits.clear(); if(DOM.searchInput) DOM.searchInput.value = ''; updateAllPanels(); }
 
 function renderTabs(){
     let h='';
@@ -412,7 +442,7 @@ function renderTabs(){
                 <span>${cat.name}</span>
             </button>`;
     });
-    document.getElementById('codexTabs').innerHTML=h;
+    DOM.codexTabs.innerHTML=h;
 }
 
 function formatRecipeVertical(item) {
@@ -493,7 +523,7 @@ function processSearchAutoSelect(query) {
 }
 
 function filterUnits() {
-    const q = document.getElementById('searchInput').value.trim();
+    const q = DOM.searchInput ? DOM.searchInput.value.trim() : '';
     if (q.includes('*')) {
         processSearchAutoSelect(q);
     }
@@ -502,7 +532,7 @@ function filterUnits() {
 
 function renderCurrentTabContent() {
     const catKey = TAB_CATEGORIES[_activeTabIdx].key;
-    const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
+    const q = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
 
     let items = Array.from(unitMap.values()).filter(u => ["SuperHidden","Hidden","Legend"].includes(u.grade));
     let searchMultipliers = {};
@@ -575,7 +605,7 @@ function renderCurrentTabContent() {
             </div>
         </div>`;
     });
-    h+='</div>'; document.getElementById('tabContent').innerHTML=h;
+    h+='</div>'; DOM.tabContent.innerHTML=h;
 }
 
 function renderDashboardAtoms(){
@@ -613,13 +643,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.lang = 'ko';
     document.documentElement.setAttribute('data-theme', 'dark');
 
+    DOM.searchInput = document.getElementById('searchInput');
+    DOM.tabContent = document.getElementById('tabContent');
+    DOM.lineageBoard = document.getElementById('lineageBoard');
+    DOM.codexTabs = document.getElementById('codexTabs');
+    DOM.magicDashboard = document.getElementById('magicDashboard');
+    DOM.viewMatrix = document.getElementById('viewMatrix');
+    DOM.viewLineage = document.getElementById('viewLineage');
+    DOM.btnTabMatrix = document.getElementById('btnTabMatrix');
+    DOM.btnTabLineage = document.getElementById('btnTabLineage');
+
     UNIT_DATABASE.forEach((kArr) => {
         const g = gradeMap[kArr[1]] || "Magic", cat = raceMap[kArr[2]] || "TBio";
         const u={ id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] };
         unitMap.set(clean(kArr[0]), u);
     });
 
-    DOM.magicDashboard=document.getElementById('magicDashboard');
     renderDashboardAtoms();
     document.getElementById('mainLayout').classList.add('visible');
     selectTab(0);
@@ -639,7 +678,8 @@ function renderJewelGrid(){
     let h=''; const url="https://raw.githubusercontent.com/sldbox/site/main/image/jw/";
 
     JEWEL_DATABASE.forEach((koArr) => {
-        const kr=koArr[0], krLeg=koArr[1], krMyth=koArr[2], c=koArr[3]||"#fff", imgName=koArr[4]||kr;
+        const kr=koArr[0], krLeg=koArr[1], krMyth=koArr[2], imgName=koArr[3]||kr;
+        const c = typeof JEWEL_COLORS !== 'undefined' && JEWEL_COLORS[kr] ? JEWEL_COLORS[kr] : "#ffffff";
 
         let mythHtml = '';
         if (krMyth && krMyth.trim() !== "") {
