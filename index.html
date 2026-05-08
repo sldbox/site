@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>개복디 넥서스</title>
-
     <link rel="icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="shortcut icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="https://sldbox.github.io/site/image/logo/icon.png">
@@ -14,11 +13,10 @@
     <meta property="og:title" content="개복디 넥서스 - MATRIX HUD">
     <meta property="og:description" content="개복디 넥서스 - MATRIX HUB">
     <meta property="og:image" content="https://sldbox.github.io/site/image/logo/logo.png">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Nanum+Gothic:wght@400;700;800&family=Orbitron:wght@700;900&family=Song+Myung&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body oncontextmenu="return false">
@@ -48,10 +46,13 @@
         <div class="brand-title" id="brandTitle">개복디 넥서스</div>
 
         <div class="hdr-btns">
-            <button class="btn-hdr neon-btn" onclick="resetAll()">시스템 초기화</button>
-            <button class="btn-hdr" style="color:var(--g); border-color:rgba(0,229,255,0.4);" onclick="openNoticeModal()">공지사항</button>
-            <button class="btn-hdr" onclick="openHelpModal()">가이드</button>
-            <button class="btn-hdr" onclick="openJewelModal()">쥬얼 도감</button>
+            <button class="btn-hdr neon-btn" onclick="resetAll()"><i class="fas fa-power-off" style="margin-right:6px;"></i>시스템 초기화</button>
+            <button class="btn-hdr" style="color:var(--g); border-color:rgba(0,229,255,0.4);" onclick="openNoticeModal()"><i class="fas fa-bullhorn" style="margin-right:6px;"></i>공지사항</button>
+            <button class="btn-hdr" onclick="openHelpModal()"><i class="fas fa-book" style="margin-right:6px;"></i>가이드</button>
+            <button class="btn-hdr" onclick="openJewelModal()"><i class="fas fa-gem" style="margin-right:6px;"></i>쥬얼 도감</button>
+            <button class="btn-hdr neon-btn" id="btnToggleView" onclick="toggleMainView()" style="background:var(--g-faint); border-color:var(--grade-hidden); color:var(--grade-hidden); box-shadow:0 0 10px rgba(52,211,153,0.3); font-size:1.05rem;">
+                <i class="fas fa-sitemap" style="margin-right:6px;"></i>계보도감
+            </button>
         </div>
 
         <div class="brand-creator">
@@ -63,20 +64,31 @@
 
     <div class="hud-panel panel-codex">
         <div class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg);">
-            <div style="padding:11px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; gap:10px; background:var(--g-faint); position:relative; overflow:hidden;">
+            <div style="padding:11px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden;">
                 <div class="header-scanline"></div>
-                <span class="ph-icon">DB</span><span class="ph-title">유닛 & 조합 데이터베이스</span>
-            </div>
-            <div style="padding:10px 10px 0 10px; width:100%; position:relative;">
-                <input type="text" id="searchInput" oninput="filterUnits()" class="search-input" placeholder="유닛명 일부*수량 입력 (예: 뫼비*16, 땅굴*8)">
-                <div class="search-glow"></div>
-            </div>
-            <div style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:stretch;">
-                <div class="codex-tabs" id="codexTabs" style="flex:1.5;"></div>
-                <div style="display:flex; gap:6px; flex:1;">
-                    <button id="btnToggleLineage" class="btn-action" style="flex:1;" onclick="toggleGlobalLineage()">계보 활성화</button>
-                    <button id="btnToggleSelectAll" class="btn-action" style="flex:1; padding:0;" onclick="toggleSelectAllInCurrentTab()">전체선택/해제</button>
+                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                    <span class="ph-icon">DB</span><span class="ph-title">유닛도감&조합</span>
                 </div>
+                <div style="flex:1; position:relative; z-index:2;">
+                    <input type="text" id="searchInput" oninput="filterUnits()" class="search-input" placeholder="유닛명 일부*수량" style="padding:8px 12px; font-size:0.9rem; border-radius:4px; width:100%; height:40px;">
+                    <div class="search-glow"></div>
+                </div>
+            </div>
+            
+            <div id="raceTabContainer" style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:center;">
+                <div class="codex-tabs" id="codexTabs" style="flex:1;"></div>
+                <button id="btnToggleSelectAll" class="btn-action" style="height:100%; min-height:40px; padding:0 15px; flex-shrink:0;" onclick="toggleSelectAllInCurrentTab()">전체선택/해제</button>
+            </div>
+
+            <div class="grade-filter-wrap" id="gradeFilterWrap" style="display:none;">
+                <button class="gf-btn active" data-grade="SuperHidden" onclick="setGradeFilter('SuperHidden')" style="color:var(--grade-super);">슈퍼히든</button>
+                <button class="gf-btn" data-grade="Hidden" onclick="setGradeFilter('Hidden')" style="color:var(--grade-hidden);">히든</button>
+                <button class="gf-btn" data-grade="Legend" onclick="setGradeFilter('Legend')" style="color:var(--grade-legend);">레전드</button>
+                <button class="gf-btn" data-grade="Hell" onclick="setGradeFilter('Hell')" style="color:var(--grade-hell);">헬</button>
+                <button class="gf-btn" data-grade="Unique" onclick="setGradeFilter('Unique')" style="color:var(--grade-unique);">유니크</button>
+                <button class="gf-btn" data-grade="Epic" onclick="setGradeFilter('Epic')" style="color:var(--grade-epic);">에픽</button>
+                <button class="gf-btn" data-grade="Rare" onclick="setGradeFilter('Rare')" style="color:var(--grade-rare);">레어</button>
+                <button class="gf-btn" data-grade="Magic" onclick="setGradeFilter('Magic')" style="color:var(--grade-magic);">매직</button>
             </div>
         </div>
         <div class="panel-body">
@@ -85,46 +97,68 @@
     </div>
 
     <div class="hud-panel panel-magic">
-        <div class="panel-header" style="justify-content:center; position:relative; overflow:hidden;">
-            <div class="header-scanline"></div>
-            <span class="ph-icon" style="color:var(--grade-epic); border-color:var(--grade-epic); background:rgba(251,146,60,0.1);">CORE</span>
-            <span class="ph-title" style="color:var(--text); text-shadow:0 0 10px rgba(255,255,255,0.3);">총합 코스트 매트릭스</span>
+        <div class="panel-header magic-header" id="headerMatrix">
+            <div class="mh-title">
+                <span style="color:var(--grade-epic); margin-right:8px; text-shadow:0 0 10px var(--grade-epic);">CORE</span> 메인화면
+            </div>
+            <div class="tab-inline-summary" id="tabSummaryBox">
+                <span class="tis-item"><span class="tis-lbl">총매직</span><span class="tis-val" id="hdr-val-magic">0</span></span>
+                <span class="tis-item"><span class="tis-lbl">총정수</span><span class="tis-val" id="hdr-val-essence">0</span></span>
+                <span class="tis-item"><span class="tis-lbl" style="color:#FF6B6B;">코랄</span><span class="tis-val" id="hdr-val-coral">0</span></span>
+                <span class="tis-item"><span class="tis-lbl" style="color:var(--grade-rare);">아이어</span><span class="tis-val" id="hdr-val-aiur">0</span></span>
+                <span class="tis-item"><span class="tis-lbl" style="color:var(--grade-legend);">제루스</span><span class="tis-val" id="hdr-val-zerus">0</span></span>
+            </div>
         </div>
-        <div class="panel-body" style="padding:0;"><div class="magic-grid" id="magicDashboard"></div></div>
+
+        <div class="panel-header magic-header" id="headerLineage" style="display:none; justify-content:flex-start; align-items:center; gap: 10px;">
+            <div class="mh-title">
+                <span style="color:var(--grade-hidden); margin-right:8px; text-shadow:0 0 10px var(--grade-hidden);">NODE</span> 계보도감
+            </div>
+            <button class="btn-action" style="border-color:var(--grade-unique); color:var(--grade-unique); padding: 4px 12px; font-size: 0.85rem; height: auto; min-height: 30px;" onclick="resetAll()">
+                <i class="fas fa-trash-alt" style="margin-right:6px;"></i>선택 초기화
+            </button>
+        </div>
+        
+        <div class="panel-body" id="viewMatrix" style="padding:0; display:flex; flex-direction:column;">
+            <div class="magic-grid" id="magicDashboard" style="padding:16px;"></div>
+        </div>
+        
+        <div class="panel-body" id="viewLineage" style="display:none; padding:16px; flex-direction:column; overflow:auto; background:var(--panel);">
+            <div id="lineageBoard"></div>
+        </div>
     </div>
 </main>
 
 <div class="modal-backdrop" id="helpModal" onclick="closeHelpModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2>전술 시스템 가이드</h2><button class="btn-close" onclick="closeHelpModal()">&times;</button></div>
+        <div class="modal-head"><h2>전술 시스템 가이드 (초보자용)</h2><button class="btn-close" onclick="closeHelpModal()">&times;</button></div>
         <div class="modal-body-scroll">
             <div style="text-align:center; margin-bottom:24px; padding-top:10px;">
-                <h3 style="color:var(--g); font-size:1.4rem; text-shadow:0 0 10px var(--g-glow);">[ 🚀 초보자도 100% 활용하는 개복디 넥서스 ]</h3>
-                <p style="color:var(--text-sub); font-size:0.95rem; margin-top:8px;">더 빠르고 스마트해진 시뮬레이션 시스템을 경험하세요!</p>
+                <h3 style="color:var(--g); font-size:1.4rem; text-shadow:0 0 10px var(--g-glow);">[ 개복디 넥서스 100% 활용법 ]</h3>
+                <p style="color:var(--text-sub); font-size:0.95rem; margin-top:8px;">처음 오신 분들을 위한 시스템 기본 구조 안내</p>
             </div>
             <div class="step-card">
-                <h3><span class="step-num">1</span> <span>스마트 검색 & 수량 동기화</span></h3>
-                <p>복잡하게 찾을 필요 없이 <span class="highlight">검색창 하나로 끝내세요!</span></p>
+                <h3><span class="step-num">1</span> <span>좌측: 유닛 검색 및 수량 선택</span></h3>
+                <p>좌측 도감 패널은 <span class="highlight">정보 검색 및 유닛 선택</span>을 담당합니다.</p>
                 <p class="sub-txt">
-                    ✔️ <b>부분 검색 지원:</b> 전체 이름을 몰라도 '뫼비', '사라'처럼 일부만 쳐도 찰떡같이 찾아냅니다.<br>
-                    ✔️ <b>마법의 [*] 기호:</b> <code>땅굴*8</code>, <code>불새*16</code>처럼 입력하면 유닛 선택과 수량(최대 16)이 매트릭스에 <b>즉시 자동 합산</b>됩니다.<br>
-                    ✔️ <b>정밀 컨트롤:</b> 카드 우측의 [−/+] 버튼으로도 언제든 수량을 세팅할 수 있습니다. (슈퍼히든 유닛은 밸런스 보호를 위해 1개로 고정됩니다)
+                    - <b>종족 탭 및 검색:</b> 원하는 종족을 선택하거나 상단 검색창에 '이름*수량'을 입력하여 유닛을 빠르게 선택할 수 있습니다.<br>
+                    - <b>수량 동기화:</b> 카드 우측 컨트롤 박스의 [−/+] 버튼으로 수량을 조절하면 우측 패널에 실시간으로 연산됩니다.
                 </p>
             </div>
             <div class="step-card">
-                <h3><span class="step-num">2</span> <span>한눈에 들어오는 계보(트리)</span></h3>
-                <p>선택한 유닛을 만들기 위해 <span class="highlight">어떤 재료가 필요한지</span> 바로 확인하세요.</p>
+                <h3><span class="step-num">2</span> <span>우측 상단 탭 1: 메인화면</span></h3>
+                <p>게임 플레이에 필요한 <span class="highlight">최종 자원량</span>을 한눈에 확인합니다.</p>
                 <p class="sub-txt">
-                    ✔️ 유닛 카드를 클릭하면 하단에 <b>[계보]</b>가 펼쳐지며, 게임 내 UI처럼 깔끔하게 정리됩니다.<br>
-                    ✔️ 조건(SXD, 킬수 등)과 요구 비용이 이름 옆에 한 줄로 깔끔하게 통합되어 직관적입니다.
+                    - <b>코스트 합산:</b> 좌측에서 선택한 모든 유닛의 기초 재료 코스트를 합산하여 대시보드 형태로 보여줍니다.<br>
+                    - <b>정수 자동 계산:</b> 히든/슈퍼히든 유닛 제작에 필요한 정수(코랄, 아이어, 제루스)량도 하위 재료까지 추적하여 자동 합산합니다.
                 </p>
             </div>
             <div class="step-card">
-                <h3><span class="step-num">3</span> <span>매트릭스 연산 & 정수(Essence)</span></h3>
-                <p>이제 화면 우측의 <span class="highlight">[총합 코스트 매트릭스]</span>만 보고 편하게 게임을 플레이하세요.</p>
+                <h3><span class="step-num">3</span> <span>우측 상단 탭 2: 계보도감</span></h3>
+                <p>선택한 유닛의 <span class="highlight">하위 조합식(트리)</span>을 상세히 파악합니다.</p>
                 <p class="sub-txt">
-                    ✔️ <b>완벽한 분할:</b> <code>갓오타 / 메시브</code> 같은 스킬 사용 횟수는 핑크색 특수 슬롯에 따로 표시되어 기초 재료 유닛 코스트와 헷갈리지 않습니다.<br>
-                    ✔️ 일일 획득 가능한 <b>[정수]</b>량도 하위 재료까지 완벽하게 추적하여 자동으로 합산해 줍니다!
+                    - <b>자동 렌더링:</b> 좌측에서 유닛을 선택한 후 우측 '계보도감' 탭을 누르면, 해당 유닛의 트리 구조가 즉시 나타납니다.<br>
+                    - <b>상세 조건 확인:</b> 킬수, 전설의 쥬얼 등 특수 조건과 각 유닛별 요구 비용이 한 줄로 통합되어 표시됩니다.
                 </p>
             </div>
         </div>
@@ -134,7 +168,7 @@
 <div class="modal-backdrop" id="noticeModal" onclick="closeNoticeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <div class="modal-head">
-            <h2 style="font-family:'Orbitron', 'Song Myung', sans-serif;">📢 공지사항</h2>
+            <h2 style="font-family:'Orbitron', 'Song Myung', sans-serif;">공지사항</h2>
             <button class="btn-close" onclick="closeNoticeModal()">&times;</button>
         </div>
         <div class="modal-body-scroll">
@@ -142,22 +176,20 @@
                 <h3 style="color:var(--g); font-size:1.4rem; text-shadow:0 0 10px var(--g-glow);">[ 시스템 실시간 패치 안내 ]</h3>
                 <p style="color:var(--text-sub); font-size:0.95rem; margin-top:8px;">개복디 넥서스 최신 업데이트 및 안내사항</p>
             </div>
-            
             <div class="step-card" style="border-left-color: var(--grade-unique);">
                 <h3 style="color: var(--grade-unique); text-shadow: 0 0 8px rgba(239,68,68,0.3);">
-                    <span class="step-num" style="background: var(--grade-unique); box-shadow: 0 0 10px rgba(239,68,68,0.5);">!</span> 
+                    <span class="step-num" style="background: var(--grade-unique); box-shadow: 0 0 10px rgba(239,68,68,0.5);">주의</span> 
                     <span>실시간 패치 적용</span>
                 </h3>
                 <p>신규 히든 유닛 등 <span class="highlight" style="color:var(--grade-unique);">모든 패치 사항은 실시간으로 적용</span>됩니다.</p>
                 <p class="sub-txt">
-                    ✔️ 게임 내 조합법 변경 등 변동 사항이 발생할 경우 넥서스 데이터베이스에 즉각 반영됩니다.<br>
-                    ✔️ 항상 최신 버전의 코스트 및 계보를 이용하실 수 있습니다.
+                    - 게임 내 조합법 변경 등 변동 사항이 발생할 경우 넥서스 데이터베이스에 즉각 반영됩니다.<br>
+                    - 항상 최신 버전의 코스트 및 계보를 이용하실 수 있습니다.
                 </p>
             </div>
-
             <div class="step-card" style="border-left-color: var(--g);">
-                <h3><span class="step-num" style="font-size:1.1rem; padding:2px 10px;">📞</span> <span>오류 제보 및 문의</span></h3>
-                <p>시스템 사용 중 <span class="highlight">오류가 있거나 제보</span>할 내용이 있다면 언제든 환영합니다!</p>
+                <h3><span class="step-num" style="font-size:1.1rem; padding:2px 10px;">안내</span> <span>오류 제보 및 문의</span></h3>
+                <p>시스템 사용 중 <span class="highlight">오류가 있거나 제보</span>할 내용이 있다면 언제든 환영합니다.</p>
                 <div class="sub-txt" style="text-align: center; margin-top: 15px; padding: 18px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 8px;">
                     <span style="display:block; font-size: 1.15rem; font-weight: bold; color: #fff; margin-bottom: 8px; letter-spacing:1px;">제작자 회장</span>
                     <span style="display:block; font-size: 1.3rem; color: var(--grade-rare); font-weight: 900; letter-spacing: 1px; text-shadow:0 0 10px rgba(251,191,36,0.3); margin-bottom:6px;">핸들값 : 3-S2-1-2461127</span>
