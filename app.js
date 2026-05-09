@@ -1,66 +1,85 @@
 /*
 =============================================================================
 [파일 설명서] app.js
-- 시스템 초기화 및 코스트 수학 계산 (한국어 전용 개복디 넥서스)
-- [수정완료] 좌측 유닛도감 탭 아이콘을 SVG에서 기존 이모지(특수기호)로 원복
 =============================================================================
 */
 
 let _activeTabIdx = 0;
-const unitMap = new Map(), activeUnits = new Map(), essenceUnits = new Set(), DOM = {};
+const unitMap = new Map(), activeUnits = new Map(), ownedUnits = new Map(), essenceUnits = new Set(), DOM = {};
 const clean = s => s ? s.replace(/\s+/g, '').toLowerCase() : '';
 
-const GRADE_ORDER = ["Magic", "Rare", "Epic", "Unique", "Hell", "Legend", "Hidden", "SuperHidden"];
-const gradeColorsRaw = { "Magic":"var(--grade-magic)", "Rare":"var(--grade-rare)", "Epic":"var(--grade-epic)", "Unique":"var(--grade-unique)", "Hell":"var(--grade-hell)", "Legend":"var(--grade-legend)", "Hidden":"var(--grade-hidden)", "SuperHidden":"var(--grade-super)" };
-const GRADE_SHORT = { Magic:'M', Rare:'R', Epic:'E', Unique:'U', Hell:'HE', Legend:'L', Hidden:'H', SuperHidden:'SH' };
+const GRADE_ORDER = ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"];
+const gradeColorsRaw = { "매직":"var(--grade-magic)", "레어":"var(--grade-rare)", "에픽":"var(--grade-epic)", "유니크":"var(--grade-unique)", "헬":"var(--grade-hell)", "레전드":"var(--grade-legend)", "히든":"var(--grade-hidden)", "슈퍼히든":"var(--grade-super)" };
 
 const TAB_CATEGORIES = [
-    {key:"TBio", name:"테바", sym:"♆"},
-    {key:"TMech", name:"테메", sym:"⚙︎"},
-    {key:"PBio", name:"토바", sym:"⟡"},
-    {key:"PMech", name:"토메", sym:"⟁"},
-    {key:"Zerg", name:"저그중립", sym:"☣︎"},
-    {key:"Hybrid", name:"혼종", sym:"⌬"}
+    {key:"테바", name:"테바", sym:"♆"},
+    {key:"테메", name:"테메", sym:"⚙︎"},
+    {key:"토바", name:"토바", sym:"⟡"},
+    {key:"토메", name:"토메", sym:"⟁"},
+    {key:"저그중립", name:"저그중립", sym:"☣︎"},
+    {key:"혼종", name:"혼종", sym:"⌬"}
 ];
 
-const gradeMap = {"매직":"Magic", "레어":"Rare", "에픽":"Epic", "유니크":"Unique", "헬":"Hell", "레전드":"Legend", "히든":"Hidden", "슈퍼히든":"SuperHidden"};
-const raceMap = {"테바":"TBio", "테메":"TMech", "토바":"PBio", "토메":"PMech", "저그중립":"Zerg", "혼종":"Hybrid"};
 const IGNORE_PARSE_RECIPES = ["미발견", "없음", "", "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"];
 
 const dashboardAtoms = ["전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥", "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크", "땅거미지뢰", "자동포탑", "우르사돈[암]", "우르사돈[수]", "갓오타/메시브"];
-
-const specialKeywordMap = [
-    {keys:["자동포탑"], atom:"자동포탑"}, {keys:["잠복"], atom:"잠복"},
-    {keys:["지뢰", "시체매"], atom:"땅거미지뢰", divider:12},
-    {keys:["우르사돈[암]", "우르사돈암"], atom:"우르사돈[암]"}, {keys:["우르사돈[수]", "우르사돈수"], atom:"우르사돈[수]"},
-    {keys:["메시브", "디제스터"], atom:"갓오타/메시브", subKey:"메시브"},
-    {keys:["갓오브타임", "갓오타"], atom:"갓오타/메시브", subKey:"갓오타"}
-];
 
 const EMPTY_SVG = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><line x1="3" y1="21" x2="21" y2="3"></line></svg>`;
 const MINI_EMPTY_SVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><line x1="3" y1="21" x2="21" y2="3"></line></svg>`;
 
 function getUnitId(rawName){ const c=clean(rawName); const u=unitMap.get(c); return u ? u.id : c; }
 
+/*
+========================================================================================
+[🚫 절대 수정 금지 🚫] 넥서스 핵심 산술 엔진 락다운
+========================================================================================
+*/
+const AI_DO_NOT_MODIFY_CORE_ENGINE = true;
+
 function calculateTotalCostScore(costStr){
     if(!costStr||IGNORE_PARSE_RECIPES.includes(costStr))return 0;
     let score=0; costStr.split(',').forEach(p=>{const m=p.match(/\[(\d+(?:\.\d+)?)\]/);if(m)score+=parseFloat(m[1]);else score+=1}); return score;
 }
 
-function processCostKeyword(rawName,amount,map){
-    let matched=false;const cName=clean(rawName);
-    for(const conf of specialKeywordMap){
-        if(conf.keys.some(k=>cName.includes(clean(k)))){
-            const val=conf.divider?amount/conf.divider:amount;
-            if(conf.subKey){ if(!map[conf.atom])map[conf.atom]={갓오타:0,메시브:0}; map[conf.atom][conf.subKey]+=val; }
-            else map[conf.atom]=(map[conf.atom]||0)+val; matched=true;break;
-        }
+function processCostKeyword(rawName, amount, map) {
+    const cName = clean(rawName);
+
+    if (cName.includes('메시브') || cName.includes('디제스터')) {
+        if (typeof map['갓오타/메시브'] !== 'object') map['갓오타/메시브'] = { 갓오타: 0, 메시브: 0 };
+        map['갓오타/메시브'].메시브 += amount;
+        return true;
     }
-    if(!matched){
-        const uid = getUnitId(cName); const atomId = dashboardAtoms.find(a=>clean(a)===uid) || uid;
-        map[atomId]=(map[atomId]||0)+amount; matched=true;
+    if (cName.includes('갓오브타임') || cName.includes('갓오타')) {
+        if (typeof map['갓오타/메시브'] !== 'object') map['갓오타/메시브'] = { 갓오타: 0, 메시브: 0 };
+        map['갓오타/메시브'].갓오타 += amount;
+        return true;
     }
-    return matched;
+    if (cName.includes('지뢰') || cName.includes('시체매')) {
+        map['땅거미지뢰'] = (map['땅거미지뢰'] || 0) + (amount / 12);
+        return true;
+    }
+    if (cName.includes('우르사돈[암]') || cName.includes('우르사돈암')) {
+        map['우르사돈[암]'] = (map['우르사돈[암]'] || 0) + amount;
+        return true;
+    }
+    if (cName.includes('우르사돈[수]') || cName.includes('우르사돈수')) {
+        map['우르사돈[수]'] = (map['우르사돈[수]'] || 0) + amount;
+        return true;
+    }
+    if (cName.includes('자동포탑')) {
+        map['자동포탑'] = (map['자동포탑'] || 0) + amount;
+        return true;
+    }
+    if (cName.includes('잠복')) {
+        map['잠복'] = (map['잠복'] || 0) + amount;
+        return true;
+    }
+
+    const uid = getUnitId(cName);
+    const atomId = dashboardAtoms.find(a => clean(a) === uid) || uid;
+    
+    map[atomId] = (map[atomId] || 0) + amount;
+    return true;
 }
 
 function parseFixedCost(costStr,multiplier,map){
@@ -88,79 +107,14 @@ function calculateRecursiveCost(nameKo,m,map,visited=new Set()){
     }
 }
 
-function updateAllPanels() { updateMagicDashboard(); updateEssence(); renderTabs(); renderCurrentTabContent(); renderLineageBoard(); }
-
-function switchRightTab(tab) {
-    DOM.btnTabMatrix.classList.toggle('active', tab === 'matrix');
-    DOM.btnTabLineage.classList.toggle('active', tab === 'lineage');
-    if(tab === 'matrix') {
-        DOM.viewMatrix.style.display = 'flex';
-        DOM.viewLineage.style.display = 'none';
-    } else {
-        DOM.viewMatrix.style.display = 'none';
-        DOM.viewLineage.style.display = 'flex';
-        renderLineageBoard();
-    }
-}
-
-function toggleSelectAllInCurrentTab() {
-    const q = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
-    const catKey = TAB_CATEGORIES[_activeTabIdx].key;
-
-    let items = Array.from(unitMap.values()).filter(u => ["SuperHidden","Hidden","Legend"].includes(u.grade));
-
-    if (q) {
-        const queries = q.split(/[\/,]/).map(s => s.trim()).filter(s => s.length > 0);
-        items = items.filter(u => {
-            const searchStr = `${u.name} ${u.recipe} ${u.grade} ${u.category} ${GRADE_SHORT[u.grade]}`.toLowerCase();
-            return queries.some(query => {
-                let namePart = query;
-                if(query.includes('*')) namePart = query.split('*')[0].trim();
-                return searchStr.includes(namePart);
-            });
-        });
-    } else {
-        items = items.filter(u => u.category === catKey);
-    }
-
-    const allSelected = items.length > 0 && items.every(u => activeUnits.has(u.id));
-    items.forEach(u => {
-        if (allSelected) { activeUnits.delete(u.id); essenceUnits.delete(u.id); }
-        else if (!activeUnits.has(u.id)) { activeUnits.set(u.id, 1); essenceUnits.add(u.id); }
-    });
-    updateAllPanels();
-}
-
-function toggleUnitSelection(id, qty = 1){
-    if(activeUnits.has(id)){
-        activeUnits.delete(id); essenceUnits.delete(id);
-    } else {
-        activeUnits.set(id, qty); essenceUnits.add(id);
-    }
-    updateAllPanels();
-}
-
-function changeUnitQty(id,delta){
-    const u = unitMap.get(id); if(u && u.grade === "SuperHidden") return;
-    let qty = activeUnits.get(id) || 0;
-    qty += delta;
-    if(qty < 1){ activeUnits.delete(id); essenceUnits.delete(id); }
-    else {
-        if(qty > 16) qty = 16;
-        activeUnits.set(id, qty);
-        essenceUnits.add(id);
-    }
-    updateAllPanels();
-}
-
 function calcEssenceRecursive(uid, counts, visited) {
     if(visited.has(uid)) return; visited.add(uid);
     const u = unitMap.get(uid); if(!u) return;
-    if(["Hidden", "SuperHidden"].includes(u.grade)) {
-        if(["TBio","TMech"].includes(u.category)) counts.coral += 1;
-        else if(["PBio","PMech"].includes(u.category)) counts.aiur += 1;
-        else if(u.category === "Zerg") counts.zerus += 1;
-        else if(u.category === "Hybrid") { counts.coral += 1; counts.aiur += 1; counts.zerus += 1; }
+    if(["히든", "슈퍼히든"].includes(u.grade)) {
+        if(["테바","테메"].includes(u.category)) counts.코랄 += 1;
+        else if(["토바","토메"].includes(u.category)) counts.아이어 += 1;
+        else if(u.category === "저그중립") counts.제루스 += 1;
+        else if(u.category === "혼종") { counts.코랄 += 1; counts.아이어 += 1; counts.제루스 += 1; }
     }
     if(u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)) {
         u.recipe.split(/\+(?![^()]*\))/).forEach(part => {
@@ -171,21 +125,148 @@ function calcEssenceRecursive(uid, counts, visited) {
 }
 
 function getUnitEssenceTotal(uid) {
-    const u = unitMap.get(uid); if (!u || !["Hidden", "SuperHidden"].includes(u.grade)) return 0;
-    let counts = {coral:0, aiur:0, zerus:0}, visited = new Set();
-    calcEssenceRecursive(uid, counts, visited); return counts.coral + counts.aiur + counts.zerus;
+    const u = unitMap.get(uid); if (!u || !["히든", "슈퍼히든"].includes(u.grade)) return 0;
+    let counts = {코랄:0, 아이어:0, 제루스:0}, visited = new Set();
+    calcEssenceRecursive(uid, counts, visited); return counts.코랄 + counts.아이어 + counts.제루스;
 }
 
 function updateEssence(){
-    let counts={coral:0, aiur:0, zerus:0}, visited = new Set();
-    activeUnits.forEach((qty, key) => { const u = unitMap.get(key); if(u && ["Hidden", "SuperHidden"].includes(u.grade)) calcEssenceRecursive(key, counts, visited); });
+    let counts={코랄:0, 아이어:0, 제루스:0}, visited = new Set();
+    activeUnits.forEach((qty, key) => { const u = unitMap.get(key); if(u && ["히든", "슈퍼히든"].includes(u.grade)) calcEssenceRecursive(key, counts, visited); });
     const setVal=(id,v)=>{const el=document.getElementById(id);if(el){el.innerText=v;el.parentElement.className='cost-slot'+(el.parentElement.id.includes('magic')?' is-magic-slot':'')+(id.includes('total')?' total':'')+(v>0?' active':'')}};
-    setVal('val-coral',counts.coral);setVal('val-aiur',counts.aiur);setVal('val-zerus',counts.zerus);setVal('essence-total-val',counts.coral+counts.aiur+counts.zerus);
+    setVal('val-coral',counts.코랄);setVal('val-aiur',counts.아이어);setVal('val-zerus',counts.제루스);setVal('essence-total-val',counts.코랄+counts.아이어+counts.제루스);
+}
+
+function calculateIntermediateRequirements() {
+    const reqMap = new Map();
+    const reasonMap = new Map();
+
+    function traverse(uid, m, rootId) {
+        reqMap.set(uid, (reqMap.get(uid)||0) + m);
+        
+        if (rootId && uid !== rootId) {
+            if (!reasonMap.has(uid)) reasonMap.set(uid, new Set());
+            const rootUnit = unitMap.get(rootId);
+            if (rootUnit) reasonMap.get(uid).add(rootUnit.name);
+        }
+
+        const u = unitMap.get(uid);
+        if(u && u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe)) {
+            u.recipe.split(/\+(?![^()]*\))/).forEach(part=>{
+                const match=part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
+                if(match){
+                    const childUid=getUnitId(match[1]);
+                    const childQty = match[3] ? parseInt(match[3]) : 1;
+                    traverse(childUid, m * childQty, rootId);
+                } else {
+                    const childUid=getUnitId(part);
+                    traverse(childUid, m, rootId);
+                }
+            });
+        }
+    }
+    
+    activeUnits.forEach((qty, uid) => {
+        traverse(uid, qty, uid);
+    });
+    
+    return { reqMap, reasonMap };
+}
+
+function updateAllPanels() { 
+    updateMagicDashboard(); 
+    updateEssence(); 
+    renderTabs(); 
+    renderCurrentTabContent(); 
+    updateDeductionBoard();
+}
+
+function toggleUnitSelection(id, forceQty){
+    if(activeUnits.has(id)){
+        activeUnits.delete(id); essenceUnits.delete(id);
+    } else {
+        const u = unitMap.get(id);
+        const initQty = (u && u.grade === "슈퍼히든") ? 1 : (forceQty || 1);
+        activeUnits.set(id, initQty); 
+        essenceUnits.add(id);
+    }
+    updateAllPanels();
+}
+
+function setUnitQty(id, val) {
+    if (!activeUnits.has(id)) return;
+    const u = unitMap.get(id);
+    if (!u || u.grade === "슈퍼히든") return;
+    
+    let q = parseInt(val);
+    if (isNaN(q) || q < 1) q = 1;
+    if (q > 16) q = 16;
+    
+    activeUnits.set(id, q);
+    updateAllPanels();
+}
+
+function handleWheel(e, id) {
+    if (!activeUnits.has(id)) return;
+    const u = unitMap.get(id);
+    if (!u || u.grade === "슈퍼히든") return;
+    e.preventDefault(); 
+    let qty = activeUnits.get(id) || 1;
+    if (e.deltaY < 0) qty++; else qty--; 
+    if (qty > 16) qty = 16;
+    if (qty < 1) qty = 1;
+    if (activeUnits.get(id) !== qty) {
+        activeUnits.set(id, qty);
+        e.currentTarget.value = qty; 
+        updateAllPanels(); 
+    }
+}
+
+function setOwnedQty(id, val) {
+    let q = parseInt(val);
+    if (isNaN(q) || q < 0) q = 0;
+    
+    const inEl = document.getElementById(`d-in-${id}`);
+    let maxQty = 99;
+    if(inEl && inEl.hasAttribute('data-req')) {
+        const reqVal = parseInt(inEl.getAttribute('data-req'));
+        if(reqVal > 0) maxQty = reqVal;
+    }
+    
+    if (q > maxQty) q = maxQty;
+    ownedUnits.set(id, q);
+    updateAllPanels();
+}
+
+function handleOwnedWheel(e, id) {
+    e.preventDefault();
+    
+    const inEl = document.getElementById(`d-in-${id}`);
+    let maxQty = 99;
+    if(inEl && inEl.hasAttribute('data-req')) {
+        const reqVal = parseInt(inEl.getAttribute('data-req'));
+        if(reqVal > 0) maxQty = reqVal;
+    }
+
+    let qty = ownedUnits.get(id) || 0;
+    if (e.deltaY < 0) qty++; else qty--;
+    
+    if (qty < 0) qty = 0;
+    if (qty > maxQty) qty = maxQty;
+    
+    if (ownedUnits.get(id) !== qty) {
+        ownedUnits.set(id, qty);
+        if(inEl) inEl.value = qty;
+        updateAllPanels();
+    }
 }
 
 function updateMagicDashboard(){
-    resetMagicDashboard(); if(activeUnits.size===0) return;
-    const totalMap={}; dashboardAtoms.forEach(a=>{if(a==="갓오타/메시브")totalMap[a]={갓오타:0,메시브:0};else totalMap[a]=0;});
+    resetMagicDashboard(); 
+    if(activeUnits.size===0 && ownedUnits.size===0) return;
+    
+    const totalMap={}; 
+    dashboardAtoms.forEach(a=>{if(a==="갓오타/메시브")totalMap[a]={갓오타:0,메시브:0};else totalMap[a]=0;});
 
     Array.from(activeUnits.keys()).forEach(k=>{
         const u=unitMap.get(k);if(!u)return; const c=activeUnits.get(k)||1;
@@ -193,20 +274,38 @@ function updateMagicDashboard(){
         else calculateRecursiveCost(u.name,c,totalMap);
     });
 
+    const ownedMap={};
+    dashboardAtoms.forEach(a=>{if(a==="갓오타/메시브")ownedMap[a]={갓오타:0,메시브:0};else ownedMap[a]=0;});
+    
+    Array.from(ownedUnits.keys()).forEach(k=>{
+        const c=ownedUnits.get(k)||0;
+        if(c > 0) {
+            if(k === '갓오타') { ownedMap['갓오타/메시브'].갓오타 += c; return; }
+            if(k === '메시브') { ownedMap['갓오타/메시브'].메시브 += c; return; }
+            const u=unitMap.get(k); if(!u) return;
+            if(u.cost&&!IGNORE_PARSE_RECIPES.includes(u.cost)) parseFixedCost(u.cost,c,ownedMap);
+            else calculateRecursiveCost(u.name,c,ownedMap);
+        }
+    });
+
     let totalMagic=0;
     dashboardAtoms.forEach(a=>{
-        const val=totalMap[a], container=document.getElementById(`vslot-${clean(a)}`);if(!container)return;
+        const val=totalMap[a], owned=ownedMap[a];
+        const container=document.getElementById(`vslot-${clean(a)}`);if(!container)return;
         const e=container.querySelector('.cost-val'), nameEl=container.querySelector('.cost-name');
 
         if(a==="갓오타/메시브"){
-            if(val.갓오타>0 || val.메시브>0){
+            let finalG = Math.max(0, val.갓오타 - owned.갓오타);
+            let finalM = Math.max(0, val.메시브 - owned.메시브);
+            
+            if(finalG>0 || finalM>0){
                 e.innerHTML=`<div style="display:flex; width:100%; height:100%;">
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; border-right:1px solid rgba(236,72,153,0.3);">
-                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-rare); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(251,191,36,0.5);">${val.갓오타}</span>
+                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-rare); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(251,191,36,0.5);">${finalG}</span>
                         <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">갓오타</span>
                     </div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-unique); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(239,68,68,0.5);">${val.메시브}</span>
+                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-unique); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(239,68,68,0.5);">${finalM}</span>
                         <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">메시브</span>
                     </div>
                 </div>`;
@@ -216,14 +315,17 @@ function updateMagicDashboard(){
                 e.innerHTML=EMPTY_SVG;
                 nameEl.style.display='block';
             }
-        } else if(val>0){
-            e.innerText=Math.ceil(val);
-            nameEl.style.display='block';
-            container.classList.add('active');
-            totalMagic+=val;
         } else {
-            e.innerHTML=EMPTY_SVG;
-            nameEl.style.display='block';
+            let finalVal = Math.max(0, val - owned);
+            if(finalVal>0){
+                e.innerText=Math.ceil(finalVal);
+                nameEl.style.display='block';
+                container.classList.add('active');
+                totalMagic+=finalVal;
+            } else {
+                e.innerHTML=EMPTY_SVG;
+                nameEl.style.display='block';
+            }
         }
     });
 
@@ -231,195 +333,175 @@ function updateMagicDashboard(){
     if(magicTotalEl){magicTotalEl.innerText=Math.ceil(totalMagic);magicTotalEl.parentElement.classList.toggle('active',totalMagic>0);}
 }
 
-function getUnitTotalMatrixHtml(u, qty) {
-    const map = {};
-    dashboardAtoms.forEach(a => {
-        if (a === "갓오타/메시브") map[a] = { 갓오타: 0, 메시브: 0 };
-        else map[a] = 0;
-    });
-
-    if(u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
-        parseFixedCost(u.cost.replace(/0\.3333/g, '1').replace(/0\.6666/g, '2'), qty, map);
-    } else {
-        calculateRecursiveCost(u.name, qty, map);
-    }
-
-    let h = `<div class="mini-magic-grid">`;
-    dashboardAtoms.forEach(a => {
-        const val = map[a];
-        const isSkill = (a === "갓오타/메시브");
-        const isMagic = !isSkill;
-
-        let content = MINI_EMPTY_SVG;
-        let isActive = false;
-        let isDualActive = false;
-
-        if (a === "갓오타/메시브") {
-            if (val.갓오타 > 0 || val.메시브 > 0) {
-                isActive = true; isDualActive = true;
-                content = `<div style="display:flex; width:100%; height:100%;">
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; border-right:1px solid rgba(236,72,153,0.3);">
-                        <span style="font-size:1.2rem; font-weight:900; color:var(--grade-rare); line-height:1; margin-bottom:2px; text-shadow:0 0 5px rgba(251,191,36,0.5);">${val.갓오타}</span>
-                        <span style="font-size:0.6rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">갓오타</span>
-                    </div>
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                        <span style="font-size:1.2rem; font-weight:900; color:var(--grade-unique); line-height:1; margin-bottom:2px; text-shadow:0 0 5px rgba(239,68,68,0.5);">${val.메시브}</span>
-                        <span style="font-size:0.6rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">메시브</span>
-                    </div>
-                </div>`;
-            }
-        } else if (val > 0) {
-            isActive = true;
-            content = Math.ceil(val);
-        }
-
-        h += `<div class="mini-cost-slot ${isMagic ? 'is-magic-slot' : ''} ${isSkill ? 'is-skill-slot' : ''} ${isActive ? 'active' : ''}">
-            <div class="mini-cost-val" style="${isDualActive ? 'padding:0;' : ''}">${content}</div>
-            ${!isDualActive ? `<div class="mini-cost-name">${a}</div>` : ''}
+function renderDeductionBoard() {
+    if (!DOM.deductionBoard) return;
+    
+    const renderSlot = (id, name, grade) => {
+        const color = gradeColorsRaw[grade] || "var(--text)";
+        return `<div class="deduct-slot" id="d-slot-wrap-${id}" style="display:none;">
+            <div class="d-reason-wrap" id="d-reason-${id}" style="display:none;"></div>
+            <div class="d-name" style="color: ${color}">
+                <span class="gtag" style="border-color:${color}44; color:${color}; margin-right:6px;">${grade}</span>${name}
+            </div>
+            <div class="d-inputs">
+                <input type="number" id="d-in-${id}" min="0" max="99" value="${ownedUnits.get(id)||0}" 
+                    onchange="setOwnedQty('${id}', this.value)" 
+                    onwheel="handleOwnedWheel(event, '${id}')">
+                <span class="d-sep">/</span>
+                <span class="d-req" id="d-req-${id}">0</span>
+            </div>
         </div>`;
-    });
-    h += `</div>`;
-    return h;
+    };
+
+    let h = '';
+    
+    h += `<div id="deduct-empty-msg" style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; width:100%; display:none;">
+            좌측 유닛도감에서 목표 유닛을 선택하거나, 차감 맵핑에 보유 유닛을 입력하세요.
+          </div>`;
+
+    h += `<div class="deduct-group">
+            <div class="deduct-group-title"><span style="color:var(--grade-unique);">★</span> 특수 요구치 맵핑</div>
+            <div class="deduct-grid">
+                ${renderSlot('갓오타', '갓오타', '레어')}
+                ${renderSlot('메시브', '메시브', '유니크')}
+            </div>
+          </div>`;
+
+    const topGrades = ["레전드", "헬", "유니크", "에픽", "레어"];
+    let topItems = Array.from(unitMap.values()).filter(u => topGrades.includes(u.grade));
+    topItems.sort((a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
+    
+    h += `<div class="deduct-group">
+            <div class="deduct-group-title"><span style="color:var(--grade-legend);">▲</span> 상위 등급 맵핑 (레전드 ~ 레어)</div>
+            <div class="deduct-grid">
+                ${topItems.map(u => renderSlot(u.id, u.name, u.grade)).join('')}
+            </div>
+          </div>`;
+
+    let hiddenItems = Array.from(unitMap.values()).filter(u => u.grade === "히든");
+    h += `<div class="deduct-group" style="margin-bottom:0;">
+            <div class="deduct-group-title"><span style="color:var(--grade-hidden);">♦</span> 히든 등급 맵핑</div>
+            <div class="deduct-grid">
+                ${hiddenItems.map(u => renderSlot(u.id, u.name, u.grade)).join('')}
+            </div>
+          </div>`;
+
+    DOM.deductionBoard.innerHTML = h;
 }
 
-function toggleTreeMatrix(e, btn, uid, qty) {
-    e.stopPropagation();
-    const container = btn.closest('.bullet-cost').querySelector('.tree-matrix-container');
-    if (container.style.display === 'none') {
-        if (!container.innerHTML) {
-            const u = unitMap.get(uid);
-            container.innerHTML = getUnitTotalMatrixHtml(u, qty);
+function updateDeductionBoard() {
+    if (!DOM.deductionBoard) return;
+    const { reqMap, reasonMap } = calculateIntermediateRequirements();
+    
+    let specialReq = { 갓오타: 0, 메시브: 0 };
+    let specialReason = { 갓오타: new Set(), 메시브: new Set() };
+    
+    Array.from(activeUnits.keys()).forEach(k=>{
+        const u = unitMap.get(k); const qty = activeUnits.get(k) || 1;
+        if(u && u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
+            u.cost.split(',').forEach(p=>{
+                const m=p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
+                let name = m ? m[1].trim() : p.trim();
+                let amount = m ? parseFloat(m[2])*qty : qty;
+                if(clean(name).includes('메시브')||clean(name).includes('디제스터')){
+                    specialReq.메시브 += amount;
+                    specialReason.메시브.add(u.name);
+                }
+                if(clean(name).includes('갓오브타임')||clean(name).includes('갓오타')){
+                    specialReq.갓오타 += amount;
+                    specialReason.갓오타.add(u.name);
+                }
+            });
         }
-        container.style.display = 'block';
-        btn.classList.add('active');
-    } else {
-        container.style.display = 'none';
-        btn.classList.remove('active');
-    }
-}
+    });
 
-function buildTree(uid,visited=new Set(),isRoot=false,conditionStr='',depth=0,accumulatedQty=1){
-    const u=unitMap.get(uid);
-    if(!u) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted); border-left-color:var(--text-muted);">${uid} ${conditionStr?`<span class="badge-cond">${conditionStr}</span>`:''}</div></div></li>`;
+    const updateSlot = (id, targetVal, reasons) => {
+        const reqEl = document.getElementById(`d-req-${id}`);
+        const wrapEl = document.getElementById(`d-slot-wrap-${id}`);
+        const inEl = document.getElementById(`d-in-${id}`);
+        const reasonContainer = document.getElementById(`d-reason-${id}`);
+        
+        if(reqEl && wrapEl && inEl) {
+            reqEl.innerText = targetVal;
+            inEl.setAttribute('data-req', targetVal);
+            
+            let ownedVal = parseInt(inEl.value) || 0;
+            if (targetVal > 0 && ownedVal > targetVal) {
+                ownedVal = targetVal;
+                ownedUnits.set(id, ownedVal);
+                inEl.value = ownedVal;
+            } else {
+                inEl.value = ownedUnits.get(id) || 0;
+                ownedVal = parseInt(inEl.value) || 0;
+            }
+            
+            if (targetVal > 0 || ownedVal > 0) {
+                wrapEl.style.display = 'flex';
+                wrapEl.classList.add('is-visible');
+            } else {
+                wrapEl.style.display = 'none';
+                wrapEl.classList.remove('is-visible');
+            }
 
-    const nameDisp = u.name;
-    const color = gradeColorsRaw[u.grade] || "var(--text)";
-
-    if(visited.has(uid)) return `<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted); opacity:0.6; border-left-color:var(--text-muted);">${nameDisp} ${conditionStr?`<span class="badge-cond">${conditionStr}</span>`:''} <span style="font-size:0.8rem; margin-left:4px; font-weight:normal;">(중복)</span></div></div></li>`;
-
-    const newV=new Set(visited); newV.add(uid);
-    let ch='';
-
-    if(u.recipe&&!IGNORE_PARSE_RECIPES.includes(u.recipe)){
-        u.recipe.split(/\+(?![^()]*\))/).forEach(part=>{
-            const match=part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
-            if(match){
-                const childUid=getUnitId(match[1]);
-                let condTxt = match[2] ? `(${match[2]})` : '';
-                let qtyTxt = match[3] ? `[${match[3]}]` : '[1]';
-                let combined = `${condTxt}${qtyTxt}`;
-                const target=unitMap.get(childUid);
-                
-                const childQty = match[3] ? parseInt(match[3]) : 1;
-                const totalChildQty = accumulatedQty * childQty;
-
-                if(target&&target.id!==u.id) {
-                    ch+=buildTree(target.id,newV,false,combined,depth+1,totalChildQty);
+            if (reasonContainer) {
+                if (reasons && reasons.size > 0 && targetVal > 0) {
+                    let rHtml = Array.from(reasons).map(r => `<span class="d-reason-tag">${r} 재료</span>`).join('');
+                    reasonContainer.innerHTML = rHtml;
+                    reasonContainer.style.display = 'flex';
                 } else {
-                    ch+=`<li class="tree-li"><div class="tree-node-wrapper"><div class="unit-badge" style="color:var(--text-muted); border-left-color:var(--text-muted);">${match[1].trim()} ${combined?`<span class="badge-cond">${combined}</span>`:''}</div></div></li>`;
+                    reasonContainer.style.display = 'none';
+                    reasonContainer.innerHTML = '';
+                }
+            }
+
+            if(targetVal > 0) {
+                wrapEl.classList.add('has-target');
+                wrapEl.style.order = "-1"; 
+                
+                if(ownedVal >= targetVal) {
+                    wrapEl.classList.add('satisfied');
+                } else {
+                    wrapEl.classList.remove('satisfied');
                 }
             } else {
-                const childUid=getUnitId(part), target=unitMap.get(childUid);
-                if(target&&target.id!==u.id) ch+=buildTree(target.id,newV,false,'',depth+1,accumulatedQty);
-            }
-        });
-    }
-
-    const ulStyle=depth===0?'block':'none', mark=depth===0?'▼':'▶', bulletDisplay=depth===0?'block':'none';
-
-    if (depth === 0) {
-        return ch; 
-    }
-
-    let costHtml = '';
-    if(u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)){
-        costHtml = `
-            <div class="bullet-cost" style="display:${bulletDisplay};">
-                <div class="cost-inner-wrap">
-                    <span class="cost-label">↳ 요구재료 :</span> 
-                    <button class="btn-tree-matrix" onclick="toggleTreeMatrix(event, this, '${u.id}', ${accumulatedQty})">📊 코스트 확인 (x${accumulatedQty})</button>
-                </div>
-                <div class="tree-matrix-container" style="display:none; margin-top:8px;"></div>
-            </div>`;
-    }
-
-    return `<li class="tree-li">
-        <div class="tree-node-wrapper">
-            <div class="unit-badge" style="color:${color}; border-left-color:${color};" onclick="toggleTreeNode(this)">
-                ${nameDisp} ${conditionStr?`<span class="badge-cond">${conditionStr}</span>`:''} ${ch?`<span class="toggle-mark">${mark}</span>`:''}
-            </div>
-        </div>
-        ${costHtml}
-        ${ch?`<ul class="tree-ul ${isRoot?'root-ul':''}" style="display:${ulStyle};">${ch}</ul>`:''}
-    </li>`;
-}
-
-function renderLineageBoard() {
-    if (!DOM.lineageBoard) return;
-
-    if (activeUnits.size === 0) {
-        DOM.lineageBoard.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold;">좌측 유닛도감에서 계보를 확인할 유닛을 선택하세요.</div>';
-        return;
-    }
-
-    let h = '<div style="display:flex;flex-direction:column;gap:12px;">';
-    activeUnits.forEach((qty, id) => {
-        const u = unitMap.get(id);
-        if (!u) return;
-
-        let upperHtml = '';
-        if (["Legend","Hidden","Hell","SuperHidden"].includes(u.grade)) {
-            const parents = Array.from(unitMap.values()).filter(p => ["Hidden","SuperHidden"].includes(p.grade) && p.id !== u.id && p.recipe && p.recipe.includes(u.name));
-            if (parents.length > 0) {
-                parents.sort((a,b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
-                upperHtml += `<div class="upper-lineage-box">
-                    <div class="ul-title"><span style="color:var(--g); margin-right:6px;">▲</span> 상위 조합 가능 계보</div>
-                    <div class="ul-badges">`;
-                parents.forEach(p => {
-                    upperHtml += `<div class="unit-badge ul-badge" style="color:${gradeColorsRaw[p.grade]}; border-color:${gradeColorsRaw[p.grade]}55;" onclick="event.stopPropagation(); activeUnits.clear(); essenceUnits.clear(); toggleUnitSelection('${p.id}', 1);">
-                        <span class="gtag" style="border-color:${gradeColorsRaw[p.grade]}44; margin-right:6px;">${GRADE_SHORT[p.grade]}</span>${p.name}
-                    </div>`;
-                });
-                upperHtml += `</div></div>`;
+                wrapEl.classList.remove('has-target', 'satisfied');
+                wrapEl.style.order = "0"; 
+                
+                if(ownedVal > 0) wrapEl.classList.add('has-owned');
+                else wrapEl.classList.remove('has-owned');
             }
         }
+    };
 
-        let rootMatrixHtml = '';
-        if (["SuperHidden", "Hidden", "Legend"].includes(u.grade)) {
-            rootMatrixHtml = `
-            <div style="margin-bottom:20px;">
-                <div class="ul-title" style="margin-bottom:12px;"><span style="color:var(--grade-epic); margin-right:6px;">❖</span> [${u.name}] 총 요구재료 메트릭스 (x${qty})</div>
-                ${getUnitTotalMatrixHtml(u, qty)}
-            </div>`;
+    updateSlot('갓오타', specialReq.갓오타, specialReason.갓오타);
+    updateSlot('메시브', specialReq.메시브, specialReason.메시브);
+
+    const targetGrades = ["레어", "에픽", "유니크", "헬", "레전드", "히든"];
+    unitMap.forEach(u => {
+        if(targetGrades.includes(u.grade)) {
+            updateSlot(u.id, reqMap.get(u.id) || 0, reasonMap.get(u.id));
         }
-
-        h += `<div class="analysis-card" style="margin-bottom:0; width:100%; border-left-color:var(--g); background:var(--badge-bg);">
-                <h3 style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                    <div><span style="color:${gradeColorsRaw[u.grade]}; font-size:1.05rem;">${u.name}</span></div>
-                    <button class="btn-small" data-expanded="false" onclick="toggleAllTree(this)">모두 펼치기</button>
-                </h3>
-                ${upperHtml}
-                ${rootMatrixHtml}
-                <ul class="tree-ul root-ul" style="display:block; padding-left:0;">${buildTree(u.id, new Set(), true, '', 0, qty)}</ul>
-              </div>`;
     });
-    h += '</div>';
-    DOM.lineageBoard.innerHTML = h;
+
+    let hasAnyVisible = false;
+    document.querySelectorAll('.deduct-group').forEach(group => {
+        const visibleSlots = group.querySelectorAll('.deduct-slot.is-visible');
+        if (visibleSlots.length === 0) {
+            group.style.display = 'none';
+        } else {
+            group.style.display = 'block';
+            hasAnyVisible = true;
+        }
+    });
+
+    const emptyMsg = document.getElementById('deduct-empty-msg');
+    if (emptyMsg) {
+        if (!hasAnyVisible) emptyMsg.style.display = 'block';
+        else emptyMsg.style.display = 'none';
+    }
 }
 
-function toggleAllTree(btn){const card=btn.closest('.analysis-card'),isExpanded=btn.getAttribute('data-expanded')==='true';if(isExpanded){const rootNode=card.querySelector('.tree-ul.root-ul > .tree-li');if(rootNode){const firstLevelUl=rootNode.querySelector(':scope > .tree-ul');if(firstLevelUl){firstLevelUl.querySelectorAll('.tree-ul').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▶');firstLevelUl.querySelectorAll('.tree-matrix-container').forEach(el=>el.style.display='none');firstLevelUl.querySelectorAll('.btn-tree-matrix').forEach(el=>el.classList.remove('active'));}}btn.innerText="모두 펼치기";}else{card.querySelectorAll('.tree-ul').forEach(el=>el.style.display='block');card.querySelectorAll('.bullet-cost').forEach(el=>el.style.display='block');card.querySelectorAll('.toggle-mark').forEach(el=>el.innerText='▼');btn.innerText="모두 접기";}btn.setAttribute('data-expanded',!isExpanded)}
-function toggleTreeNode(el){const p=el.closest('.tree-li'),c=p.querySelector(':scope>.bullet-cost'),t=p.querySelector(':scope>.tree-ul'),m=p.querySelector(':scope>.tree-node-wrapper .toggle-mark');if(t)t.style.display=t.style.display==='none'?'block':'none';if(c)c.style.display=c.style.display==='none'?'block':'none';if(m)m.innerText=m.innerText==='▶'?'▼':'▶'}
-function resetAll(){ activeUnits.clear(); essenceUnits.clear(); if(DOM.searchInput) DOM.searchInput.value = ''; updateAllPanels(); }
+function resetAll(){ activeUnits.clear(); ownedUnits.clear(); essenceUnits.clear(); updateAllPanels(); }
 
 function renderTabs(){
     let h='';
@@ -445,11 +527,11 @@ function renderTabs(){
     DOM.codexTabs.innerHTML=h;
 }
 
-function formatRecipeVertical(item) {
-    if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div style="color:var(--text-muted);font-size:0.8rem;display:flex;align-items:center;height:100%;">정보 없음</div>`;
+function formatRecipeHorizontal(item) {
+    if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div style="color:var(--text-muted);font-size:0.85rem;">정보 없음</div>`;
 
-    let html = '<div style="display:flex;flex-wrap:wrap;gap:4px;width:100%;">';
-    item.recipe.split(/\+(?![^()]*\))/).forEach((part) => {
+    let html = '<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">';
+    item.recipe.split(/\+(?![^()]*\))/).forEach((part, index, arr) => {
         const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
 
         if (match) {
@@ -461,12 +543,16 @@ function formatRecipeVertical(item) {
 
             const color = u && gradeColorsRaw[u.grade] ? gradeColorsRaw[u.grade] : "var(--text)";
 
-            html+=`
-                <div style="border:1px solid var(--border-light); border-radius:4px; padding:2px 6px; background:var(--slot-bg); color:${color}; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,0.3);">
-                    ${rawKo} ${condTxt || match[3] ? `<span class="badge-cond" style="padding:1px 4px; font-size:0.7rem;">${condTxt}${qtyTxt}</span>` : ''}
+            html += `
+                <div class="recipe-badge" style="color:${color}; border-color:${color}44;">
+                    ${rawKo} <span class="badge-cond">${condTxt}${qtyTxt}</span>
                 </div>`;
         } else {
-            html+=`<div style="color:var(--text-sub);font-size:0.8rem; display:flex; align-items:center;">${part}</div>`;
+            html += `<div style="color:var(--text-sub); font-size:0.85rem; white-space:nowrap;">${part}</div>`;
+        }
+        
+        if (index < arr.length - 1) {
+            html += `<div style="color:var(--text-muted); font-size:0.9rem; font-weight:bold;">+</div>`;
         }
     });
     return html + '</div>';
@@ -474,99 +560,10 @@ function formatRecipeVertical(item) {
 
 function selectTab(idx){ _activeTabIdx=idx; renderTabs(); renderCurrentTabContent(); }
 
-function findBestUnitMatch(namePart) {
-    const cleanName = clean(namePart);
-    if (!cleanName) return null;
-    let exact = null;
-    let partials = [];
-
-    for (let u of unitMap.values()) {
-        const uClean = clean(u.name);
-        if (uClean === cleanName) {
-            exact = u;
-            break;
-        } else if (uClean.includes(cleanName)) {
-            partials.push(u);
-        }
-    }
-
-    if (exact) return exact;
-    if (partials.length > 0) {
-        partials.sort((a, b) => a.name.length - b.name.length);
-        return partials[0];
-    }
-    return null;
-}
-
-function processSearchAutoSelect(query) {
-    const tokens = query.split(/[,/]/).map(s => s.trim());
-    let isUpdated = false;
-
-    tokens.forEach(token => {
-        const match = token.match(/^(.+?)\*(\d+)$/);
-        if (match) {
-            const namePart = match[1].trim();
-            let qty = parseInt(match[2]);
-            qty = Math.max(1, Math.min(qty, 16));
-
-            const bestU = findBestUnitMatch(namePart);
-            if (bestU) {
-                if (bestU.grade === "SuperHidden") qty = 1;
-                activeUnits.set(bestU.id, qty);
-                essenceUnits.add(bestU.id);
-                isUpdated = true;
-            }
-        }
-    });
-
-    if (isUpdated) updateAllPanels();
-}
-
-function filterUnits() {
-    const q = DOM.searchInput ? DOM.searchInput.value.trim() : '';
-    if (q.includes('*')) {
-        processSearchAutoSelect(q);
-    }
-    renderCurrentTabContent();
-}
-
 function renderCurrentTabContent() {
     const catKey = TAB_CATEGORIES[_activeTabIdx].key;
-    const q = DOM.searchInput ? DOM.searchInput.value.toLowerCase().trim() : '';
 
-    let items = Array.from(unitMap.values()).filter(u => ["SuperHidden","Hidden","Legend"].includes(u.grade));
-    let searchMultipliers = {};
-
-    if (q) {
-        const queries = q.split(/[\/,]/).map(s => s.trim()).filter(s => s.length > 0);
-        items = items.filter(u => {
-            let matched = false;
-            const searchStr = `${u.name} ${u.recipe} ${u.grade} ${u.category} ${GRADE_SHORT[u.grade]}`.toLowerCase();
-
-            for(let query of queries) {
-                let namePart = query;
-                let multi = 1;
-
-                if(query.includes('*')) {
-                    const parts = query.split('*');
-                    namePart = parts[0].trim();
-                    let m = parseInt(parts[1]);
-                    if(!isNaN(m)) multi = Math.max(1, Math.min(m, 16));
-                }
-
-                if(searchStr.includes(clean(namePart))) {
-                    matched = true;
-                    const bestU = findBestUnitMatch(namePart);
-                    if (bestU && bestU.id === u.id && multi > 1 && u.grade !== "SuperHidden") {
-                        searchMultipliers[u.id] = multi;
-                    }
-                }
-            }
-            return matched;
-        });
-    } else {
-        items = items.filter(u => u.category === catKey);
-    }
+    let items = Array.from(unitMap.values()).filter(u => ["슈퍼히든","히든","레전드"].includes(u.grade) && u.category === catKey);
 
     items.sort((a,b) => {
         if(a.grade !== b.grade) return GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade);
@@ -575,31 +572,46 @@ function renderCurrentTabContent() {
 
     let h='<div style="display:flex;flex-direction:column;gap:4px;">';
 
-    if (items.length === 0 && q !== '') {
-        h += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">검색 결과가 없습니다.</div>`;
+    if (items.length === 0) {
+        h += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>`;
     }
 
     items.forEach((item, index) => {
         const isActive = activeUnits.has(item.id), qty = activeUnits.get(item.id) || 0;
         const unitEssence = getUnitEssenceTotal(item.id);
         const nameDisp = item.name;
-        const multi = searchMultipliers[item.id] || 1;
+        const multi = 1;
 
-        const badgeClass = item.grade === "SuperHidden" ? "badge-essence sh" : "badge-essence";
-        const essenceBox = unitEssence > 0 ? `<div class="${badgeClass}">정수 [${unitEssence}]</div>` : '';
+        const badgeClass = item.grade === "슈퍼히든" ? "badge-essence inline sh" : "badge-essence inline";
+        const essenceBox = unitEssence > 0 ? `<span class="${badgeClass}">정수 [${unitEssence}]</span>` : '';
 
-        let rightControls = `<div class="uc-ctrl" onclick="event.stopPropagation()"><div class="uc-ctrl-box">${essenceBox}`;
-        if (item.grade !== "SuperHidden") rightControls += `<div class="ctrl-qty"><button class="ctrl-btn minus" onclick="changeUnitQty('${item.id}', -1)">−</button><div class="ctrl-val">${qty}</div><button class="ctrl-btn plus" onclick="changeUnitQty('${item.id}', 1)">+</button></div>`;
-        rightControls += `</div></div>`;
+        let rightControls = '';
+        if (item.grade !== "슈퍼히든") {
+            rightControls = `<div class="uc-ctrl" onclick="event.stopPropagation()">
+                <div class="ctrl-qty">
+                    <input type="number" class="ctrl-val-input" 
+                        value="${isActive ? qty : ''}" 
+                        placeholder="${isActive ? '' : '-'}"
+                        min="1" max="16" 
+                        onchange="setUnitQty('${item.id}', this.value)" 
+                        onwheel="handleWheel(event, '${item.id}')"
+                        ${!isActive ? 'disabled' : ''}>
+                </div>
+            </div>`;
+        }
 
         h+=`<div class="unit-card ${isActive?'active':''}" style="animation-delay:${index * 0.03}s" onclick="toggleUnitSelection('${item.id}', ${multi})">
             <div class="uc-wrap">
-                <div class="uc-info">
-                    <div class="uc-name">
-                        <div style="color:${gradeColorsRaw[item.grade]}; font-weight:bold; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
-                        <span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44;">${GRADE_SHORT[item.grade]}</span> ${nameDisp}</div>
+                <div class="uc-info-stack">
+                    <div class="uc-grade">
+                        <span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>
                     </div>
-                    <div class="uc-recipe">${formatRecipeVertical(item)}</div>
+                    <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">
+                        ${nameDisp} ${essenceBox}
+                    </div>
+                    <div class="uc-recipe-row">
+                        ${formatRecipeHorizontal(item)}
+                    </div>
                 </div>
                 ${rightControls}
             </div>
@@ -609,7 +621,7 @@ function renderCurrentTabContent() {
 }
 
 function renderDashboardAtoms(){
-    DOM.magicDashboard.innerHTML=`<div class="cost-slot total" id="slot-total-magic"><div class="cost-val"></div><div class="cost-name">총매직코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val"></div><div class="cost-name">총정수코스트</div></div><div class="cost-slot"><div class="cost-val" id="val-coral" style="color:#FF6B6B;"></div><div class="cost-name">코랄</div></div><div class="cost-slot"><div class="cost-val" id="val-aiur" style="color:var(--grade-rare);"></div><div class="cost-name">아이어</div></div><div class="cost-slot"><div class="cost-val" id="val-zerus" style="color:var(--grade-legend);"></div><div class="cost-name">제루스</div></div>`;
+    DOM.magicDashboard.innerHTML=`<div class="cost-slot total" id="slot-total-magic"><div class="cost-val"></div><div class="cost-name">총 매직 코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val"></div><div class="cost-name">총 정수 코스트</div></div><div class="cost-slot"><div class="cost-val" id="val-coral" style="color:#FF6B6B;"></div><div class="cost-name">코랄</div></div><div class="cost-slot"><div class="cost-val" id="val-aiur" style="color:var(--grade-rare);"></div><div class="cost-name">아이어</div></div><div class="cost-slot"><div class="cost-val" id="val-zerus" style="color:var(--grade-legend);"></div><div class="cost-name">제루스</div></div>`;
     dashboardAtoms.forEach(a=>{
         const isSkill = (a === "갓오타/메시브");
         const isMagic = !isSkill;
@@ -633,39 +645,40 @@ function resetMagicDashboard(){
     });
 }
 
-function openHelpModal(){document.getElementById('helpModal').classList.add('active')}
-function closeHelpModal(e){if(e===undefined||e.target.id==='helpModal')document.getElementById('helpModal').classList.remove('active')}
-
-function openNoticeModal(){document.getElementById('noticeModal').classList.add('active')}
-function closeNoticeModal(e){if(e===undefined||e.target.id==='noticeModal')document.getElementById('noticeModal').classList.remove('active')}
-
 document.addEventListener('DOMContentLoaded', () => {
-    document.documentElement.lang = 'ko';
-    document.documentElement.setAttribute('data-theme', 'dark');
+    try {
+        document.documentElement.lang = 'ko';
+        document.documentElement.setAttribute('data-theme', 'dark');
 
-    DOM.searchInput = document.getElementById('searchInput');
-    DOM.tabContent = document.getElementById('tabContent');
-    DOM.lineageBoard = document.getElementById('lineageBoard');
-    DOM.codexTabs = document.getElementById('codexTabs');
-    DOM.magicDashboard = document.getElementById('magicDashboard');
-    DOM.viewMatrix = document.getElementById('viewMatrix');
-    DOM.viewLineage = document.getElementById('viewLineage');
-    DOM.btnTabMatrix = document.getElementById('btnTabMatrix');
-    DOM.btnTabLineage = document.getElementById('btnTabLineage');
+        DOM.tabContent = document.getElementById('tabContent');
+        DOM.deductionBoard = document.getElementById('deductionBoard');
+        DOM.codexTabs = document.getElementById('codexTabs');
+        DOM.magicDashboard = document.getElementById('magicDashboard');
 
-    UNIT_DATABASE.forEach((kArr) => {
-        const g = gradeMap[kArr[1]] || "Magic", cat = raceMap[kArr[2]] || "TBio";
-        const u={ id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] };
-        unitMap.set(clean(kArr[0]), u);
-    });
+        if (typeof UNIT_DATABASE === 'undefined') {
+            console.error("[오류] UNIT_DATABASE가 정의되지 않았습니다. data.js 파일 로드를 확인해주세요.");
+            if (DOM.tabContent) DOM.tabContent.innerHTML = `<div style="padding:20px; color:var(--grade-unique); text-align:center; font-weight:bold;">시스템 데이터를 불러올 수 없습니다.<br>data.js 파일이 누락되었거나 오류가 있습니다.</div>`;
+            return;
+        }
 
-    renderDashboardAtoms();
-    document.getElementById('mainLayout').classList.add('visible');
-    selectTab(0);
-    updateMagicDashboard();
-    renderLineageBoard();
+        UNIT_DATABASE.forEach((kArr) => {
+            const g = kArr[1] || "매직", cat = kArr[2] || "테바";
+            const u={ id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] };
+            unitMap.set(clean(kArr[0]), u);
+        });
 
-    setTimeout(() => { const intro = document.getElementById('introCinematic'); if(intro) { intro.classList.add('intro-exit'); setTimeout(() => intro.style.display = 'none', 800); } }, 3200);
+        renderDashboardAtoms();
+        renderDeductionBoard();
+        selectTab(0);
+        
+        updateAllPanels();
+        
+    } catch (err) {
+        console.error("[오류] 넥서스 초기화 중 에러 발생:", err);
+        if (DOM.tabContent) {
+            DOM.tabContent.innerHTML = `<div style="padding:20px; color:var(--grade-unique); text-align:center; font-weight:bold;">치명적 오류 발생:<br>${err.message}</div>`;
+        }
+    }
 });
 
 document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('dragstart',e=>e.preventDefault());document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT')e.preventDefault()});window.addEventListener('keydown',e=>{if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85))e.preventDefault()});
