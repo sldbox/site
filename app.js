@@ -1,7 +1,7 @@
 /*
 =============================================================================
-[파일 설명서] app.js (하이브리드 커맨드 엔진, 튜토리얼 및 자동저장/내보내기 탑재)
-[신규 업데이트] PWA 앱 구동 지원, 모바일 스와이프 제스처, JSON 백업/복구, 마우스 트래킹 및 Shift+클릭 기능 탑재
+[파일 설명서] app.js (하이브리드 커맨드 엔진, 튜토리얼 탑재)
+[신규 업데이트] 사용하지 않는 백업/복구/복사 기능 완벽 제거 및 스크립트 경량화
 =============================================================================
 */
 
@@ -32,84 +32,9 @@ function getUnitId(rawName){ const c=clean(rawName); const u=unitMap.get(c); ret
 // --- 햅틱 피드백 엔진 ---
 function triggerHaptic() { if (typeof navigator !== 'undefined' && navigator.vibrate) { navigator.vibrate(15); } }
 
-// =========================================================
-// 실시간 자동 저장 & 복구 시스템 & JSON 파일 백업
-// =========================================================
-function saveData() {
-    const data = {
-        active: Array.from(activeUnits.entries()),
-        owned: Array.from(ownedUnits.entries())
-    };
-    localStorage.setItem('nexusSaveData', JSON.stringify(data));
-}
-
-function loadData() {
-    const raw = localStorage.getItem('nexusSaveData');
-    if(raw) {
-        try {
-            const data = JSON.parse(raw);
-            if(data.active) data.active.forEach(([k,v]) => { activeUnits.set(k,v); essenceUnits.add(k); });
-            if(data.owned) data.owned.forEach(([k,v]) => ownedUnits.set(k,v));
-        } catch(e) {
-            console.warn("저장된 데이터 복구 중 오류가 발생했습니다.");
-        }
-    }
-}
-
-// [신규] JSON 파일 백업 다운로드
-window.exportSaveDataJSON = function() {
-    const raw = localStorage.getItem('nexusSaveData');
-    if(!raw || raw.length < 10) { showToast("<span class=\"t-icon\">⚠</span> 저장된 데이터가 없습니다.", true); return; }
-    const blob = new Blob([raw], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `nexus_backup_${new Date().toISOString().slice(0,10)}.json`;
-    a.click(); URL.revokeObjectURL(url);
-    showToast("<span class=\"t-icon\">💾</span> 백업 파일이 다운로드되었습니다.");
-}
-
-// [신규] JSON 파일 복구 업로드창 띄우기
-window.importSaveDataJSON = function() { document.getElementById('importFile').click(); }
-
-// [신규] 파일 읽고 데이터에 덮어쓰기
-window.handleFileImport = function(e) {
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const json = JSON.parse(evt.target.result);
-            if(json.active !== undefined || json.owned !== undefined) {
-                localStorage.setItem('nexusSaveData', evt.target.result);
-                activeUnits.clear(); essenceUnits.clear(); ownedUnits.clear();
-                loadData(); updateAllPanels();
-                showToast("<span class=\"t-icon\">📂</span> 데이터 복구가 완료되었습니다.");
-            } else { throw new Error(); }
-        } catch(err) { showToast("<span class=\"t-icon\">⚠</span> 잘못된 형식의 파일입니다.", true); }
-    };
-    reader.readAsText(file); e.target.value = '';
-}
-
-// =========================================================
-// 클립보드 로스터 내보내기
-// =========================================================
-function exportRoster() {
-    if(activeUnits.size === 0) { showToast(`<span class="t-icon">⚠</span> 선택된 유닛이 없습니다.`, true); return; }
-    let txt = "[개복디 넥서스 - 목표 로스터]\n────────────────────\n";
-    activeUnits.forEach((qty, id) => { const u = unitMap.get(id); if(u) txt += `▪ ${u.name} ×${qty}\n`; });
-    txt += "────────────────────\n";
-    
-    const magicTotalEl = document.querySelector('#slot-total-magic .cost-val');
-    const essenceTotalEl = document.getElementById('essence-total-val');
-    const coral = document.getElementById('val-coral')?.innerText || '0';
-    const aiur = document.getElementById('val-aiur')?.innerText || '0';
-    const zerus = document.getElementById('val-zerus')?.innerText || '0';
-    
-    txt += `🔹 총 매직 코스트: ${magicTotalEl && magicTotalEl.innerText !== '' ? magicTotalEl.innerText : 0}\n`;
-    txt += `🔸 총 정수 코스트: ${essenceTotalEl && essenceTotalEl.innerText !== '' ? essenceTotalEl.innerText : 0} (코랄:${coral}, 아이어:${aiur}, 제루스:${zerus})\n`;
-    
-    navigator.clipboard.writeText(txt).then(() => {
-        showToast(`<span class="t-icon">📋</span> 목표 로스터가 클립보드에 복사되었습니다!`);
-    }).catch(() => { showToast(`<span class="t-icon">⚠</span> 복사 권한이 없거나 지원하지 않는 브라우저입니다.`, true); });
-}
+// --- 데이터 초기화 모듈 ---
+function resetCodex() { activeUnits.clear(); essenceUnits.clear(); updateAllPanels(); showToast("선택된 유닛이 초기화되었습니다."); }
+function resetOwned() { ownedUnits.clear(); updateAllPanels(); showToast("보유 유닛이 초기화되었습니다."); }
 
 // =========================================================
 // 인터랙티브 가이드 엔진 (Tutorial)
@@ -127,7 +52,7 @@ const TutorialEngine = {
         {
             setup: () => {},
             target: () => document.getElementById('magicDashboard'),
-            text: "<strong style='color:var(--grade-epic); font-size:1.2rem; display:block; margin-bottom:8px;'>STEP 2. 코스트 실시간 합산</strong>입력하신 유닛(전쟁광 2개)을 만들기 위해 필요한 <strong>모든 하위 재료 코스트</strong>가 이곳에 실시간으로 자동 합산됩니다!<br><br>복잡한 계산 없이 한눈에 필요 재료 파악이 가능합니다.",
+            text: "<strong style='color:var(--grade-epic); font-size:1.2rem; display:block; margin-bottom:8px;'>STEP 2. 코스트 실시간 합산</strong>입력하신 유닛(전쟁광 2개)을 만들기 위해 필요한 <strong>모든 하위 재료 코스트</strong>가 이곳에 실시간 자동 합산됩니다!<br><br>복잡한 계산 없이 한눈에 필요 재료 파악이 가능합니다.",
             position: 'top', requireAction: 'next'
         },
         {
@@ -145,7 +70,7 @@ const TutorialEngine = {
         {
             setup: () => {},
             target: () => document.getElementById('deductionBoard'),
-            text: "<strong style='color:var(--grade-unique); font-size:1.2rem; display:block; margin-bottom:8px;'>STEP 5. 남은 코스트 자동 계산</strong>이곳은 <strong style='color:var(--grade-unique)'>[차감 데시보드]</strong>입니다.<br><br>이곳의 각 재료 우측에 <span style='color:var(--text-muted); font-weight:bold; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;'>+ / -</span> 버튼을 눌러 보유 수량을 입력해 보세요. <strong>자동으로 차감(마이너스)</strong>되어 뽑아야 할 코스트만 남습니다.<br><br>🎉 <strong>모든 튜토리얼이 완료되었습니다!</strong>",
+            text: "<strong style='color:var(--grade-unique); font-size:1.2rem; display:block; margin-bottom:8px;'>STEP 5. 남은 코스트 자동 계산</strong>이곳은 <strong style='color:var(--grade-unique)'>[차감 데시보드]</strong>입니다.<br><br>각 재료 우측에 <span style='color:var(--text-muted); font-weight:bold; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;'>+ / -</span> 버튼을 눌러 보유 수량을 입력해 보세요. <strong>자동 차감(마이너스)</strong>되어 뽑아야 할 코스트만 남습니다.<br><br>🎉 <strong>모든 튜토리얼 완료!</strong>",
             position: 'left', requireAction: 'finish'
         }
     ],
@@ -212,19 +137,16 @@ function initMode(mode, showToastMsg = true) {
 // 검색 및 커맨드 엔진 (Search & Command) 
 // =========================================================
 let searchTimeout = null;
-
 const ALIAS_MAP = { "타커": "타이커스", "타이": "타이커스", "닥템": "암흑기사", "다칸": "암흑집정관", "스투": "스투코프", "디젯": "디제스터", "메십": "메시브", "마랩": "마스터랩" };
 
 function setupSearchEngine() {
     const inputEl = document.getElementById('unitSearchInput');
     if(!inputEl) return;
-
     inputEl.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
         const val = e.target.value;
         searchTimeout = setTimeout(() => performSearch(val), 150); 
     });
-
     inputEl.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); processCommand(e.target.value); } });
     document.addEventListener('click', (e) => { const sr = document.getElementById('searchResults'); if(sr && !e.target.closest('#searchWrap')) sr.classList.remove('active'); });
 }
@@ -369,26 +291,17 @@ function showContextMenu(e, unitId) {
     cm.style.top = y + 'px';
 }
 
-function closeContextMenu() {
-    const cm = document.getElementById('customContextMenu');
-    if(cm) cm.style.display = 'none';
-}
+function closeContextMenu() { const cm = document.getElementById('customContextMenu'); if(cm) cm.style.display = 'none'; }
 document.addEventListener('click', closeContextMenu);
 
 function applyTilt(e, elem) {
     if(window.innerWidth < 1200) return; 
     const rect = elem.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const xc = rect.width / 2;
-    const yc = rect.height / 2;
-    const dx = x - xc;
-    const dy = y - yc;
+    const dx = e.clientX - rect.left - (rect.width / 2);
+    const dy = e.clientY - rect.top - (rect.height / 2);
     elem.style.transform = `perspective(1000px) rotateY(${dx / 15}deg) rotateX(${-dy / 15}deg) translateZ(10px)`;
 }
-function resetTilt(elem) {
-    elem.style.transform = `perspective(1000px) rotateY(0) rotateX(0) translateZ(0)`;
-}
+function resetTilt(elem) { elem.style.transform = `perspective(1000px) rotateY(0) rotateX(0) translateZ(0)`; }
 document.addEventListener('mousemove', e => {
     if(window.innerWidth < 1200) return;
     const card = e.target.closest('.unit-card') || e.target.closest('.jewel-item');
@@ -440,7 +353,6 @@ function startSmartChange(id, delta, type, event) {
     stopSmartChange(); 
     triggerHaptic(); 
 
-    // [신규] Shift 누를 시 5개 단위 이동
     let shiftMulti = (event && event.shiftKey) ? 5 : 1;
     let finalDelta = delta * shiftMulti;
 
@@ -458,7 +370,7 @@ function startSmartChange(id, delta, type, event) {
 function stopSmartChange() { clearTimeout(repeatDelayTimer); clearInterval(repeatTimer); repeatDelayTimer = null; repeatTimer = null; }
 document.addEventListener('mouseup', stopSmartChange); document.addEventListener('touchend', stopSmartChange); document.addEventListener('contextmenu', stopSmartChange); 
 
-// [신규] 툴팁 글로벌 마우스 트래커
+// 툴팁 글로벌 마우스 트래커
 let tooltipTracker = (e) => {
     const tt = document.getElementById('recipeTooltip');
     if(!tt || !tt.classList.contains('active')) return;
@@ -477,7 +389,6 @@ function showRecipeTooltip(id, event, isDeduction = false) {
     tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeHorizontal(u, multi)}</div><div class="tooltip-footer">화면을 터치하거나 외부 클릭 시 닫힙니다.</div>`;
     tt.classList.add('active');
     
-    // 초기 위치 강제 설정 (클릭 지점 우선)
     let x = event.pageX || (event.touches && event.touches[0].pageX) || window.innerWidth/2;
     let y = event.pageY || (event.touches && event.touches[0].pageY) || window.innerHeight/2;
     if(x + 280 > window.innerWidth) x = window.innerWidth - 290;
@@ -542,18 +453,13 @@ function renderActiveRoster() {
         }
     });
     
-    if(html === '') {
-        roster.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">선택된 유닛 대기열 (검색 후 엔터)</span>';
-    } else {
-        roster.innerHTML = html;
-    }
+    if(html === '') roster.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">선택된 유닛 대기열 (검색 후 엔터)</span>';
+    else roster.innerHTML = html;
 }
 
 function updateAllPanels() { 
-    updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster(); saveData();
+    updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster();
 }
-function resetCodex() { activeUnits.clear(); essenceUnits.clear(); updateAllPanels(); showToast("선택된 유닛이 초기화되었습니다."); saveData(); }
-function resetOwned() { ownedUnits.clear(); updateAllPanels(); showToast("보유 유닛이 초기화되었습니다."); saveData(); }
 
 function switchLayout(mode) {
     const layout = document.getElementById('mainLayout'); const btnCodex = document.getElementById('btnViewCodex'); const btnDeduct = document.getElementById('btnViewDeduct');
@@ -589,7 +495,6 @@ function setUnitQty(id, val) {
         updateAllPanels();
         return;
     }
-    
     const u = unitMap.get(id); if (!u || u.grade === "슈퍼히든") return;
     if (q > 16) q = 16;
     activeUnits.set(id, q); updateAllPanels();
@@ -606,10 +511,7 @@ function handleWheel(e, id) {
     qty += delta;
     
     if (qty > 16) qty = 16; 
-    if (qty < 1) {
-        activeUnits.delete(id); essenceUnits.delete(id); updateAllPanels(); return;
-    }
-    
+    if (qty < 1) { activeUnits.delete(id); essenceUnits.delete(id); updateAllPanels(); return; }
     if (activeUnits.get(id) !== qty) { activeUnits.set(id, qty); updateAllPanels(); TutorialEngine.handleEvent('click_unit'); }
 }
 
@@ -957,7 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
         UNIT_DATABASE.forEach((kArr) => { const g = kArr[1] || "매직", cat = kArr[2] || "테바"; unitMap.set(clean(kArr[0]), { id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] }); });
         
         initializeCacheEngine();
-        loadData();
         
         renderDashboardAtoms(); 
         renderDeductionBoard(); 
@@ -969,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupSearchEngine();
         checkInitialMode();
 
-        // [신규] 모바일 제스처 스와이프 등록
+        // 모바일 제스처 스와이프 등록
         let touchStartX = 0; let touchEndX = 0;
         const swipeArea = document.getElementById('tabContent');
         if(swipeArea) {

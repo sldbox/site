@@ -77,9 +77,6 @@
                     <button class="btn-text-link" onclick="openModeSelector()">⚙️ 모드 변경</button>
                 </div>
                 <div style="display:flex; gap:6px; position:relative; z-index:2; align-items: stretch;">
-                    <button class="btn-hdr-sm" onclick="exportSaveDataJSON()" style="color:var(--text-sub); border-color:var(--border);" title="데이터 백업">💾 백업</button>
-                    <button class="btn-hdr-sm" onclick="importSaveDataJSON()" style="color:var(--text-sub); border-color:var(--border);" title="데이터 복구">📂 복구</button>
-                    <button class="btn-hdr-sm" onclick="exportRoster()" style="color:var(--g); border-color:var(--g-border); background:rgba(0,229,255,0.05);">📋 로스터 복사</button>
                     <button class="btn-hdr-sm neon" onclick="resetCodex()">⟲ 선택 초기화</button>
                 </div>
             </div>
@@ -107,7 +104,6 @@
                     <span class="ph-title" style="text-shadow:0 0 15px rgba(251,146,60,0.8), 0 0 5px rgba(251,146,60,0.5);">코스트 데시보드</span>
                     <span class="ph-sep">|</span>
                     <button class="btn-text-link" onclick="openModeSelector()">⚙️ 모드 변경</button>
-                    <button class="btn-text-link" onclick="exportRoster()" style="color:var(--g); margin-left:4px;">📋 로스터 복사</button>
                 </div>
                 <div style="display: flex; align-items: stretch;">
                     <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 8px; border: 1px solid var(--border-light);">
@@ -157,7 +153,9 @@
 
 <div id="recipeTooltip" class="recipe-tooltip"></div>
 <div id="toastContainer" class="toast-container"></div>
-<div id="customContextMenu" class="context-menu" style="display:none;"></div> <div id="tutOverlay" class="tut-overlay" style="display:none;">
+<div id="customContextMenu" class="context-menu" style="display:none;"></div> 
+
+<div id="tutOverlay" class="tut-overlay" style="display:none;">
     <div id="tutHighlight" class="tut-highlight"></div>
     <div id="tutTooltip" class="tut-tooltip">
         <div id="tutText" class="tut-text"></div>
@@ -167,8 +165,6 @@
         </div>
     </div>
 </div>
-
-<input type="file" id="importFile" accept=".json" style="display:none;" onchange="handleFileImport(event)">
 
 <script src="data.js"></script>
 <script src="app.js"></script>

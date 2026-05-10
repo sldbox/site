@@ -1,6 +1,6 @@
 {
   "name": "개복디 넥서스",
-  "short_name": "넥서스",
+  "short_name": "개복디넥서스",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#030508",
