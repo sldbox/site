@@ -1,7 +1,6 @@
 /*
 =============================================================================
-[파일 설명서] app.js (하이브리드 커맨드 엔진, 튜토리얼 탑재)
-[신규 업데이트] 사용하지 않는 백업/복구/복사 기능 완벽 제거 및 스크립트 경량화
+[파일 설명서] app.js 
 =============================================================================
 */
 
@@ -114,14 +113,15 @@ window.addEventListener('resize', () => { if(TutorialEngine.isActive) TutorialEn
 // 초기 진입 및 모드 컨트롤
 // =========================================================
 function checkInitialMode() {
-    const savedMode = localStorage.getItem('nexusPreferredMode');
-    if (savedMode) initMode(savedMode, false); else document.getElementById('modeSelector').classList.add('active');
+    // 이전에는 localStorage 값을 가져와서 모드를 자동 전환했지만,
+    // 이제는 접속 시 무조건 모드 선택 창을 활성화합니다.
+    document.getElementById('modeSelector').classList.add('active');
 }
 
 function openModeSelector() { document.getElementById('modeSelector').classList.add('active'); }
 
 function initMode(mode, showToastMsg = true) {
-    _currentAppMode = mode; localStorage.setItem('nexusPreferredMode', mode);
+    _currentAppMode = mode; 
     document.getElementById('modeSelector').classList.remove('active');
     const layout = document.getElementById('mainLayout'), searchWrap = document.getElementById('searchWrap');
     
