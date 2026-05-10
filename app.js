@@ -29,11 +29,6 @@ const MINI_EMPTY_SVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="no
 
 function getUnitId(rawName){ const c=clean(rawName); const u=unitMap.get(c); return u ? u.id : c; }
 
-/*
-========================================================================================
-[🚫 절대 수정 금지 🚫] 넥서스 핵심 산술 엔진 락다운
-========================================================================================
-*/
 const AI_DO_NOT_MODIFY_CORE_ENGINE = true;
 
 function calculateTotalCostScore(costStr){
@@ -54,8 +49,8 @@ function processCostKeyword(rawName, amount, map) {
         map['갓오타/메시브'].갓오타 += amount;
         return true;
     }
-    if (cName.includes('지뢰') || cName.includes('시체매')) {
-        map['땅거미지뢰'] = (map['땅거미지뢰'] || 0) + (amount / 12);
+    if (cName.includes('땅거미지뢰')) {
+        map['땅거미지뢰'] = (map['땅거미지뢰'] || 0) + amount;
         return true;
     }
     if (cName.includes('우르사돈[암]') || cName.includes('우르사돈암')) {
@@ -179,6 +174,17 @@ function updateAllPanels() {
     renderTabs(); 
     renderCurrentTabContent(); 
     updateDeductionBoard();
+}
+
+// [초기화 기능 분리]
+function resetCodex() { activeUnits.clear(); essenceUnits.clear(); updateAllPanels(); }
+function resetOwned() { ownedUnits.clear(); updateAllPanels(); }
+
+function toggleDeduction() {
+    const layout = document.getElementById('mainLayout');
+    if (layout) {
+        layout.classList.toggle('is-expanded');
+    }
 }
 
 function toggleUnitSelection(id, forceQty){
@@ -360,10 +366,12 @@ function renderDeductionBoard() {
           </div>`;
 
     h += `<div class="deduct-group">
-            <div class="deduct-group-title"><span style="color:var(--grade-unique);">★</span> 특수 요구치 맵핑</div>
+            <div class="deduct-group-title"><span style="color:var(--grade-unique);">★</span> 특수 및 기초 자원 맵핑</div>
             <div class="deduct-grid">
                 ${renderSlot('갓오타', '갓오타', '레어')}
                 ${renderSlot('메시브', '메시브', '유니크')}
+                ${renderSlot('자동포탑', '자동포탑', '매직')}
+                ${renderSlot('땅거미지뢰', '땅거미지뢰', '히든')}
             </div>
           </div>`;
 
@@ -393,6 +401,14 @@ function updateDeductionBoard() {
     if (!DOM.deductionBoard) return;
     const { reqMap, reasonMap } = calculateIntermediateRequirements();
     
+    const totalMap={}; 
+    dashboardAtoms.forEach(a=>{if(a==="갓오타/메시브")totalMap[a]={갓오타:0,메시브:0};else totalMap[a]=0;});
+    Array.from(activeUnits.keys()).forEach(k=>{
+        const u=unitMap.get(k);if(!u)return; const c=activeUnits.get(k)||1;
+        if(u.cost&&!IGNORE_PARSE_RECIPES.includes(u.cost)) parseFixedCost(u.cost,c,totalMap);
+        else calculateRecursiveCost(u.name,c,totalMap);
+    });
+
     let specialReq = { 갓오타: 0, 메시브: 0 };
     let specialReason = { 갓오타: new Set(), 메시브: new Set() };
     
@@ -475,10 +491,12 @@ function updateDeductionBoard() {
 
     updateSlot('갓오타', specialReq.갓오타, specialReason.갓오타);
     updateSlot('메시브', specialReq.메시브, specialReason.메시브);
+    updateSlot('자동포탑', Math.max(reqMap.get('자동포탑') || 0, Math.ceil(totalMap['자동포탑'] || 0)), reasonMap.get('자동포탑'));
+    updateSlot('땅거미지뢰', Math.max(reqMap.get('땅거미지뢰') || 0, Math.ceil(totalMap['땅거미지뢰'] || 0)), reasonMap.get('땅거미지뢰'));
 
     const targetGrades = ["레어", "에픽", "유니크", "헬", "레전드", "히든"];
     unitMap.forEach(u => {
-        if(targetGrades.includes(u.grade)) {
+        if(targetGrades.includes(u.grade) && u.id !== '자동포탑' && u.id !== '땅거미지뢰') {
             updateSlot(u.id, reqMap.get(u.id) || 0, reasonMap.get(u.id));
         }
     });
@@ -582,8 +600,13 @@ function renderCurrentTabContent() {
         const nameDisp = item.name;
         const multi = 1;
 
-        const badgeClass = item.grade === "슈퍼히든" ? "badge-essence inline sh" : "badge-essence inline";
-        const essenceBox = unitEssence > 0 ? `<span class="${badgeClass}">정수 [${unitEssence}]</span>` : '';
+        // [UI 개선] 통합 뱃지 적용: 정수가 있으면 하나의 뱃지로 묶어 표기
+        let gradeHtml = '';
+        if (unitEssence > 0) {
+            gradeHtml = `<span class="gtag sh-integrated" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade} <span class="badge-sep">/</span> <span style="color:var(--grade-super); text-shadow:0 0 8px rgba(255,215,0,0.6);">정수 ${unitEssence}</span></span>`;
+        } else {
+            gradeHtml = `<span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>`;
+        }
 
         let rightControls = '';
         if (item.grade !== "슈퍼히든") {
@@ -604,10 +627,10 @@ function renderCurrentTabContent() {
             <div class="uc-wrap">
                 <div class="uc-info-stack">
                     <div class="uc-grade">
-                        <span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>
+                        ${gradeHtml}
                     </div>
                     <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">
-                        ${nameDisp} ${essenceBox}
+                        ${nameDisp}
                     </div>
                     <div class="uc-recipe-row">
                         ${formatRecipeHorizontal(item)}

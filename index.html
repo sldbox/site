@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>개복디 넥서스</title>
 
-    <script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;ri=AAB0swARY29tLmdvb2dsZS5DaHJvbWUA42h0dHBzOi8vY29udHJpYnV0aW9uLnVzZXJjb250ZW50Lmdvb2dsZS5jb20vZG93bmxvYWQ%2FYz1DZ3hpWVhKa1gzTjBiM0poWjJVU1R4SU1jbVZ4ZFdWemRGOWtZWFJoR2o4S01EWXlZVEF5WVdZek1qZzFPRFprTjJRd01EQTJOVEUyTlRaak5qTTVPV05tTURFMU5qZ3hZVFJoWVRKa05HWXhOUklMRWdjUTRfSGIyTG9MR0FFJmZpbGVuYW1lPWluZGV4Lmh0bWwmb3BpPTEwMzEzNTA1MCZhdXRodXNlcj0x"></script><link rel="icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
+    <link rel="icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="shortcut icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="https://sldbox.github.io/site/image/logo/icon.png">
     <meta name="description" content="개복디 넥서스 - 데시보드 허브">
@@ -24,29 +24,18 @@
 <body>
 
 <main class="main-layout" id="mainLayout">
-    <header class="site-header">
-        <div class="header-content-wrap">
-            <div class="animated-title-wrap">
-                <div class="title-text text-nexus">개복디 넥서스</div>
-                <div class="title-text text-creator">
-                    <span style="opacity:0.8; font-family:var(--font-body); font-size:0.95rem;">제작자</span>
-                    <span style="color:var(--g-dim); margin:0 8px;">|</span>
-                    <span style="letter-spacing:1px; color:var(--g); font-weight:800; text-shadow:0 0 10px var(--g);">회장</span>
-                </div>
-            </div>
-            <div class="hdr-btns">
-                <button class="btn-hdr neon-btn" onclick="resetAll()">⟲ 시스템 초기화</button>
-                <button class="btn-hdr" onclick="openJewelModal()">✦ 쥬얼 도감</button>
-            </div>
-        </div>
-    </header>
-
     <div class="hud-panel panel-codex">
         <div class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg);">
-            <div style="padding:11px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden;">
+            <div style="padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:stretch; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden; min-height: 54px;">
                 <div class="header-scanline"></div>
-                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; position:relative; z-index:2;">
-                    <span class="ph-icon">▤</span><span class="ph-title">유닛도감&조합</span>
+                <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2;">
+                    <span class="nexus-main-title">개복디 넥서스</span>
+                    <span style="color:var(--g-dim);">|</span>
+                    <span style="font-size:0.8rem; color:var(--g); font-weight:800;">제작자 / 회장</span>
+                </div>
+                <div style="display:flex; gap:8px; position:relative; z-index:2; align-items: stretch;">
+                    <button class="btn-hdr-sm" onclick="openJewelModal()">✦ 쥬얼 도감</button>
+                    <button class="btn-hdr-sm neon" onclick="resetCodex()">⟲ 선택 초기화</button>
                 </div>
             </div>
             <div style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:center;">
@@ -60,9 +49,16 @@
 
     <div class="col-center">
         <div class="hud-panel" style="flex: 1 1 auto;">
-            <div class="panel-header">
-                <span class="ph-icon" style="color:var(--grade-epic); border-color:var(--grade-epic);">❖</span>
-                <span class="ph-title" style="color:var(--grade-epic); text-shadow:0 0 10px rgba(251,146,60,0.5);">코스트 데시보드</span>
+            <div class="panel-header" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="ph-icon" style="color:var(--grade-epic); border-color:var(--grade-epic);">❖</span>
+                    <span class="ph-title" style="text-shadow:0 0 15px rgba(251,146,60,0.8), 0 0 5px rgba(251,146,60,0.5);">코스트 데시보드</span>
+                </div>
+                <div style="display: flex; align-items: stretch;">
+                    <button class="btn-toggle-deduct" onclick="toggleDeduction()">
+                        <span class="toggle-icon">◫</span> 차감 데시보드 열기/닫기
+                    </button>
+                </div>
             </div>
             <div class="panel-body" style="padding:12px;">
                 <div class="magic-grid" id="magicDashboard"></div>
@@ -70,10 +66,15 @@
         </div>
     </div>
 
-    <div class="hud-panel col-right" style="display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
-        <div class="panel-header">
-            <span class="ph-icon" style="color:var(--grade-unique); border-color:var(--grade-unique);">⊖</span>
-            <span class="ph-title" style="color:var(--grade-unique); text-shadow:0 0 10px rgba(239,68,68,0.5);">차감 맵핑</span>
+    <div class="hud-panel col-right" id="rightPanel" style="display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+        <div class="panel-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="ph-icon" style="color:var(--grade-unique); border-color:var(--grade-unique);">⊖</span>
+                <span class="ph-title" style="text-shadow:0 0 15px rgba(239,68,68,0.8), 0 0 5px rgba(239,68,68,0.5);">차감 데시보드</span>
+            </div>
+            <div style="display: flex; align-items: stretch;">
+                <button class="btn-hdr-sm neon" onclick="resetOwned()">⟲ 보유 초기화</button>
+            </div>
         </div>
         <div class="panel-body" id="deductionBoard" style="padding:16px; overflow-y:auto; background:var(--panel);"></div>
     </div>
