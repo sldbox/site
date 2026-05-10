@@ -1,7 +1,7 @@
 /*
 =============================================================================
 [파일 설명서] app.js (하이브리드 커맨드 엔진, 튜토리얼 탑재)
-[신규 업데이트] 모드 고정 기능 제거 및 캐시 관리 지원
+[신규 업데이트] 3D 틸트 성능 최적화 및 불필요한 마우스 트래킹 제거
 =============================================================================
 */
 
@@ -114,7 +114,6 @@ window.addEventListener('resize', () => { if(TutorialEngine.isActive) TutorialEn
 // 초기 진입 및 모드 컨트롤
 // =========================================================
 function checkInitialMode() {
-    // 이제 접속 시 무조건 모드 선택 창을 활성화하여 사용자가 선택하게 함
     document.getElementById('modeSelector').classList.add('active');
 }
 
@@ -234,7 +233,8 @@ function showToast(msg, isError = false) {
 
 
 // =========================================================
-// PC 전용 키보드 단축키 (Hotkeys) & 우클릭 메뉴 & 3D 틸트
+// PC 전용 키보드 단축키 (Hotkeys) & 우클릭 메뉴
+// [개선] 성능 부하를 유발하는 3D 틸트 효과 제거
 // =========================================================
 window.addEventListener('keydown', e => {
     if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'f')) && document.activeElement.tagName !== 'INPUT') {
@@ -293,22 +293,6 @@ function showContextMenu(e, unitId) {
 
 function closeContextMenu() { const cm = document.getElementById('customContextMenu'); if(cm) cm.style.display = 'none'; }
 document.addEventListener('click', closeContextMenu);
-
-function applyTilt(e, elem) {
-    if(window.innerWidth < 1200) return; 
-    const rect = elem.getBoundingClientRect();
-    const dx = e.clientX - rect.left - (rect.width / 2);
-    const dy = e.clientY - rect.top - (rect.height / 2);
-    elem.style.transform = `perspective(1000px) rotateY(${dx / 15}deg) rotateX(${-dy / 15}deg) translateZ(10px)`;
-}
-function resetTilt(elem) { elem.style.transform = `perspective(1000px) rotateY(0) rotateX(0) translateZ(0)`; }
-document.addEventListener('mousemove', e => {
-    if(window.innerWidth < 1200) return;
-    const card = e.target.closest('.unit-card') || e.target.closest('.jewel-item');
-    document.querySelectorAll('.unit-card, .jewel-item').forEach(el => { if(el !== card) resetTilt(el); });
-    if(card) applyTilt(e, card);
-});
-document.addEventListener('mouseleave', () => { document.querySelectorAll('.unit-card, .jewel-item').forEach(resetTilt); }, true);
 
 // =========================================================
 // 코어 데이터 사전 파싱 
@@ -888,6 +872,5 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { console.error("[오류] 넥서스 초기화 중 에러 발생:", err); }
 });
 
-// 기본 단축키 방지 등
 document.addEventListener('dragstart',e=>e.preventDefault());
 document.addEventListener('selectstart',e=>{if(!e.target.closest('.smart-stepper') && !e.target.closest('input')) e.preventDefault()});
