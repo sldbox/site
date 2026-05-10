@@ -8,11 +8,11 @@
     <link rel="icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="shortcut icon" href="https://sldbox.github.io/site/image/logo/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="https://sldbox.github.io/site/image/logo/icon.png">
-    <meta name="description" content="개복디 넥서스 - 데시보드 허브">
+    <meta name="description" content="개복디 넥서스 - 커맨드 센터">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sldbox.github.io/site/">
-    <meta property="og:title" content="개복디 넥서스 - 데시보드 허브">
-    <meta property="og:description" content="개복디 넥서스 - 데시보드 허브">
+    <meta property="og:title" content="개복디 넥서스 - 커맨드 센터">
+    <meta property="og:description" content="개복디 넥서스 - 커맨드 센터">
     <meta property="og:image" content="https://sldbox.github.io/site/image/logo/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,41 +23,96 @@
 </head>
 <body>
 
+<div class="mode-selector" id="modeSelector">
+    <div style="margin-bottom: 40px; text-align: center;">
+        <h1 style="font-family:var(--font-display); font-size: 2.8rem; color:var(--text); text-shadow:0 0 20px var(--g-glow);">개복디 넥서스</h1>
+        <p style="color:var(--text-sub); margin-top:10px; margin-bottom:20px;">원하시는 작업 환경을 선택해 주세요.</p>
+        <button class="btn-tutorial-start" onclick="TutorialEngine.start()">🚀 초보자를 위한 인터랙티브 가이드 시작</button>
+    </div>
+    <div class="ms-cards">
+        <div class="ms-card expert" onclick="initMode('expert')">
+            <h2 style="color:var(--g); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px var(--g-glow);">검색 모드</h2>
+            <p style="color:var(--text-sub); line-height:1.6; font-size:1.05rem; word-break:keep-all;">명령어 텍스트 입력에 익숙한 숙련자를 위한 최적화 모드입니다.<br><br>불필요한 도감 UI를 숨기고 검색창만 중앙에 배치하여, 키보드를 통한 다중 커맨드로 초고속 유닛 등록 및 관리가 가능합니다.</p>
+            <div style="margin-top:auto; font-family:var(--font-mono); color:var(--g); background:rgba(0,229,255,0.1); padding:8px 16px; border-radius:6px; border:1px solid var(--g-border);">ex) 타이커스/땅굴*8 ↵</div>
+        </div>
+        <div class="ms-card classic" onclick="initMode('classic')">
+            <h2 style="color:var(--grade-rare); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px rgba(251,191,36,0.5);">도감 모드</h2>
+            <p style="color:var(--text-sub); line-height:1.6; font-size:1.05rem; word-break:keep-all;">시각적인 유닛 리스트 확인이 필요한 분들을 위한 기본 모드입니다.<br><br>종족별 탭과 유닛 카드를 직접 클릭하여 직관적으로 등록할 수 있으며, 보조 검색창을 함께 지원하여 편리한 관리가 가능합니다.</p>
+            <div style="margin-top:auto; color:rgba(251,191,36,0.8); background:rgba(251,191,36,0.1); padding:8px 16px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">종족 탭 + 클릭 지원</div>
+        </div>
+        <div class="ms-card jewel" onclick="initMode('jewel')">
+            <h2 style="color:var(--grade-super); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px rgba(255,215,0,0.5);">쥬얼 도감</h2>
+            <p style="color:var(--text-sub); line-height:1.6; font-size:1.05rem; word-break:keep-all;">게임 내 모든 쥬얼의 전설 및 신화 능력을 열람할 수 있는 전용 백과사전입니다.<br><br>유닛 커맨드 센터와 완전히 분리된 환경에서, 방해 요소 없이 오직 쥬얼 정보 파악에만 집중할 수 있습니다.</p>
+            <div style="margin-top:auto; color:rgba(255,215,0,0.8); background:rgba(255,215,0,0.1); padding:8px 16px; border-radius:6px; border:1px solid rgba(255,215,0,0.3);">독립된 열람 환경</div>
+        </div>
+    </div>
+    
+    <div class="creator-badge">
+        <span class="cb-label">DESIGNED BY</span> 
+        <span class="cb-name">회장</span> 
+        <span class="cb-sep">|</span> 
+        <span class="cb-id">ID: 3-S2-1-2461127</span>
+    </div>
+</div>
+
+<div style="display:none;">
+    <div class="search-wrap" id="searchWrap">
+        <input type="text" class="search-input" id="unitSearchInput" placeholder="유닛 검색 또는 다중 커맨드 (예: 불새/아몬/땅굴*8)" autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+        <div id="activeRoster" class="active-roster"></div>
+    </div>
+</div>
+
 <main class="main-layout" id="mainLayout">
-    <div class="hud-panel panel-codex">
+    <div class="hud-panel panel-codex" id="leftPanel">
         <div class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg);">
             <div style="padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:stretch; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden; min-height: 54px;">
                 <div class="header-scanline"></div>
                 <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2;">
                     <span class="nexus-main-title">개복디 넥서스</span>
                     <span style="color:var(--g-dim);">|</span>
-                    <span style="font-size:0.8rem; color:var(--g); font-weight:800;">제작자 / 회장</span>
+                    <button class="btn-text-link" onclick="openModeSelector()">⚙️ 모드 변경</button>
                 </div>
                 <div style="display:flex; gap:8px; position:relative; z-index:2; align-items: stretch;">
-                    <button class="btn-hdr-sm" onclick="openJewelModal()">✦ 쥬얼 도감</button>
+                    <button class="btn-hdr-sm" onclick="exportRoster()" style="color:var(--g); border-color:var(--g-border); background:rgba(0,229,255,0.05);">📋 로스터 복사</button>
                     <button class="btn-hdr-sm neon" onclick="resetCodex()">⟲ 선택 초기화</button>
                 </div>
             </div>
-            <div style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:center;">
+            
+            <div id="classicSearchContainer"></div>
+
+            <div class="codex-tabs-wrap" id="codexTabsWrap" style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:center;">
                 <div class="codex-tabs" id="codexTabs" style="flex:1;"></div>
             </div>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" id="leftPanelBody">
             <div id="tabContent"></div>
         </div>
     </div>
 
-    <div class="col-center">
+    <div class="col-center" id="centerPanel">
+        <div id="expertSearchContainer">
+            <div class="expert-main-title">개복디 넥서스</div>
+        </div>
+
         <div class="hud-panel" style="flex: 1 1 auto;">
             <div class="panel-header" style="justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span class="ph-icon" style="color:var(--grade-epic); border-color:var(--grade-epic);">❖</span>
                     <span class="ph-title" style="text-shadow:0 0 15px rgba(251,146,60,0.8), 0 0 5px rgba(251,146,60,0.5);">코스트 데시보드</span>
+                    <span style="color:var(--border-light); margin:0 4px;">|</span>
+                    <button class="btn-text-link" onclick="openModeSelector()">⚙️ 모드 변경</button>
+                    <button class="btn-text-link" onclick="exportRoster()" style="color:var(--g); margin-left:4px;">📋 로스터 복사</button>
                 </div>
                 <div style="display: flex; align-items: stretch;">
-                    <button class="btn-toggle-deduct" onclick="toggleDeduction()">
-                        <span class="toggle-icon">◫</span> 차감 데시보드 열기/닫기
-                    </button>
+                    <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 8px; border: 1px solid var(--border-light);">
+                        <button class="btn-toggle-layout active" id="btnViewCodex" onclick="switchLayout('codex')">
+                            <span class="toggle-icon">◧</span> 입력 모드
+                        </button>
+                        <button class="btn-toggle-layout" id="btnViewDeduct" onclick="switchLayout('deduct')">
+                            <span class="toggle-icon">◨</span> 차감 모드
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="panel-body" style="padding:12px;">
@@ -78,16 +133,33 @@
         </div>
         <div class="panel-body" id="deductionBoard" style="padding:16px; overflow-y:auto; background:var(--panel);"></div>
     </div>
+
+    <div class="hud-panel panel-jewel" id="jewelPanel">
+        <div class="panel-header" style="justify-content: space-between; background:var(--g-faint);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="ph-icon" style="color:#FFD700; border-color:#FFD700; font-size:1.2rem;">✦</span>
+                <span class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.8), 0 0 5px rgba(255,215,0,0.5); font-size:1.3rem;">쥬얼 도감 백과사전</span>
+            </div>
+            <div style="display: flex; align-items: stretch;">
+                <button class="btn-hdr-sm neon" onclick="openModeSelector()" style="font-size:1rem; padding:0 30px;">⬅ 모드 선택으로 돌아가기</button>
+            </div>
+        </div>
+        <div class="panel-body" style="padding:30px; overflow-y:auto; background:var(--panel-b);">
+            <div id="jewelGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:24px; align-content:start;"></div>
+        </div>
+    </div>
 </main>
 
-<div class="modal-backdrop" id="jewelModal" onclick="closeJewelModal(event)">
-    <div class="modal-box" onclick="event.stopPropagation()" style="width:min(1100px, 95vw); max-height:85vh;">
-        <div class="modal-head">
-            <h2 style="font-family:'Orbitron', sans-serif;">쥬얼 도감</h2>
-            <button class="btn-close" onclick="closeJewelModal()">&times;</button>
-        </div>
-        <div class="modal-body-scroll" style="background:var(--panel-b);">
-            <div id="jewelGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:20px;"></div>
+<div id="recipeTooltip" class="recipe-tooltip"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<div id="tutOverlay" class="tut-overlay" style="display:none;">
+    <div id="tutHighlight" class="tut-highlight"></div>
+    <div id="tutTooltip" class="tut-tooltip">
+        <div id="tutText" class="tut-text"></div>
+        <div class="tut-actions">
+            <button id="tutBtnNext" class="btn-tut-next" style="display:none;"></button>
+            <button id="tutBtnSkip" class="btn-tut-skip" onclick="TutorialEngine.end()">가이드 종료</button>
         </div>
     </div>
 </div>
