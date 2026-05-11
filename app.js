@@ -485,7 +485,13 @@ function initMode(mode, showToastMsg = true) {
 // 검색 및 커맨드 엔진 (Search & Command) 
 // =========================================================
 let searchTimeout = null;
-const ALIAS_MAP = { "타커": "타이커스", "타이": "타이커스", "닥템": "암흑기사", "다칸": "암흑집정관", "스투": "스투코프", "디젯": "디제스터", "메십": "메시브", "마랩": "마스터랩" };
+const ALIAS_MAP = { 
+    "타커": "타이커스", "타이": "타이커스", "닥템": "암흑기사", "닼템": "암흑기사", "다칸": "암흑집정관", 
+    "스투": "스투코프", "디젯": "디제스터", "메십": "메시브", "마랩": "마스터랩", "히페": "히페리온", 
+    "고전순": "고르곤전투순양함", "특레": "특공대레이너", "드레천": "드라켄레이저천공기", 
+    "우르사돈암": "우르사돈[암]", "우르사돈수": "우르사돈[수]", "공허": "공허포격기", 
+    "분수": "분노수호자", "원히": "원시히드라리스크"
+};
 
 function setupSearchEngine() {
     const inputEl = document.getElementById('unitSearchInput');
@@ -602,7 +608,8 @@ function initializeCacheEngine() {
     unitMap.forEach(u => {
         u.parsedCost = [];
         if(u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
-            u.cost.split(',').forEach(p => {
+            const safeCost = u.cost.replace(/[.\/]/g, ',');
+            safeCost.split(',').forEach(p => {
                 const m = p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
                 let name = m ? m[1].trim() : p.trim(); let qty = m ? parseFloat(m[2]) : 1; let cName = clean(name); let type = 'atom', key = cName;
                 if(cName.includes('메시브') || cName.includes('디제스터')) { type='special'; key='메시브'; }
