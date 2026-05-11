@@ -31,26 +31,49 @@
 <body>
 
 <div class="mode-selector active" id="modeSelector">
-    <div style="margin-bottom: 40px; text-align: center;">
+    <div style="margin-bottom: 32px; text-align: center;">
         <h1 style="font-family:var(--font-display); font-size: 2.8rem; color:var(--text); text-shadow:0 0 20px var(--g-glow);">개복디 넥서스</h1>
         <p style="color:var(--text-sub); margin-top:10px; margin-bottom:20px;">원하시는 작업 환경을 선택해 주세요.</p>
         <button class="btn-tutorial-start" onclick="TutorialEngine.start()">🚀 사용방법 설명 가이드 시작</button>
     </div>
-    <div class="ms-cards">
-        <div class="ms-card expert" onclick="initMode('expert')">
-            <h2 style="color:var(--g); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px var(--g-glow);">검색 모드</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1.15rem; font-weight:800; word-break:keep-all; margin-bottom:20px;">키보드 커맨드 기반의<br>초고속 다중 유닛 등록</p>
-            <div style="margin-top:auto; font-family:var(--font-mono); color:var(--g); background:rgba(0,229,255,0.1); padding:8px 16px; border-radius:6px; border:1px solid var(--g-border);">ex) 타이커스/땅굴*8 ↵</div>
+
+    <!-- 그룹 1: 코스트 계산기 -->
+    <div class="ms-group">
+        <div class="ms-group-label">
+            <span class="ms-group-icon">⚡</span> 코스트 계산기
+            <span class="ms-group-desc">정수 계산 & 히든조합 분석</span>
         </div>
-        <div class="ms-card classic" onclick="initMode('classic')">
-            <h2 style="color:var(--grade-rare); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px rgba(251,191,36,0.5);">도감 모드</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1.15rem; font-weight:800; word-break:keep-all; margin-bottom:20px;">직관적인 탭 & 클릭 방식의<br>기본 UI 환경</p>
-            <div style="margin-top:auto; color:rgba(251,191,36,0.8); background:rgba(251,191,36,0.1); padding:8px 16px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">종족 탭 + 클릭 지원</div>
+        <div class="ms-cards ms-cards--calc">
+            <div class="ms-card expert" onclick="initMode('expert')">
+                <h2 style="color:var(--g); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px var(--g-glow);">검색 모드</h2>
+                <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">키보드 커맨드 기반의<br>초고속 다중 유닛 등록</p>
+                <div style="margin-top:auto; font-family:var(--font-mono); color:var(--g); background:rgba(0,229,255,0.1); padding:7px 14px; border-radius:6px; border:1px solid var(--g-border); font-size:0.88rem;">ex) 타이커스/땅굴*8 ↵</div>
+            </div>
+            <div class="ms-card classic" onclick="initMode('classic')">
+                <h2 style="color:var(--grade-rare); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(251,191,36,0.5);">도감 모드</h2>
+                <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">직관적인 탭 & 클릭 방식의<br>기본 UI 환경</p>
+                <div style="margin-top:auto; color:rgba(251,191,36,0.8); background:rgba(251,191,36,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(251,191,36,0.3); font-size:0.88rem;">종족 탭 + 클릭 지원</div>
+            </div>
         </div>
-        <div class="ms-card jewel" onclick="initMode('jewel')">
-            <h2 style="color:var(--grade-super); font-size:2.2rem; margin-bottom:15px; font-family:var(--font-display); text-shadow:0 0 15px rgba(255,215,0,0.5);">쥬얼 도감</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1.15rem; font-weight:800; word-break:keep-all; margin-bottom:20px;">방해 요소 없는 쥬얼<br>전설/신화 능력치 전용 열람</p>
-            <div style="margin-top:auto; color:rgba(255,215,0,0.8); background:rgba(255,215,0,0.1); padding:8px 16px; border-radius:6px; border:1px solid rgba(255,215,0,0.3);">독립된 열람 환경</div>
+    </div>
+
+    <!-- 그룹 2: 도감 컬렉션 -->
+    <div class="ms-group">
+        <div class="ms-group-label">
+            <span class="ms-group-icon">📖</span> 도감 컬렉션
+            <span class="ms-group-desc">능력치 & 조합 정보 열람</span>
+        </div>
+        <div class="ms-cards ms-cards--codex">
+            <div class="ms-card jewel" onclick="initMode('jewel')">
+                <h2 style="color:var(--grade-super); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(255,215,0,0.5);">쥬얼 도감</h2>
+                <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">방해 요소 없는 쥬얼<br>전설/신화 능력치 전용 열람</p>
+                <div style="margin-top:auto; color:rgba(255,215,0,0.8); background:rgba(255,215,0,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(255,215,0,0.3); font-size:0.88rem;">독립된 열람 환경</div>
+            </div>
+            <div class="ms-card unit-codex" onclick="initMode('unitcodex')">
+                <h2 style="color:var(--grade-hidden); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(52,211,153,0.5);">유닛 도감</h2>
+                <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">유닛 이미지 & 조합 조건<br>전체 유닛 도감 열람</p>
+                <div style="margin-top:auto; color:rgba(52,211,153,0.8); background:rgba(52,211,153,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(52,211,153,0.3); font-size:0.88rem;">이미지 카드 + 조합 표시</div>
+            </div>
         </div>
     </div>
     
@@ -139,17 +162,36 @@
     </div>
 
     <div class="hud-panel panel-jewel" id="jewelPanel">
-        <div class="panel-header" style="justify-content: space-between; background:var(--g-faint);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="ph-icon" style="color:#FFD700; border-color:#FFD700; font-size:1.2rem;">✦</span>
-                <span class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.8), 0 0 5px rgba(255,215,0,0.5); font-size:1.3rem;">쥬얼 도감 백과사전</span>
+        <div class="panel-header" style="justify-content:space-between; background:rgba(255,215,0,0.05);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="ph-icon" style="color:#FFD700; border-color:#FFD700;">✦</span>
+                <span class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.7); font-size:1.15rem;">쥬얼 도감 백과사전</span>
             </div>
-            <div style="display: flex; align-items: stretch;">
-                <button class="btn-hdr-sm neon" onclick="openModeSelector()" style="font-size:1rem; padding:0 30px;">⬅ 메인화면</button>
+            <div style="display:flex; align-items:stretch;">
+                <button class="btn-hdr-sm neon" onclick="openModeSelector()" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">⬅ 메인화면</button>
             </div>
         </div>
-        <div class="panel-body" style="padding:30px; overflow-y:auto; background:var(--panel-b);">
-            <div id="jewelGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:24px; align-content:start;"></div>
+        <div class="panel-body" style="padding:24px; overflow-y:auto;">
+            <div id="jewelGrid"></div>
+        </div>
+    </div>
+
+    <div class="hud-panel panel-unitcodex" id="unitCodexPanel">
+        <div class="panel-header" style="justify-content:space-between; background:rgba(52,211,153,0.05);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="ph-icon" style="color:var(--grade-hidden); border-color:var(--grade-hidden);">◈</span>
+                <span class="ph-title" style="text-shadow:0 0 15px rgba(52,211,153,0.7); font-size:1.15rem;">유닛 도감 백과사전</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                <input type="text" id="unitCodexSearch" placeholder="유닛명 검색..." autocomplete="off"
+                    style="background:rgba(0,0,0,0.5); border:1px solid rgba(52,211,153,0.3); color:var(--text); border-radius:7px; padding:6px 13px; font-size:0.88rem; font-family:var(--font-body); outline:none; width:160px; flex-shrink:0;"
+                    oninput="filterUnitCodex(this.value)">
+                <div id="unitCodexTabsWrap" style="display:flex; gap:4px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; flex:1;"></div>
+                <button class="btn-hdr-sm" onclick="openModeSelector()" style="border-color:rgba(52,211,153,0.35); color:var(--grade-hidden); flex-shrink:0;">⬅ 메인화면</button>
+            </div>
+        </div>
+        <div class="panel-body" style="padding:20px; overflow-y:auto;">
+            <div id="unitCodexGrid"></div>
         </div>
     </div>
 </main>

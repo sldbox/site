@@ -35,9 +35,8 @@
 
 
 let _activeTabIdx = 0;
-let _currentAppMode = 'classic'; // 'expert', 'classic', or 'jewel'
+let _currentAppMode = 'classic'; // 'expert', 'classic', 'jewel', 'unitcodex'
 let _currentViewMode = 'codex';
-let _previousViewMode = 'codex';
 
 /* =============================================================================
    [AI DO NOT EDIT] 🔒 핵심 계산 엔진 시작 - 절대 수정 불가 (헤드락 적용 구간)
@@ -295,8 +294,8 @@ const TutorialEngine = {
             btnN.onclick = () => this.next();
         } else if (step.requireAction === 'finish') {
             btnN.style.display = 'inline-flex';
-            btnN.textContent = '도감 모드로 시작하기 ✔';
-            btnN.onclick = () => { this.end(); setTimeout(() => initMode('classic', true), 150); };
+            btnN.textContent = '가이드 완료 ✔';
+            btnN.onclick = () => { this.end(); };
         } else {
             btnN.style.display = 'none';
         }
@@ -446,17 +445,36 @@ function checkInitialMode() {
     document.getElementById('modeSelector').classList.add('active');
 }
 
-function openModeSelector() { document.getElementById('modeSelector').classList.add('active'); }
+function openModeSelector() { 
+    _currentAppMode = 'classic';
+    document.getElementById('modeSelector').classList.add('active');
+    const layout = document.getElementById('mainLayout');
+    if (layout) layout.classList.remove('view-jewel', 'view-unitcodex');
+}
 
 function initMode(mode, showToastMsg = true) {
     _currentAppMode = mode; 
     document.getElementById('modeSelector').classList.remove('active');
     const layout = document.getElementById('mainLayout'), searchWrap = document.getElementById('searchWrap');
     
-    layout.classList.remove('mode-expert', 'view-jewel');
+    layout.classList.remove('mode-expert', 'view-jewel', 'view-unitcodex');
     if(mode === 'expert') { layout.classList.add('mode-expert'); document.getElementById('expertSearchContainer').appendChild(searchWrap); if(showToastMsg) showToast("검색 모드가 활성화되었습니다."); } 
     else if(mode === 'classic') { document.getElementById('classicSearchContainer').appendChild(searchWrap); if(showToastMsg) showToast("도감 모드가 활성화되었습니다."); } 
     else if(mode === 'jewel') { layout.classList.add('view-jewel'); if(showToastMsg) showToast("쥬얼 도감 모드가 활성화되었습니다."); }
+    else if(mode === 'unitcodex') { 
+        layout.classList.add('view-unitcodex'); 
+        // 상태 초기화 후 재렌더
+        _ucActiveTab = '전체';
+        _ucSearchQuery = '';
+        const tabsWrap = document.getElementById('unitCodexTabsWrap');
+        const grid = document.getElementById('unitCodexGrid');
+        const searchInput = document.getElementById('unitCodexSearch');
+        if(tabsWrap) tabsWrap.innerHTML = '';
+        if(grid) grid.innerHTML = '';
+        if(searchInput) searchInput.value = '';
+        renderUnitCodexGrid(); 
+        if(showToastMsg) showToast("유닛 도감 모드가 활성화되었습니다."); 
+    }
     
     switchLayout(_currentViewMode === 'deduct' ? 'deduct' : 'codex');
 }
@@ -1111,17 +1129,132 @@ function renderDashboardAtoms(){
 
 function renderJewelGrid(){
     const g=document.getElementById('jewelGrid'); 
-    if(!g || g.innerHTML!=='') return; 
+    if(!g) return;
     
-    let h=''; const url="https://raw.githubusercontent.com/sldbox/site/main/image/jw/";
-    JEWEL_DATABASE.forEach((koArr) => {
+    const url="https://sldbox.github.io/site/image/jw/";
+    let h='';
+
+    JEWEL_DATABASE.forEach((koArr, idx) => {
         const kr=koArr[0], krLeg=koArr[1], krMyth=koArr[2], imgName=koArr[3]||kr;
         const c = typeof JEWEL_COLORS !== 'undefined' && JEWEL_COLORS[kr] ? JEWEL_COLORS[kr] : "#ffffff";
-        let mythHtml = '';
-        if (krMyth && krMyth.trim() !== "") { mythHtml = `<div class="jw-stat mythic"><div class="jw-stat-lbl">신화 능력 <span class="mythic-sparkle">✦</span></div><div class="jw-stat-val">${krMyth}</div></div>`; }
-        h+=`<div class="jewel-item"><div class="jewel-header"><div class="jewel-img-wrap" style="border-color:${c}80; color:${c}; box-shadow:inset 0 0 15px rgba(0,0,0,0.8), 0 0 15px ${c}40;"><img src="${url}${imgName}.png" onerror="this.src=''" alt="${kr}"></div><div class="jewel-name-txt" style="text-shadow:0 0 10px ${c}80;">${kr}</div></div><div class="jewel-body"><div class="jw-stat legend"><div class="jw-stat-lbl">전설 능력</div><div class="jw-stat-val">${krLeg}</div></div>${mythHtml}</div></div>`;
+        const cA = c + '28';
+        const cB = c + '44';
+        const cShadow = c + '55';
+        const hasMythic = krMyth && krMyth.trim() !== "";
+        const mythHtml = hasMythic
+            ? `<div class="jw-stat mythic"><div class="jw-stat-lbl">신화 능력 <span class="mythic-sparkle">✦</span></div><div class="jw-stat-val">${krMyth}</div></div>`
+            : '';
+        const delay = (idx * 0.04).toFixed(2);
+
+        h += `<div class="jewel-item" style="--jw-color:${c};--jw-color-a:${cA};--jw-color-b:${cB};--jw-shadow:${cShadow};--jw-glow:radial-gradient(ellipse 80% 60% at 50% 0%,${cA} 0%,transparent 70%);animation:jwFadeIn 0.45s ${delay}s both ease-out;">
+            <div class="jewel-banner">
+                <div class="jewel-banner-bg"></div>
+                <div class="jewel-hex"></div>
+                <div class="jewel-hex-inner"></div>
+                <div class="jewel-img-wrap">
+                    <img src="${url}${imgName}.png" alt="${kr}" onerror="this.style.opacity='0'">
+                </div>
+                <div class="jewel-name-txt">${kr}</div>
+                <div class="jewel-banner-line"></div>
+            </div>
+            <div class="jewel-body">
+                <div class="jw-stat legend"><div class="jw-stat-lbl">전설 능력</div><div class="jw-stat-val">${krLeg}</div></div>
+                ${mythHtml}
+            </div>
+        </div>`;
     });
-    g.innerHTML=h;
+    g.innerHTML = h;
+}
+
+// =========================================================
+// 유닛 도감 엔진
+// =========================================================
+let _ucActiveTab = '전체';
+let _ucSearchQuery = '';
+const UC_IMG_BASE = 'https://sldbox.github.io/site/image/ctg/';
+
+function renderUnitCodexGrid() {
+    const grid = document.getElementById('unitCodexGrid');
+    const tabsWrap = document.getElementById('unitCodexTabsWrap');
+    if (!grid) return;
+
+    // 탭 초기 렌더
+    if (tabsWrap && tabsWrap.innerHTML === '') {
+        const allTabs = ['전체', ...TAB_CATEGORIES.map(c => c.key)];
+        tabsWrap.innerHTML = allTabs.map(t => 
+            `<button class="uc-codex-tab-btn${t === _ucActiveTab ? ' active' : ''}" onclick="selectUnitCodexTab('${t}')">${t}</button>`
+        ).join('');
+    }
+
+    _renderUnitCodexCards();
+}
+
+function selectUnitCodexTab(tabKey) {
+    _ucActiveTab = tabKey;
+    // 탭 버튼 active 갱신
+    document.querySelectorAll('.uc-codex-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === tabKey);
+    });
+    _renderUnitCodexCards();
+}
+
+function filterUnitCodex(query) {
+    _ucSearchQuery = query;
+    _renderUnitCodexCards();
+}
+
+function _renderUnitCodexCards() {
+    const grid = document.getElementById('unitCodexGrid');
+    if (!grid) return;
+
+    // 슈퍼히든 · 히든 · 레전드만 표시
+    const SHOW_GRADES = ["슈퍼히든", "히든", "레전드"];
+
+    let items = Array.from(unitMap.values()).filter(u => SHOW_GRADES.includes(u.grade));
+    if (_ucActiveTab !== '전체') items = items.filter(u => u.category === _ucActiveTab);
+    if (_ucSearchQuery.trim()) {
+        const q = _ucSearchQuery.trim().toLowerCase();
+        items = items.filter(u => u.name.includes(q) || clean(u.name).includes(q));
+    }
+
+    items.sort((a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
+
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="uc-codex-empty">조건에 맞는 유닛이 없습니다.</div>`;
+        return;
+    }
+
+    let h = '';
+    items.forEach((item, idx) => {
+        const color = gradeColorsRaw[item.grade] || 'var(--text)';
+        const colorBg = color + '12';
+        const imgUrl = `${UC_IMG_BASE}${encodeURIComponent(item.name)}.png`;
+        // IGNORE_PARSE_RECIPES 공통 상수 사용
+        const recipeText = (item.recipe && !IGNORE_PARSE_RECIPES.includes(item.recipe))
+            ? item.recipe : '조합 정보 없음';
+        const delay = (idx * 0.025).toFixed(2);
+
+        h += `<div class="uc-codex-card" id="uccard-${item.id}"
+                style="--uc-color:${color};--uc-bg:${colorBg};animation-delay:${delay}s;display:none;">
+            <div class="uc-codex-img-wrap">
+                <img src="${imgUrl}" alt="${item.name}"
+                    onload="this.closest('.uc-codex-card').style.display='flex';"
+                    onerror="this.closest('.uc-codex-card').style.display='none';">
+                <div class="uc-codex-grade-bar"></div>
+            </div>
+            <div class="uc-codex-info">
+                <span class="uc-codex-grade-badge" style="color:${color};border-color:${color}55;">${item.grade}</span>
+                <div class="uc-codex-name">${item.name}</div>
+                <div class="uc-codex-cat">${item.category}</div>
+                <div class="uc-codex-recipe">
+                    <div class="uc-codex-recipe-lbl">조합 조건</div>
+                    <div class="uc-codex-recipe-val">${recipeText}</div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    grid.innerHTML = h;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
