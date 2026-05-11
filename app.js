@@ -1,7 +1,6 @@
 /*
 =============================================================================
-[파일 설명서] app.js (하이브리드 커맨드 엔진, 튜토리얼 탑재)
-[최신 업데이트] 모바일 레이아웃 최적화, 튜토리얼 터치 개선, 보안(헤드락) 적용
+[파일 설명서] app.js 
 =============================================================================
 */
 
@@ -77,7 +76,6 @@ const TutorialEngine = {
     isActive: false,
     stepIndex: 0,
     _listeners: [],
-    _watchTimer: null,
     _flashTimer: null,
 
     PANEL_W: 280,
@@ -400,8 +398,6 @@ const TutorialEngine = {
     _cleanListeners() {
         this._listeners.forEach(({el, ev, fn}) => { try { el.removeEventListener(ev, fn); } catch (e) {} });
         this._listeners = [];
-        if (this._watchTimer) { clearInterval(this._watchTimer); this._watchTimer = null; }
-        document.querySelectorAll('.tab-btn[data-tut-bound]').forEach(b => b.removeAttribute('data-tut-bound'));
     },
 
     _setupActionListeners(step) {
@@ -416,12 +412,17 @@ const TutorialEngine = {
             if (c) bindInteraction(c, 'click_classic_card');
         }
         if (step.requireAction === 'click_tab') {
-            const bindAllTabs = () => document.querySelectorAll('.tab-btn:not([data-tut-bound])').forEach(b => {
-                b.setAttribute('data-tut-bound', '1');
-                bindInteraction(b, 'click_tab');
-            });
-            bindAllTabs();
-            this._watchTimer = setInterval(bindAllTabs, 500);
+            // [오류 수정] 폴링(setInterval) 대신 상위 컨테이너에 이벤트 위임(Event Delegation) 적용
+            const tabsWrap = document.getElementById('codexTabsWrap');
+            if (tabsWrap) {
+                const tabHandler = (e) => {
+                    if (e.target.closest('.tab-btn')) {
+                        this.handleEvent('click_tab');
+                    }
+                };
+                this._addListener(tabsWrap, 'click', tabHandler);
+                this._addListener(tabsWrap, 'touchend', tabHandler);
+            }
         }
         if (step.requireAction === 'click_deduct') {
             const b = document.getElementById('btnToggleMode');
@@ -698,7 +699,15 @@ function getUnitEssenceTotal(uid) {
 function updateEssence(){
     let counts={코랄:0, 아이어:0, 제루스:0}, visited = new Set();
     activeUnits.forEach((qty, key) => { const u = unitMap.get(key); if(u && ["히든", "슈퍼히든"].includes(u.grade)) calcEssenceRecursiveFast(key, counts, visited); });
-    const setVal=(id,v)=>{const el=document.getElementById(id);if(el){el.innerText=v;el.parentElement.className='cost-slot'+(el.parentElement.id.includes('magic')?' is-magic-slot':'')+(id.includes('total')?' total':'')+(v>0?' active':'')}};
+    const setVal=(id,v)=>{
+        const el=document.getElementById(id);
+        if(el){
+            if(el.innerText !== String(v)) el.innerText=v;
+            const parent = el.parentElement;
+            const newClass = 'cost-slot'+(parent.id.includes('magic')?' is-magic-slot':'')+(id.includes('total')?' total':'')+(v>0?' active':'');
+            if(parent.className !== newClass) parent.className=newClass;
+        }
+    };
     setVal('val-coral',counts.코랄);setVal('val-aiur',counts.아이어);setVal('val-zerus',counts.제루스);setVal('essence-total-val',counts.코랄+counts.아이어+counts.제루스);
 }
 
@@ -731,6 +740,7 @@ function updateMagicDashboard(){
         }
     });
 
+    // [개선 반영] innerHTML 남용을 줄이고 텍스트(innerText) 타겟팅으로 reflow 병목 최소화
     let totalMagic=0;
     dashboardAtoms.forEach(a=>{
         const val=totalMap[a], owned=ownedMap[a];
@@ -740,31 +750,48 @@ function updateMagicDashboard(){
         if(a==="갓오타/메시브"){
             let finalG = Math.max(0, val.갓오타 - owned.갓오타); let finalM = Math.max(0, val.메시브 - owned.메시브);
             if(finalG>0 || finalM>0){
-                e.innerHTML=`<div style="display:flex; width:100%; height:100%;">
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; border-right:1px solid rgba(236,72,153,0.3);">
-                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-rare); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(251,191,36,0.5);">${finalG}</span>
-                        <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">갓오타</span>
-                    </div>
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                        <span style="font-size:1.8rem; font-weight:900; color:var(--grade-unique); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(239,68,68,0.5);">${finalM}</span>
-                        <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">메시브</span>
-                    </div>
-                </div>`;
-                nameEl.style.display='none'; container.classList.add('active');
+                if(e.innerHTML === EMPTY_SVG || e.innerHTML === '') {
+                    e.innerHTML=`<div id="sp-wrap" style="display:flex; width:100%; height:100%;">
+                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; border-right:1px solid rgba(236,72,153,0.3);">
+                            <span id="sp-val-g" style="font-size:1.8rem; font-weight:900; color:var(--grade-rare); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(251,191,36,0.5);"></span>
+                            <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">갓오타</span>
+                        </div>
+                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                            <span id="sp-val-m" style="font-size:1.8rem; font-weight:900; color:var(--grade-unique); line-height:1; margin-bottom:4px; text-shadow:0 0 10px rgba(239,68,68,0.5);"></span>
+                            <span style="font-size:0.7rem; color:rgba(255,255,255,0.7); letter-spacing:-0.5px;">메시브</span>
+                        </div>
+                    </div>`;
+                }
+                document.getElementById('sp-val-g').innerText = finalG;
+                document.getElementById('sp-val-m').innerText = finalM;
+                if(nameEl.style.display !== 'none') nameEl.style.display='none';
+                if(!container.classList.contains('active')) container.classList.add('active');
             } else { 
                 if(e.innerHTML !== EMPTY_SVG) { e.innerHTML=EMPTY_SVG; nameEl.style.display='block'; container.classList.remove('active'); }
             }
         } else {
             let finalVal = Math.max(0, val - owned);
             if(finalVal>0){ 
-                e.innerText=Math.ceil(finalVal); nameEl.style.display='block'; container.classList.add('active'); totalMagic+=finalVal; 
+                let targetText = String(Math.ceil(finalVal));
+                if(e.innerText !== targetText) e.innerText = targetText; 
+                if(nameEl.style.display !== 'block') nameEl.style.display='block'; 
+                if(!container.classList.contains('active')) container.classList.add('active'); 
+                totalMagic+=finalVal; 
             } else { 
                 if(e.innerHTML !== EMPTY_SVG) { e.innerHTML=EMPTY_SVG; nameEl.style.display='block'; container.classList.remove('active'); }
             }
         }
     });
+    
     const magicTotalEl=document.querySelector('#slot-total-magic .cost-val');
-    if(magicTotalEl){magicTotalEl.innerText=Math.ceil(totalMagic);magicTotalEl.parentElement.classList.toggle('active',totalMagic>0);}
+    if(magicTotalEl){
+        let targetText = String(Math.ceil(totalMagic));
+        if(magicTotalEl.innerText !== targetText) magicTotalEl.innerText = targetText;
+        let isActive = totalMagic > 0;
+        if(magicTotalEl.parentElement.classList.contains('active') !== isActive) {
+            magicTotalEl.parentElement.classList.toggle('active', isActive);
+        }
+    }
 }
 /* =============================================================================
    [AI DO NOT EDIT] 🔒 핵심 계산 엔진 종료
@@ -1117,6 +1144,7 @@ function updateTabContentUI() {
 }
 
 function renderDashboardAtoms(){
+    // [개선 반영] 비어있는 SVG 삽입부를 정적으로 변경
     DOM.magicDashboard.innerHTML=`<div class="cost-slot total" id="slot-total-magic"><div class="cost-val"></div><div class="cost-name">총 매직 코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val"></div><div class="cost-name">총 정수 코스트</div></div><div class="cost-slot"><div class="cost-val" id="val-coral" style="color:#FF6B6B;"></div><div class="cost-name">코랄</div></div><div class="cost-slot"><div class="cost-val" id="val-aiur" style="color:var(--grade-rare);"></div><div class="cost-name">아이어</div></div><div class="cost-slot"><div class="cost-val" id="val-zerus" style="color:var(--grade-legend);"></div><div class="cost-name">제루스</div></div>`;
     dashboardAtoms.forEach(a=>{
         const isSkill = (a === "갓오타/메시브"), isMagic = !isSkill;

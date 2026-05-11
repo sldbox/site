@@ -273,12 +273,14 @@ body{
     backdrop-filter:blur(8px);
     overflow:hidden;
 }
+/* [개선 반영] 렌더링 병목 및 CPU 부하 해소를 위해 will-change 및 transform 적용 */
 .header-scanline{
     position:absolute;top:0;left:-100%;width:50%;height:100%;
     background:linear-gradient(90deg,transparent,rgba(0,229,255,0.12),transparent);
     animation:headerScan 5s linear infinite;pointer-events:none;
+    will-change: transform;
 }
-@keyframes headerScan{to{left:200%;}}
+@keyframes headerScan{from{transform:translateX(0);}to{transform:translateX(600%);}}
 
 .nexus-main-title{white-space:nowrap !important;flex-shrink:0;font-family:var(--font-display);font-weight:900;font-size:1rem;color:var(--text);text-shadow:0 0 14px var(--g-glow);letter-spacing:1.8px;}
 .ph-icon{
@@ -665,18 +667,21 @@ body{
     background:linear-gradient(90deg,transparent,var(--jw-color,rgba(255,255,255,0.25)),transparent);
     z-index:1;
 }
+/* [개선 반영] 렌더링 병목 해소를 위한 will-change 적용 */
 .jewel-hex{
     position:absolute;width:68px;height:68px;
     background:conic-gradient(from 0deg,transparent 0%,var(--jw-color-a,rgba(255,255,255,0.03)) 25%,transparent 50%);
     border:1px solid var(--jw-color-b,rgba(255,255,255,0.05));
     border-radius:14px;transform:rotate(45deg);z-index:0;
     animation:hexRotate 14s linear infinite;
+    will-change: transform;
 }
 .jewel-hex-inner{
     position:absolute;width:40px;height:40px;
     border:1px solid var(--jw-color-b,rgba(255,255,255,0.07));
     border-radius:9px;transform:rotate(45deg);z-index:0;
     animation:hexRotate 9s linear infinite reverse;
+    will-change: transform;
 }
 @keyframes hexRotate{to{transform:rotate(405deg);}}
 
@@ -860,6 +865,15 @@ body{
     .jewel-body{padding:10px !important;gap:7px !important;}
     #unitCodexGrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)) !important;gap:10px !important;}
     .uc-codex-img-wrap{height:110px !important;}
+
+    /* 모바일 성능 최적화: 고비용 backdrop-filter 제거 */
+    .hud-panel, .panel-header, .mode-selector, .search-results, .recipe-tooltip, .jewel-item, .uc-codex-card {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    .hud-panel, .mode-selector { background: rgba(8,15,26,0.98); }
+    .search-results, .recipe-tooltip { background: rgba(4,8,18,0.98); }
+    .jewel-item, .uc-codex-card { background: rgba(6,10,18,0.98); }
 }
 
 /* ── 태블릿 720–1199px ──────────────────────────────────── */
@@ -881,11 +895,13 @@ body{
 ══════════════════════════════════════════════════════════ */
 .tut-overlay{position:fixed;inset:0;z-index:99998;pointer-events:none;display:none;}
 
+/* [개선 반영] 렌더링 병목 해소를 위한 will-change 적용 */
 .tut-highlight{
     position:fixed;z-index:99999;border:2px solid var(--g);border-radius:10px;pointer-events:none;
     box-shadow:0 0 0 9999px rgba(0,0,0,0.65),0 0 0 3px rgba(0,229,255,0.2),0 0 28px rgba(0,229,255,0.45);
     transition:top .28s cubic-bezier(.4,0,.2,1),left .28s cubic-bezier(.4,0,.2,1),width .28s cubic-bezier(.4,0,.2,1),height .28s cubic-bezier(.4,0,.2,1);
     animation:hlGlow 2.8s ease-in-out infinite;
+    will-change: top, left, width, height, box-shadow;
 }
 .tut-highlight.pulse{animation:hlGlowFast 0.95s ease-in-out infinite;}
 @keyframes hlGlow{0%,100%{box-shadow:0 0 0 9999px rgba(0,0,0,0.65),0 0 14px rgba(0,229,255,0.35);}50%{box-shadow:0 0 0 9999px rgba(0,0,0,0.65),0 0 40px rgba(0,229,255,0.75),inset 0 0 16px rgba(0,229,255,0.08);border-color:rgba(0,229,255,.88);}}
@@ -940,3 +956,5 @@ body{
 .btn-tut-skip:hover{border-color:rgba(239,68,68,.35);color:rgba(239,68,68,.8);background:rgba(239,68,68,.04);}
 @keyframes slotFlash{0%{background:rgba(0,229,255,.05);}25%{background:rgba(0,229,255,.24);border-color:rgba(0,229,255,.85);box-shadow:inset 0 0 26px rgba(0,229,255,.28),0 0 16px rgba(0,229,255,.38);}65%{background:rgba(0,229,255,.08);}100%{background:rgba(0,229,255,.05);}}
 .cost-slot.tut-flash{animation:slotFlash 0.95s ease-out forwards !important;}
+
+}
