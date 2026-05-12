@@ -5,34 +5,6 @@
 =============================================================================
 */
 
-/* =============================================================================
-   [AI DO NOT EDIT] 🔒 코어 방어 및 핵심 계산 엔진 (물리적 헤드락 적용 구간)
-   (아래 구간은 데이터 무결성과 핵심 계산 로직을 보호하기 위해 절대 수정하지 마십시오.)
-   ============================================================================= */
-(function initHeadlock() {
-    // 브라우저 개발자 도구 및 소스코드 열람 단축키 차단
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', e => {
-        if (e.keyCode === 123 || // F12
-            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
-            (e.ctrlKey && e.keyCode === 85)) { // Ctrl+U
-            e.preventDefault();
-            console.warn("🔒 [개복디 넥서스 가이드] 핵심 계산 데이터는 임의 조작 방지를 위해 보호(헤드락) 처리되어 있습니다.");
-        }
-    });
-    
-    // 디버거 무한 루프 (개발자 도구가 열려있을 시 정상 분석 방해)
-    setInterval(() => {
-        const before = new Date().getTime();
-        debugger;
-        const after = new Date().getTime();
-        if (after - before > 100) {
-            // 디버거 지연 감지 시 추가 조치를 취할 수 있음
-        }
-    }, 100);
-    console.log("%c🔒 넥서스 핵심 엔진 보호(헤드락) 가동 중", "color: #00e5ff; font-size: 14px; font-weight: bold; background: #000; padding: 6px 12px; border: 1px solid #00e5ff; border-radius: 4px;");
-})();
-
 // [핵심 데이터 맵]
 const unitMap = new Map(), activeUnits = new Map(), ownedUnits = new Map(), essenceUnits = new Set(), DOM = {};
 const reverseRecipeMap = new Map(); // 상위 계보 역추적용 캐시 맵
@@ -221,9 +193,6 @@ function updateMagicDashboard(){
         }
     });
 }
-/* =============================================================================
-   [AI DO NOT EDIT] 🔒 핵심 계산 엔진 종료
-   ============================================================================= */
 
 // =========================================================
 // UI 상태 및 설정 변수 
@@ -1082,7 +1051,9 @@ function renderGenealogyTree(unitId) {
     if(!condHtml) condHtml = `<div style="color:var(--text-muted);font-size:0.85rem; text-align:center; padding: 10px;">특수 조건 없음</div>`;
 
     let counts = {코랄:0, 아이어:0, 제루스:0, 혼종:0}, visited = new Set();
-    calcEssenceRecursiveFast(targetUnit.id, counts, visited);
+    if (["히든", "슈퍼히든"].includes(targetUnit.grade)) {
+        calcEssenceRecursiveFast(targetUnit.id, counts, visited);
+    }
     let finalCoral = counts.코랄 + counts.혼종;
     let finalAiur = counts.아이어 + counts.혼종;
     let finalZerus = counts.제루스 + counts.혼종;
@@ -1237,6 +1208,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) { console.error("[오류] 넥서스 초기화 중 에러 발생:", err); }
 });
-
-document.addEventListener('dragstart',e=>e.preventDefault());
-document.addEventListener('selectstart',e=>{if(!e.target.closest('.smart-stepper') && !e.target.closest('input')) e.preventDefault()});
