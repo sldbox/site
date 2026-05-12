@@ -1,3 +1,4 @@
+// app.js
 /*
 =============================================================================
 [파일 설명서] app.js 
@@ -55,7 +56,8 @@ const TAB_CATEGORIES = [
     {key:"저그중립", name:"저그중립", sym:"☣︎"}, {key:"혼종", name:"혼종", sym:"⌬"}
 ];
 
-const IGNORE_PARSE_RECIPES = ["미발견", "없음", "", "100라운드이전까지저그업20↑ [(타 종족 업 0)[1],역전 복권10회[1],인생 복권3회시-소환[1]]"];
+// 변경사항: 예외 처리 텍스트의 구분자도 + 로 변경
+const IGNORE_PARSE_RECIPES = ["미발견", "없음", "", "100라운드이전까지저그업20↑ [(타 종족 업 0)[1]+역전 복권10회[1]+인생 복권3회시-소환[1]]"];
 const dashboardAtoms = ["전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥", "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크", "땅거미지뢰", "자동포탑", "우르사돈[암]", "우르사돈[수]", "갓오타/메시브"];
 
 const EMPTY_SVG = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><line x1="3" y1="21" x2="21" y2="3"></line></svg>`;
@@ -222,8 +224,8 @@ function initializeCacheEngine() {
     unitMap.forEach(u => {
         u.parsedCost = [];
         if(u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
-            const safeCost = u.cost.replace(/[.\/]/g, ',');
-            safeCost.split(',').forEach(p => {
+            const safeCost = u.cost.replace(/[.\/]/g, '+');
+            safeCost.split('+').forEach(p => {
                 const m = p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
                 let name = m ? m[1].trim() : p.trim(); let qty = m ? parseFloat(m[2]) : 1; let cName = clean(name); let type = 'atom', key = cName;
                 if(cName.includes('메시브') || cName.includes('디제스터')) { type='special'; key='메시브'; }
@@ -249,7 +251,9 @@ function initializeCacheEngine() {
 
 function calculateTotalCostScore(costStr){
     if(!costStr||IGNORE_PARSE_RECIPES.includes(costStr))return 0;
-    let score=0; costStr.split(',').forEach(p=>{const m=p.match(/\[(\d+(?:\.\d+)?)\]/);if(m)score+=parseFloat(m[1]);else score+=1}); return score;
+    let score=0; 
+    costStr.split('+').forEach(p=>{const m=p.match(/\[(\d+(?:\.\d+)?)\]/);if(m)score+=parseFloat(m[1]);else score+=1}); 
+    return score;
 }
 
 let repeatTimer = null, repeatDelayTimer = null;
@@ -305,30 +309,61 @@ function calcEssenceRecursiveFast(uid, counts, visited) {
         if(["테바","테메"].includes(u.category)) counts.코랄 += 1;
         else if(["토바","토메"].includes(u.category)) counts.아이어 += 1;
         else if(u.category === "저그중립") counts.제루스 += 1;
-        else if(u.category === "혼종") { counts.코랄 += 1; counts.아이어 += 1; counts.제루스 += 1; }
+        else if(u.category === "혼종") counts.혼종 += 1; // 혼종 개별 카운트로 분리
     }
     if(u.parsedRecipe) u.parsedRecipe.forEach(pr => { if(pr.id) calcEssenceRecursiveFast(pr.id, counts, visited); });
 }
 
 function getUnitEssenceTotal(uid) {
     const u = unitMap.get(uid); if (!u || !["히든", "슈퍼히든"].includes(u.grade)) return 0;
-    let counts = {코랄:0, 아이어:0, 제루스:0}, visited = new Set();
-    calcEssenceRecursiveFast(uid, counts, visited); return counts.코랄 + counts.아이어 + counts.제루스;
+    let counts = {코랄:0, 아이어:0, 제루스:0, 혼종:0}, visited = new Set();
+    calcEssenceRecursiveFast(uid, counts, visited); 
+    // 기존 총합 유지: 기본 종족 + (혼종 * 3)
+    return counts.코랄 + counts.아이어 + counts.제루스 + (counts.혼종 * 3);
 }
 
 function updateEssence(){
-    let counts={코랄:0, 아이어:0, 제루스:0}, visited = new Set();
+    let counts={코랄:0, 아이어:0, 제루스:0, 혼종:0}, visited = new Set();
     activeUnits.forEach((qty, key) => { const u = unitMap.get(key); if(u && ["히든", "슈퍼히든"].includes(u.grade)) calcEssenceRecursiveFast(key, counts, visited); });
-    const setVal=(id,v)=>{
-        const el=document.getElementById(id);
-        if(el){
-            if(el.innerText !== String(v)) el.innerText=v;
-            const parent = el.parentElement;
-            const newClass = 'cost-slot'+(parent.id.includes('magic')?' is-magic-slot':'')+(id.includes('total')?' total':'')+(v>0?' active':'');
-            if(parent.className !== newClass) parent.className=newClass;
+    
+    const finalCoral = counts.코랄 + counts.혼종;
+    const finalAiur = counts.아이어 + counts.혼종;
+    const finalZerus = counts.제루스 + counts.혼종;
+    const totalEssence = finalCoral + finalAiur + finalZerus;
+
+    const setVal = (id, totalVal, baseVal, hybridVal) => {
+        const el = document.getElementById(`val-${id}`);
+        const subEl = document.getElementById(`sub-${id}`);
+        const parent = document.getElementById(`slot-${id}`);
+        
+        if(el) {
+            if(el.innerText !== String(totalVal)) el.innerText = totalVal;
+            if(subEl) {
+                // 혼종 슬롯이 아니면서 혼종 값이 존재할 때 수식 노출
+                if (hybridVal > 0 && id !== 'hybrid') {
+                    subEl.innerText = `${baseVal} + ${hybridVal}`;
+                } else {
+                    subEl.innerText = '';
+                }
+            }
+            if(parent) {
+                const isActive = totalVal > 0;
+                parent.classList.toggle('active', isActive);
+            }
         }
     };
-    setVal('val-coral',counts.코랄);setVal('val-aiur',counts.아이어);setVal('val-zerus',counts.제루스);setVal('essence-total-val',counts.코랄+counts.아이어+counts.제루스);
+    
+    setVal('coral', finalCoral, counts.코랄, counts.혼종);
+    setVal('aiur', finalAiur, counts.아이어, counts.혼종);
+    setVal('zerus', finalZerus, counts.제루스, counts.혼종);
+    setVal('hybrid', counts.혼종, counts.혼종, 0); // 혼종 슬롯 자체는 서브텍스트 미사용
+    
+    const totalEl = document.getElementById('essence-total-val');
+    if(totalEl) {
+        totalEl.innerText = totalEssence;
+        const parent = document.getElementById('slot-total-essence');
+        if(parent) parent.classList.toggle('active', totalEssence > 0);
+    }
 }
 
 function updateMagicDashboard(){
@@ -360,7 +395,6 @@ function updateMagicDashboard(){
         }
     });
 
-    let totalMagic=0;
     dashboardAtoms.forEach(a=>{
         const val=totalMap[a], owned=ownedMap[a];
         const container=document.getElementById(`vslot-${clean(a)}`);if(!container)return;
@@ -395,22 +429,11 @@ function updateMagicDashboard(){
                 if(e.innerText !== targetText) e.innerText = targetText; 
                 if(nameEl.style.display !== 'block') nameEl.style.display='block'; 
                 if(!container.classList.contains('active')) container.classList.add('active'); 
-                totalMagic+=finalVal; 
             } else { 
                 if(e.innerHTML !== EMPTY_SVG) { e.innerHTML=EMPTY_SVG; nameEl.style.display='block'; container.classList.remove('active'); }
             }
         }
     });
-    
-    const magicTotalEl=document.querySelector('#slot-total-magic .cost-val');
-    if(magicTotalEl){
-        let targetText = String(Math.ceil(totalMagic));
-        if(magicTotalEl.innerText !== targetText) magicTotalEl.innerText = targetText;
-        let isActive = totalMagic > 0;
-        if(magicTotalEl.parentElement.classList.contains('active') !== isActive) {
-            magicTotalEl.parentElement.classList.toggle('active', isActive);
-        }
-    }
 }
 /* =============================================================================
    [AI DO NOT EDIT] 🔒 핵심 계산 엔진 종료
@@ -713,10 +736,18 @@ function renderCurrentTabContent() {
 
     items.forEach((item, index) => {
         const unitEssence = getUnitEssenceTotal(item.id);
+        const unitCost = Math.ceil(calculateTotalCostScore(item.cost));
         
         let gradeHtml = '';
-        if (unitEssence > 0) gradeHtml = `<span class="gtag sh-integrated" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade} <span class="badge-sep">/</span> <span style="color:var(--grade-super); text-shadow:0 0 8px rgba(255,215,0,0.6);">정수 ${unitEssence}</span></span>`;
-        else gradeHtml = `<span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>`;
+        if (unitEssence > 0 || unitCost > 0) {
+            let badgeContent = item.grade;
+            if(unitCost > 0) badgeContent += ` <span class="badge-sep">|</span> 코스트 ${unitCost}`;
+            if(unitEssence > 0) badgeContent += ` <span class="badge-sep">|</span> <span style="color:var(--grade-super); text-shadow:0 0 8px rgba(255,215,0,0.6);">정수 ${unitEssence}</span>`;
+            
+            gradeHtml = `<span class="gtag sh-integrated" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${badgeContent}</span>`;
+        } else {
+            gradeHtml = `<span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>`;
+        }
 
         let rightControls = '';
         if (item.grade !== "슈퍼히든") {
@@ -770,7 +801,32 @@ function updateTabContentUI() {
 }
 
 function renderDashboardAtoms(){
-    DOM.magicDashboard.innerHTML=`<div class="cost-slot total" id="slot-total-magic"><div class="cost-val"></div><div class="cost-name">총 매직 코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val"></div><div class="cost-name">총 정수 코스트</div></div><div class="cost-slot"><div class="cost-val" id="val-coral" style="color:#FF6B6B;"></div><div class="cost-name">코랄</div></div><div class="cost-slot"><div class="cost-val" id="val-aiur" style="color:var(--grade-rare);"></div><div class="cost-name">아이어</div></div><div class="cost-slot"><div class="cost-val" id="val-zerus" style="color:var(--grade-legend);"></div><div class="cost-name">제루스</div></div>`;
+    DOM.magicDashboard.innerHTML=`
+        <div class="cost-slot total" id="slot-total-essence">
+            <div class="cost-val" id="essence-total-val">0</div>
+            <div class="cost-name">총 정수 코스트</div>
+        </div>
+        <div class="cost-slot" id="slot-coral">
+            <div class="cost-val" id="val-coral" style="color:#FF6B6B;">0</div>
+            <div class="cost-sub" id="sub-coral" style="font-size:0.75rem; color:var(--text-sub); margin:-4px 0 4px; height:12px; font-family:var(--font-mono); letter-spacing:1px; line-height:1;"></div>
+            <div class="cost-name">코랄</div>
+        </div>
+        <div class="cost-slot" id="slot-aiur">
+            <div class="cost-val" id="val-aiur" style="color:var(--grade-rare);">0</div>
+            <div class="cost-sub" id="sub-aiur" style="font-size:0.75rem; color:var(--text-sub); margin:-4px 0 4px; height:12px; font-family:var(--font-mono); letter-spacing:1px; line-height:1;"></div>
+            <div class="cost-name">아이어</div>
+        </div>
+        <div class="cost-slot" id="slot-zerus">
+            <div class="cost-val" id="val-zerus" style="color:var(--grade-legend);">0</div>
+            <div class="cost-sub" id="sub-zerus" style="font-size:0.75rem; color:var(--text-sub); margin:-4px 0 4px; height:12px; font-family:var(--font-mono); letter-spacing:1px; line-height:1;"></div>
+            <div class="cost-name">제루스</div>
+        </div>
+        <div class="cost-slot" id="slot-hybrid">
+            <div class="cost-val" id="val-hybrid" style="color:var(--g);">0</div>
+            <div class="cost-sub" id="sub-hybrid" style="font-size:0.75rem; color:var(--text-sub); margin:-4px 0 4px; height:12px; font-family:var(--font-mono); letter-spacing:1px; line-height:1;"></div>
+            <div class="cost-name">혼종</div>
+        </div>
+    `;
     dashboardAtoms.forEach(a=>{
         const isSkill = (a === "갓오타/메시브"), isMagic = !isSkill;
         const d=document.createElement('div');
@@ -799,7 +855,6 @@ function renderJewelGrid(){
             : '';
         const delay = (idx * 0.04).toFixed(2);
 
-        // jewel-hex 회전 애니메이션 태그 제거됨
         h += `<div class="jewel-item" style="--jw-color:${c};--jw-color-a:${cA};--jw-color-b:${cB};--jw-shadow:${cShadow};--jw-glow:radial-gradient(ellipse 80% 60% at 50% 0%,${cA} 0%,transparent 70%);animation:jwFadeIn 0.45s ${delay}s both ease-out;">
             <div class="jewel-banner">
                 <div class="jewel-banner-bg"></div>
