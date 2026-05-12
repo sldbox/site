@@ -64,8 +64,8 @@ function calcEssenceRecursiveFast(uid, counts, visited) {
     if(visited.has(uid)) return; visited.add(uid);
     const u = unitMap.get(uid); if(!u) return;
     if(["히든", "슈퍼히든"].includes(u.grade)) {
-        if(["테바","테메"].includes(u.category)) counts.코랄 += 1;
-        else if(["토바","토메"].includes(u.category)) counts.아이어 += 1;
+        if(u.category === "테바테메") counts.코랄 += 1;
+        else if(u.category === "토바토메") counts.아이어 += 1;
         else if(u.category === "저그중립") counts.제루스 += 1;
         else if(u.category === "혼종") counts.혼종 += 1; 
     }
@@ -206,9 +206,10 @@ const GRADE_ORDER = ["매직", "레어", "에픽", "유니크", "헬", "레전�
 const gradeColorsRaw = { "매직":"var(--grade-magic)", "레어":"var(--grade-rare)", "에픽":"var(--grade-epic)", "유니크":"var(--grade-unique)", "헬":"var(--grade-hell)", "레전드":"var(--grade-legend)", "히든":"var(--grade-hidden)", "슈퍼히든":"var(--grade-super)" };
 
 const TAB_CATEGORIES = [
-    {key:"테바", name:"테바", sym:"♆"}, {key:"테메", name:"테메", sym:"⚙︎"},
-    {key:"토바", name:"토바", sym:"⟡"}, {key:"토메", name:"토메", sym:"⟁"},
-    {key:"저그중립", name:"저그중립", sym:"☣︎"}, {key:"혼종", name:"혼종", sym:"⌬"}
+    {key:"테바테메", name:"테바테메", sym:"♆"},
+    {key:"토바토메", name:"토바토메", sym:"⟡"},
+    {key:"저그중립", name:"저그중립", sym:"☣︎"},
+    {key:"혼종", name:"혼종", sym:"⌬"}
 ];
 
 // --- 햅틱 피드백 엔진 ---
@@ -218,43 +219,74 @@ function triggerHaptic() { if (typeof navigator !== 'undefined' && navigator.vib
 function resetCodex(silent = false) { activeUnits.clear(); essenceUnits.clear(); debouncedUpdateAllPanels(); if(!silent) showToast("선택된 유닛이 초기화되었습니다."); }
 function resetOwned() { ownedUnits.clear(); debouncedUpdateAllPanels(); showToast("보유 유닛이 초기화되었습니다."); }
 
-// 초기 진입 및 모드 컨트롤
+// 초기 진입: 바로 도감 모드로 시작
 function checkInitialMode() {
-    document.getElementById('modeSelector').classList.add('active');
     const layout = document.getElementById('mainLayout');
-    if (layout) layout.style.display = 'none';
+    if (layout) layout.style.display = '';
+    _currentAppMode = 'classic';
+    document.getElementById('classicSearchContainer').appendChild(document.getElementById('searchWrap'));
+    switchLayout('codex');
+    startTitleCycle();
 }
 
-function openModeSelector() { 
-    _currentAppMode = 'classic';
-    document.getElementById('modeSelector').classList.add('active');
-    const layout = document.getElementById('mainLayout');
-    if (layout) {
-        layout.classList.remove('view-jewel', 'view-genealogy');
-        layout.style.display = 'none';
-    }
+// 제목 순환 애니메이션
+const _cycleTitles = ['개복디 넥서스', '제작자 | 회장', 'ID : 3-S2-1-2461127'];
+let _cycleTitleIdx = 0;
+function startTitleCycle() {
+    const els = [document.getElementById('nexusCycleTitle'), document.getElementById('nexusCycleTitleExpert')].filter(Boolean);
+    setInterval(() => {
+        _cycleTitleIdx = (_cycleTitleIdx + 1) % _cycleTitles.length;
+        els.forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+                el.textContent = _cycleTitles[_cycleTitleIdx];
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 350);
+        });
+    }, 3000);
 }
 
 function initMode(mode, showToastMsg = true) {
     _currentAppMode = mode; 
-    document.getElementById('modeSelector').classList.remove('active');
     const layout = document.getElementById('mainLayout'), searchWrap = document.getElementById('searchWrap');
-    
     if (layout) layout.style.display = '';
-    
     layout.classList.remove('mode-expert', 'view-jewel', 'view-genealogy');
-    if(mode === 'expert') { layout.classList.add('mode-expert'); document.getElementById('expertSearchContainer').appendChild(searchWrap); if(showToastMsg) showToast("검색 모드가 활성화되었습니다."); } 
-    else if(mode === 'classic') { document.getElementById('classicSearchContainer').appendChild(searchWrap); if(showToastMsg) showToast("도감 모드가 활성화되었습니다."); } 
-    else if(mode === 'jewel') { layout.classList.add('view-jewel'); if(showToastMsg) showToast("쥬얼 도감 모드가 활성화되었습니다."); }
-    else if(mode === 'genealogy') { 
-        layout.classList.add('view-genealogy'); 
-        if(showToastMsg) showToast("계보 도감 모드가 활성화되었습니다."); 
-        renderGenealogyTabs();
-        selectGenealogyTab(0);
+    if(mode === 'expert') { 
+        layout.classList.add('mode-expert'); 
+        document.getElementById('expertSearchContainer').appendChild(searchWrap); 
+        if(showToastMsg) showToast("검색 모드가 활성화되었습니다."); 
+    } else if(mode === 'classic') { 
+        document.getElementById('classicSearchContainer').appendChild(searchWrap); 
+        if(showToastMsg) showToast("도감 모드가 활성화되었습니다."); 
     }
+    switchLayout(_currentViewMode === 'deduct' ? 'deduct' : 'codex');
+}
+
+// 쥬얼 인라인 패널 토글
+let _jewelPanelOpen = false;
+function toggleJewelPanel() {
+    _jewelPanelOpen = !_jewelPanelOpen;
+    const layout = document.getElementById('mainLayout');
+    const costPanel = document.getElementById('costDashboardPanel');
+    const rightPanel = document.getElementById('rightPanel'); // 차감 데시보드
+    const jewelPanel = document.getElementById('jewelInlinePanel');
+    const btn = document.getElementById('btnJewelToggle');
     
-    if (mode !== 'jewel' && mode !== 'genealogy') {
-        switchLayout(_currentViewMode === 'deduct' ? 'deduct' : 'codex');
+    if(_jewelPanelOpen) {
+        layout.classList.add('view-jewel');
+        costPanel.style.display = 'none';
+        if(rightPanel) rightPanel.style.display = 'none'; // 차감 보드 완벽하게 숨김
+        jewelPanel.style.display = 'flex';
+        if(btn) { btn.innerHTML = '⬅ 돌아가기'; btn.style.borderColor='rgba(255,215,0,0.7)'; btn.style.background='rgba(255,215,0,0.1)'; }
+        renderJewelMiniGrid();
+    } else {
+        layout.classList.remove('view-jewel');
+        costPanel.style.display = '';
+        if(rightPanel) rightPanel.style.display = ''; // 복구
+        jewelPanel.style.display = 'none';
+        if(btn) { btn.innerHTML = '✦ 쥬얼도감'; btn.style.borderColor='rgba(255,215,0,0.35)'; btn.style.background=''; }
     }
 }
 
@@ -434,7 +466,7 @@ function showRecipeTooltip(id, event, isDeduction = false) {
     let multi = 1;
     if(isDeduction) { const reqEl = document.getElementById(`d-req-${id}`); if(reqEl) { let reqVal = parseInt(reqEl.innerText); if(reqVal > 1) multi = reqVal; } }
     const tt = document.getElementById('recipeTooltip');
-    tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeHorizontal(u, multi)}</div><div class="tooltip-footer">화면을 터치하거나 외부 클릭 시 닫힙니다.</div>`;
+    tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeTooltip(u, multi)}</div><div class="tooltip-footer">화면을 터치하거나 외부 클릭 시 닫힙니다.</div>`;
     tt.classList.add('active');
     
     let x = event.pageX || (event.touches && event.touches[0].pageX) || window.innerWidth/2;
@@ -527,6 +559,9 @@ function renderActiveRoster() {
         const u = unitMap.get(id);
         if(u) {
             html += `<div class="roster-tag" onclick="toggleUnitSelection('${id}')" style="border-color:${gradeColorsRaw[u.grade]}66;">
+                <div style="width:20px;height:20px;border-radius:4px;overflow:hidden;flex-shrink:0;">
+                    <img src="https://sldbox.github.io/site/image/ctg/${u.name}.png" style="width:100%;height:100%;object-fit:cover;clip-path:inset(1px);transform:scale(1.1);" onerror="this.style.display='none'">
+                </div>
                 <span style="color:${gradeColorsRaw[u.grade]}; font-weight:bold;">${u.name}</span>
                 <span class="roster-qty">×${qty}</span>
             </div>`;
@@ -689,6 +724,22 @@ function updateTabsUI() {
 
 function formatRecipeHorizontal(item, multiplier = 1) {
     if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div style="color:var(--text-muted);font-size:0.85rem;">정보 없음</div>`;
+    let html = '<div class="recipe-vertical">';
+    item.recipe.split(/\+(?![^()]*\))/).forEach((part) => {
+        const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
+        if (match) {
+            const rawKo = match[1].trim(), u = unitMap.get(getUnitId(rawKo));
+            let condTxt = match[2] ? `(${match[2]})` : '';
+            let baseQty = match[3] ? parseInt(match[3]) : 1; let finalQty = baseQty * multiplier; let qtyTxt = `[${finalQty}]`;
+            const color = u && gradeColorsRaw[u.grade] ? gradeColorsRaw[u.grade] : "var(--text)";
+            html += `<div class="recipe-badge" style="color:${color}; border-color:${color}44;">${rawKo} <span class="badge-cond">${condTxt}${qtyTxt}</span></div>`;
+        } else { html += `<div style="color:var(--text-sub); font-size:0.85rem; white-space:nowrap;">${part}</div>`; }
+    });
+    return html + '</div>';
+}
+
+function formatRecipeTooltip(item, multiplier = 1) {
+    if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div style="color:var(--text-muted);font-size:0.85rem;">정보 없음</div>`;
     let html = '<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">';
     item.recipe.split(/\+(?![^()]*\))/).forEach((part, index, arr) => {
         const match = part.trim().match(/^([^(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
@@ -719,16 +770,7 @@ function renderCurrentTabContent() {
         const unitEssence = getUnitEssenceTotal(item.id);
         const unitCost = Math.ceil(calculateTotalCostScore(item.cost));
         
-        let gradeHtml = '';
-        if (unitEssence > 0 || unitCost > 0) {
-            let badgeContent = item.grade;
-            if(unitCost > 0) badgeContent += ` <span class="badge-sep">|</span> 코스트 ${unitCost}`;
-            if(unitEssence > 0) badgeContent += ` <span class="badge-sep">|</span> <span style="color:var(--grade-super); text-shadow:0 0 8px rgba(255,215,0,0.6);">정수 ${unitEssence}</span>`;
-            
-            gradeHtml = `<span class="gtag sh-integrated" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${badgeContent}</span>`;
-        } else {
-            gradeHtml = `<span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>`;
-        }
+        let gradeHtml = `<span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span>`;
 
         let rightControls = '';
         if (item.grade !== "슈퍼히든") {
@@ -743,11 +785,17 @@ function renderCurrentTabContent() {
 
         h+=`<div id="card-${item.id}" class="unit-card" style="animation-delay:${index * 0.03}s" onclick="toggleUnitSelection('${item.id}', 1)">
             <div class="uc-wrap">
-                <div class="uc-info-stack">
+                <div class="uc-thumb-box">
+                    <img src="https://sldbox.github.io/site/image/ctg/${item.name}.png" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;clip-path:inset(1px);transform:scale(1.08);">
+                    <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;color:${gradeColorsRaw[item.grade]};opacity:0.3;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    </div>
+                </div>
+                <div class="uc-identity">
                     <div class="uc-grade">${gradeHtml}</div>
                     <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div>
-                    <div class="uc-recipe-row">${formatRecipeHorizontal(item)}</div>
                 </div>
+                <div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div>
                 ${rightControls}
             </div>
         </div>`;
@@ -854,9 +902,29 @@ function renderJewelGrid(){
     g.innerHTML = h;
 }
 
-// =========================================================
-// 계보 도감 (Genealogy) 모듈 
-// =========================================================
+function renderJewelMiniGrid(){
+    const g=document.getElementById('jewelMiniGrid'); 
+    if(!g || g.dataset.rendered) return;
+    g.dataset.rendered = '1';
+    
+    const url="https://sldbox.github.io/site/image/jw/";
+    let h='';
+    JEWEL_DATABASE.forEach((koArr) => {
+        const kr=koArr[0], krLeg=koArr[1], krMyth=koArr[2], imgName=koArr[3]||kr;
+        const c = typeof JEWEL_COLORS !== 'undefined' && JEWEL_COLORS[kr] ? JEWEL_COLORS[kr] : "#ffffff";
+        const cA = c + '22';
+        const hasMythic = krMyth && krMyth.trim() !== "";
+        h += `<div class="jwm-item" style="--jw-color:${c};--jw-color-a:${cA};">
+            <div class="jwm-img-wrap">
+                <img src="${url}${imgName}.png" alt="${kr}" onerror="this.style.opacity='0'">
+            </div>
+            <div class="jwm-name">${kr}</div>
+            <div class="jwm-stat legend"><span>${krLeg}</span></div>
+            ${hasMythic ? `<div class="jwm-stat mythic"><span>✦ ${krMyth}</span></div>` : ''}
+        </div>`;
+    });
+    g.innerHTML = h;
+}
 function renderGenealogyTabs(){
     const gnTabs = document.getElementById('gnTabs');
     if (!gnTabs) return;
@@ -1175,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         DOM.codexTabs = document.getElementById('codexTabs'); DOM.magicDashboard = document.getElementById('magicDashboard');
         if (typeof UNIT_DATABASE === 'undefined') { console.error("[오류]"); return; }
         
-        UNIT_DATABASE.forEach((kArr) => { const g = kArr[1] || "매직", cat = kArr[2] || "테바"; unitMap.set(clean(kArr[0]), { id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] }); });
+        UNIT_DATABASE.forEach((kArr) => { const g = kArr[1] || "매직", cat = kArr[2] || "테바테메"; unitMap.set(clean(kArr[0]), { id:clean(kArr[0]), name:kArr[0], grade:g, category:cat, recipe:kArr[3], cost:kArr[4] }); });
         
         initializeCacheEngine();
         
@@ -1184,7 +1252,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTabs();
         selectTab(0); 
         debouncedUpdateAllPanels();
-        renderJewelGrid();
         
         setupSearchEngine();
         checkInitialMode();

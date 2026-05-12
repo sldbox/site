@@ -26,42 +26,7 @@
 </head>
 <body>
 
-<div class="mode-selector active" id="modeSelector">
-    <div style="margin-bottom: 32px; text-align: center;">
-        <h1 style="font-family:var(--font-display); font-size: 2.8rem; color:var(--text); text-shadow:0 0 20px var(--g-glow);">개복디 넥서스</h1>
-        <p style="color:var(--text-sub); margin-top:10px; margin-bottom:20px;">원하시는 작업 환경을 선택해 주세요.</p>
-    </div>
-
-    <div class="ms-cards">
-        <div class="ms-card expert" onclick="initMode('expert')">
-            <h2 style="color:var(--g); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px var(--g-glow);">검색 모드</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">키보드 커맨드 기반의<br>초고속 다중 유닛 등록</p>
-            <div style="margin-top:auto; font-family:var(--font-mono); color:var(--g); background:rgba(0,229,255,0.1); padding:7px 14px; border-radius:6px; border:1px solid var(--g-border); font-size:0.88rem;">ex) 타이커스/땅굴*8 ↵</div>
-        </div>
-        <div class="ms-card classic" onclick="initMode('classic')">
-            <h2 style="color:var(--grade-rare); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(251,191,36,0.5);">도감 모드</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">직관적인 탭 & 클릭 방식의<br>기본 UI 환경</p>
-            <div style="margin-top:auto; color:rgba(251,191,36,0.8); background:rgba(251,191,36,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(251,191,36,0.3); font-size:0.88rem;">종족 탭 + 클릭 지원</div>
-        </div>
-        <div class="ms-card jewel" onclick="initMode('jewel')">
-            <h2 style="color:var(--grade-super); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(255,215,0,0.5);">쥬얼 도감</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">방해 요소 없는 쥬얼<br>전설/신화 능력치 전용 열람</p>
-            <div style="margin-top:auto; color:rgba(255,215,0,0.8); background:rgba(255,215,0,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(255,215,0,0.3); font-size:0.88rem;">독립된 열람 환경</div>
-        </div>
-        <div class="ms-card genealogy" onclick="initMode('genealogy')">
-            <h2 style="color:var(--grade-hidden); font-size:1.7rem; margin-bottom:10px; font-family:var(--font-display); text-shadow:0 0 15px rgba(16,185,129,0.5);">계보 도감</h2>
-            <p style="color:var(--text); line-height:1.4; font-size:1rem; font-weight:800; word-break:keep-all; margin-bottom:16px;">유닛의 상/하위 테크트리와<br>조합 비용의 시각화 맵핑</p>
-            <div style="margin-top:auto; color:rgba(16,185,129,0.8); background:rgba(16,185,129,0.1); padding:7px 14px; border-radius:6px; border:1px solid rgba(16,185,129,0.3); font-size:0.88rem;">동적 트리 렌더링 지원</div>
-        </div>
-    </div>
-    
-    <div class="creator-badge">
-        <span class="cb-label">DESIGNED BY</span> 
-        <span class="cb-name">회장</span> 
-        <span class="cb-sep">|</span> 
-        <span class="cb-id">ID: 3-S2-1-2461127</span>
-    </div>
-</div>
+<!-- 메인화면 제거됨: 도감 모드가 기본값 -->
 
 <div style="display:none;">
     <div class="search-wrap" id="searchWrap">
@@ -77,11 +42,10 @@
             <div style="padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:stretch; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden; min-height: 54px;">
                 <div class="header-scanline"></div>
                 <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2;">
-                    <span class="nexus-main-title">개복디 넥서스</span>
-                    <span style="color:var(--g-dim);">|</span>
-                    <button class="btn-text-link" onclick="openModeSelector()">🏠 메인화면</button>
+                    <span class="nexus-main-title" id="nexusCycleTitle">개복디 넥서스</span>
                 </div>
                 <div style="display:flex; gap:6px; position:relative; z-index:2; align-items: stretch;">
+                    <button class="btn-hdr-sm" id="btnJewelToggle" onclick="toggleJewelPanel()" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">✦ 쥬얼도감</button>
                     <button class="btn-hdr-sm neon" onclick="resetCodex()">⟲ 선택 초기화</button>
                 </div>
             </div>
@@ -101,14 +65,13 @@
         <div id="expertSearchContainer">
             <div class="expert-header-row">
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <span class="expert-main-title">개복디 넥서스</span>
-                    <span style="color:var(--g-dim);">|</span>
-                    <button class="btn-text-link" onclick="openModeSelector()">🏠 메인화면</button>
+                    <span class="expert-main-title" id="nexusCycleTitleExpert">개복디 넥서스</span>
                 </div>
             </div>
         </div>
 
-        <div class="hud-panel" style="flex: 1 1 auto;">
+        <!-- 코스트 데시보드 (기본) -->
+        <div class="hud-panel" id="costDashboardPanel" style="flex: 1 1 auto;">
             <div class="panel-header" style="justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span class="ph-icon" style="color:var(--grade-epic); border-color:var(--grade-epic);">❖</span>
@@ -122,6 +85,20 @@
             </div>
             <div class="panel-body" style="padding:12px;">
                 <div class="magic-grid" id="magicDashboard"></div>
+            </div>
+        </div>
+
+        <!-- 쥬얼 인라인 패널 (토글로 표시) -->
+        <div class="hud-panel" id="jewelInlinePanel" style="flex: 1 1 auto; display:none;">
+            <div class="panel-header" style="justify-content:space-between; background:rgba(255,215,0,0.05);">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span class="ph-icon" style="color:#FFD700; border-color:#FFD700;">✦</span>
+                    <span class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.7);">쥬얼 도감</span>
+                </div>
+                <button class="btn-hdr-sm neon" onclick="toggleJewelPanel()" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">⬅ 코스트 보기</button>
+            </div>
+            <div class="panel-body" style="padding:16px; overflow-y:auto;">
+                <div id="jewelMiniGrid" class="jewel-mini-grid"></div>
             </div>
         </div>
     </div>
@@ -139,43 +116,7 @@
         <div class="panel-body" id="deductionBoard" style="padding:16px; overflow-y:auto; background:var(--panel);"></div>
     </div>
 
-    <div class="hud-panel panel-jewel" id="jewelPanel">
-        <div class="panel-header" style="justify-content:space-between; background:rgba(255,215,0,0.05);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span class="ph-icon" style="color:#FFD700; border-color:#FFD700;">✦</span>
-                <span class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.7); font-size:1.15rem;">쥬얼 도감 백과사전</span>
-            </div>
-            <div style="display:flex; align-items:stretch;">
-                <button class="btn-hdr-sm neon" onclick="openModeSelector()" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">⬅ 메인화면</button>
-            </div>
-        </div>
-        <div class="panel-body" style="padding:24px; overflow-y:auto;">
-            <div id="jewelGrid"></div>
-        </div>
-    </div>
-
-    <div class="hud-panel panel-genealogy" id="genealogyPanel">
-        <div class="panel-header" style="justify-content:space-between; background:rgba(16,185,129,0.05);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span class="ph-icon" style="color:var(--grade-hidden); border-color:var(--grade-hidden);">⎇</span>
-                <span class="ph-title" style="text-shadow:0 0 15px rgba(16,185,129,0.7); font-size:1.15rem;">유닛 계보 트리</span>
-            </div>
-            <div style="display:flex; align-items:stretch;">
-                <button class="btn-hdr-sm neon" onclick="openModeSelector()" style="border-color:rgba(16,185,129,0.35); color:var(--grade-hidden);">⬅ 메인화면</button>
-            </div>
-        </div>
-        <div class="panel-body gn-container">
-            <div class="gn-sidebar">
-                <div class="codex-tabs-wrap" style="padding:10px; border-bottom:1px solid var(--border);">
-                    <div class="codex-tabs" id="gnTabs"></div>
-                </div>
-                <div class="gn-list-wrap" id="gnUnitList"></div>
-            </div>
-            <div class="gn-content" id="gnTreeArea">
-                <div class="gn-empty-state">좌측 목록에서 유닛을 선택하여 계보를 확인하세요.</div>
-            </div>
-        </div>
-    </div>
+    <!-- 전체화면 쥬얼/계보 패널 (삭제됨 - 인라인으로 통합) -->
 </main>
 
 <div id="recipeTooltip" class="recipe-tooltip"></div>
