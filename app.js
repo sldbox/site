@@ -14,7 +14,7 @@ const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
 const dashboardAtoms = ["전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥", "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크", "땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타/메시브"];
 const EMPTY_SVG = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><line x1="3" y1="21" x2="21" y2="3"></line></svg>`;
 
-const isOneTime = (u) => u && (u.grade === "슈퍼히든" || ["데하카", "데하카고치", "데하카의오른팔"].includes(u.name));
+const isOneTime = (u) => u && (u.grade === "슈퍼히든" || ["데하카", "데하카고치", "데하카의오른팔", "유물"].includes(u.name));
 
 function getUnitId(rawName){ const c=clean(rawName); const u=unitMap.get(c); return u ? u.id : c; }
 
@@ -501,7 +501,6 @@ function setOwnedQty(id, val) {
 // =========================================================
 
 // 하향식(Top-Down) 의존성 처리를 위한 완벽한 위상 정렬 엔진
-// (수정: 오직 parsedRecipe만을 기준으로 의존성 그래프를 그려, 맵핑 중복을 차단함)
 let _topoOrder = null;
 function getTopologicalOrder() {
     if (_topoOrder) return _topoOrder;
@@ -566,7 +565,7 @@ function calculateDeductedRequirements() {
     let sortedUnits = getTopologicalOrder();
     let ravenId = getUnitId("낮까마귀");
 
-    // 1. 트리 전파 (순수하게 parsedRecipe 기준, 중복 맵핑 완전 차단)
+    // 1. 트리 전파 (조건 태그 추가)
     sortedUnits.forEach(u => {
         let uid = u.id;
         let needed = deficits.get(uid) || 0;
@@ -593,13 +592,19 @@ function calculateDeductedRequirements() {
                     let childNeed = remaining * child.qty;
                     deficits.set(child.id, (deficits.get(child.id) || 0) + childNeed);
                     if (!reasonMap.has(child.id)) reasonMap.set(child.id, new Set());
-                    reasonMap.get(child.id).add(u.name);
+                    
+                    // [조건 태그 삽입]
+                    let reasonText = u.name;
+                    if (child.cond) {
+                        reasonText += ` <span style="margin-left:4px; font-size:0.75rem; color:#fde047; font-weight:900; letter-spacing:-0.5px; text-shadow:0 0 4px rgba(253,224,71,0.4);">[${child.cond}]</span>`;
+                    }
+                    reasonMap.get(child.id).add(reasonText);
                 }
             });
         }
     });
 
-    // 2. 특수 아톰(갓오타/메시브)는 트리에 없으므로 납작하게(flattened) 정산
+    // 2. 특수 아톰(갓오타/메시브) 납작하게(flattened) 수량만큼 정상 곱연산 합산
     activeUnits.forEach((qty, uid) => {
         const u = unitMap.get(uid);
         if (u && u.parsedCost) {
@@ -624,19 +629,6 @@ function calculateDeductedRequirements() {
     specialReq['갓오타'] = Math.max(0, specialReq['갓오타']);
     specialReq['메시브'] = Math.max(0, specialReq['메시브']);
 
-    // 3. [로리스완 자동포탑 글로벌 차감 로직] (트리 계산 완료 후 최종 반영)
-    let roryId = getUnitId("로리스완");
-    let roryOwned = ownedUnits.get(roryId) || 0;
-    let autoTurretId = getUnitId("자동포탑");
-    
-    if (roryOwned > 0 && autoTurretId && reqMap.has(autoTurretId)) {
-        let currentReq = reqMap.get(autoTurretId);
-        let deductAmount = roryOwned * 5;
-        let newReq = Math.max(0, currentReq - deductAmount);
-        reqMap.set(autoTurretId, newReq);
-        if (newReq === 0) reasonMap.get(autoTurretId).add("로리스완 지원 충당");
-    }
-
     return { reqMap, reasonMap, specialReq, specialReason };
 }
 
@@ -647,18 +639,26 @@ function getCraftableCount(uid, reqVal) {
     let hasAnyRequirement = false;
     let maxCraftable = 999;
     let canCraft = true;
+    const NON_CONSUMABLES = ["낮까마귀", "자동포탑"];
 
-    // 코스트 대시보드(기초 자원)로 빠지는 유닛들은 조합 판정 기준에서 철저히 제외
     u.parsedRecipe.forEach(child => {
         if (child.id) {
-            const isAtom = dashboardAtoms.map(a => clean(a)).includes(child.id) || child.id === '갓오타' || child.id === '메시브' || child.id === '자동포탑';
-            if (!isAtom) {
-                hasAnyRequirement = true;
-                let ownedChild = ownedUnits.get(child.id) || 0;
-                let possible = Math.floor(ownedChild / child.qty);
+            hasAnyRequirement = true;
+            let ownedChild = ownedUnits.get(child.id) || 0;
+            let possible = Math.floor(ownedChild / child.qty);
+            
+            if (NON_CONSUMABLES.includes(child.id)) {
+                if (ownedChild >= child.qty) {
+                    possible = 999;
+                } else {
+                    possible = 0;
+                    canCraft = false;
+                }
+            } else {
                 if (possible < maxCraftable) maxCraftable = possible;
-                if (ownedChild < child.qty) canCraft = false;
             }
+
+            if (ownedChild < child.qty) canCraft = false;
         }
     });
 
@@ -668,7 +668,6 @@ function getCraftableCount(uid, reqVal) {
     let needed = reqVal - currentOwned;
     if (needed <= 0) return 0; 
 
-    // 일괄 조합(MAX) 연산: 보유 재료가 허용하는 최대치와 목표 필요수량 중 작은 값을 반환
     return Math.min(maxCraftable, needed);
 }
 
@@ -679,15 +678,13 @@ function craftUnit(uid) {
     const reqEl = document.getElementById(`d-req-${uid}`);
     const reqVal = reqEl ? parseInt(reqEl.innerText) : 0;
     const craftCount = getCraftableCount(uid, reqVal);
+    const NON_CONSUMABLES = ["낮까마귀", "자동포탑"];
     
     if (craftCount > 0) {
         u.parsedRecipe.forEach(child => {
-            if (child.id) {
-                const isAtom = dashboardAtoms.map(a => clean(a)).includes(child.id) || child.id === '갓오타' || child.id === '메시브' || child.id === '자동포탑';
-                if (!isAtom) {
-                    let currentChildOwned = ownedUnits.get(child.id) || 0;
-                    ownedUnits.set(child.id, Math.max(0, currentChildOwned - (child.qty * craftCount))); 
-                }
+            if (child.id && !NON_CONSUMABLES.includes(child.id)) {
+                let currentChildOwned = ownedUnits.get(child.id) || 0;
+                ownedUnits.set(child.id, Math.max(0, currentChildOwned - (child.qty * craftCount))); 
             }
         });
         
@@ -841,7 +838,6 @@ function updateDeductionBoard() {
 
             if(targetVal > 0) {
                 wrapEl.classList.add('has-target'); 
-                // [개선] 특수 개체는 항상 마지막 순서로 밀어넣기
                 wrapEl.style.order = isSpecial ? "999" : "-1";
                 if(ownedVal >= targetVal) wrapEl.classList.add('satisfied'); else wrapEl.classList.remove('satisfied');
             } else {
@@ -862,7 +858,6 @@ function updateDeductionBoard() {
                 }
             }
 
-            // 통합된 grid-special에 직속재료들을 꽂아넣어 자연스럽게 병합
             if ((targetVal > 0 || ownedVal > 0) && directMaterials.has(id)) {
                 const finalGrid = document.getElementById('grid-special');
                 if (finalGrid && wrapEl.parentElement !== finalGrid) finalGrid.appendChild(wrapEl);
@@ -960,6 +955,19 @@ function renderCurrentTabContent() {
     let items = Array.from(unitMap.values()).filter(u => ["슈퍼히든","히든","레전드"].includes(u.grade) && u.category === catKey);
 
     items.sort((a,b) => {
+        const getOrder = (u) => {
+            if (u.name === "아몬") return 100;
+            if (u.name === "어두운목소리") return 99;
+            if (u.name === "나루드") return 98;
+            if (u.name === "유물") return 97;
+            return 0;
+        };
+        let aOrder = getOrder(a);
+        let bOrder = getOrder(b);
+        if (aOrder !== bOrder && (aOrder > 0 || bOrder > 0)) {
+            return bOrder - aOrder; 
+        }
+
         const aOne = isOneTime(a);
         const bOne = isOneTime(b);
         if (aOne && !bOne) return -1;

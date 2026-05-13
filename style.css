@@ -501,7 +501,6 @@ body{
     animation: craftPulse 1.2s infinite alternate;
     z-index: 10;
 }
-/* [개선] 텍스트 눈부심 방지를 위해 그림자를 어둡게 처리 */
 .deduct-slot.craftable .d-name {
     background: linear-gradient(90deg, transparent, rgba(251,191,36,0.25), transparent);
     color: #fbbf24 !important;
@@ -605,21 +604,46 @@ body{
     .ph-icon{padding:3px 6px;font-size:0.75rem;}
     .ph-sep{display:none;}
     .btn-toggle-layout{padding:6px 10px !important;font-size:0.75rem !important;gap:5px !important;}
-    .tab-btn{padding:6px 12px;font-size:0.78rem;gap:5px;}
+
+    /* 모바일 종족 탭 2x2 최적화 */
+    .codex-tabs-wrap{padding:10px; align-items:stretch !important;}
+    .codex-tabs{
+        display:grid !important;
+        grid-template-columns:repeat(2, 1fr);
+        gap:6px;
+        overflow:hidden;
+        white-space:normal;
+        padding:6px;
+    }
+    .tab-btn{flex:none; width:100%; padding:10px 8px; font-size:0.8rem; justify-content:center; gap:6px;}
     .tab-btn.active::after{display:none;}
-    .codex-tabs-wrap{padding:8px;}
+
     .magic-grid{grid-template-columns:repeat(5,1fr) !important;grid-auto-rows:auto;gap:5px;}
     .cost-slot{min-height:50px;padding:4px;}
     .cost-val{font-size:1.2rem;line-height:1;}
     .cost-name{font-size:0.6rem;margin-top:3px;letter-spacing:-0.5px;line-height:1.2;text-align:center;word-break:keep-all;white-space:normal;}
-    .uc-wrap{padding:8px 10px 8px 12px;gap:8px;}
-    .uc-name-row{font-size:0.9rem;}
-    .uc-identity{min-width:max-content;}
-    .uc-recipe-col{padding:0 2px;}
-    .uc-ctrl{width:72px;padding-left:10px;}
-    .smart-stepper{height:30px;}
-    .smart-stepper button{font-size:0.95rem;}
-    .smart-stepper .ss-val{font-size:0.95rem;}
+
+    /* 모바일 유닛 카드 세로 정렬 최적화 */
+    .uc-wrap{
+        display:grid !important;
+        grid-template-columns:auto 1fr;
+        grid-template-areas:
+            "thumb identity"
+            "recipe recipe"
+            "ctrl ctrl";
+        gap:8px;
+        padding:12px;
+        align-items:center;
+    }
+    .uc-thumb-box{grid-area:thumb; width:48px !important; height:48px !important; margin:0; border-radius:8px;}
+    .uc-identity{grid-area:identity; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; min-width:0;}
+    .uc-name-row{font-size:0.95rem;}
+    .uc-recipe-col{grid-area:recipe; padding:10px 4px !important; border-top:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.06); margin:4px 0; width:100%;}
+    .uc-ctrl{grid-area:ctrl; width:100% !important; justify-content:center; padding:6px 0 0 0 !important; border-left:none !important;}
+
+    .smart-stepper{height:34px;}
+    .smart-stepper button{font-size:1.05rem;}
+    .smart-stepper .ss-val{font-size:1.05rem;}
     .deduct-group{padding:12px;margin-bottom:12px;}
     .deduct-group-title{font-size:0.95rem;padding-bottom:10px;margin-bottom:12px;}
     .deduct-grid{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:8px;}
@@ -634,11 +658,12 @@ body{
     .hud-panel { background: rgba(10,15,22,0.98); }
     .search-results, .recipe-tooltip { background: rgba(8,12,18,0.98); }
 
-    .jewel-mini-grid { gap: 4px; }
-    .jwm-item { padding: 6px 4px; border-radius: 8px; }
-    .jwm-img-wrap { width: 32px; height: 32px; border-radius: 6px; }
-    .jwm-name { font-size: 0.6rem; letter-spacing: 0; }
-    .jwm-stat { padding: 3px; font-size: 0.55rem; line-height: 1.2; border-radius: 4px; }
+    /* 모바일 쥬얼 도감 3열 최적화 */
+    .jewel-mini-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
+    .jwm-item { padding: 8px 6px; border-radius: 10px; }
+    .jwm-img-wrap { width: 38px; height: 38px; border-radius: 8px; }
+    .jwm-name { font-size: 0.72rem; letter-spacing: 0; }
+    .jwm-stat { padding: 4px; font-size: 0.6rem; line-height: 1.3; border-radius: 4px; }
     .jewel-modal-overlay { padding: 10px; }
     .jewel-modal-content { max-height: 95vh; height: 95vh; }
 }
@@ -649,7 +674,6 @@ body{
 /* ══ 유닛 카드 이미지 썸네일 ════════════════════════════════ */
 .uc-thumb-box { width: 48px; height: 48px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8); transition: box-shadow 0.3s; }
 .unit-card.active .uc-thumb-box { border-color: rgba(0,229,255,0.35); box-shadow: 0 0 10px rgba(0,229,255,0.2), inset 0 2px 8px rgba(0,0,0,0.8); }
-@media(max-width:719px){ .uc-thumb-box { width: 40px; height: 40px; border-radius: 6px; } }
 
 /* ══ 쥬얼 미니 그리드 (5×5 고정) ════════════════════════════════ */
 .jewel-mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
