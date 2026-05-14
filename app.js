@@ -1,17 +1,10 @@
-/*
-=============================================================================
-  개복디 넥서스 — app.js (가독성 및 구조 최적화 버전)
-=============================================================================
-*/
-
 const unitMap = new Map();
 const activeUnits = new Map();
 const completedUnits = new Map();
 
-// 동적 렌더링 요소가 많으므로, 캐싱 대신 즉시 참조하여 메모리 누수 및 참조 오류 방지
 const getEl = (id) => document.getElementById(id);
-
 const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
+
 const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
 const dashboardAtoms = [
     "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수",
@@ -148,7 +141,6 @@ function updateMagicDashboard() {
         compMap[a] = a === "갓오타/메시브" ? { 갓오타: 0, 메시브: 0 } : 0;
     });
 
-    // 요구량 계산
     activeUnits.forEach((c, k) => {
         const u = unitMap.get(k);
         if (u?.parsedCost) {
@@ -159,7 +151,6 @@ function updateMagicDashboard() {
         }
     });
 
-    // 완료량 계산
     completedUnits.forEach((c, k) => {
         if (c <= 0) return;
         const atomKey = dashboardAtoms.find(a => clean(a) === clean(k));
@@ -177,7 +168,6 @@ function updateMagicDashboard() {
         }
     });
 
-    // UI 업데이트
     dashboardAtoms.forEach(a => {
         const container = getEl(`vslot-${clean(a)}`);
         if (!container) return;
@@ -237,7 +227,6 @@ function updateMagicDashboard() {
 let _activeTabIdx = 0;
 let _currentViewMode = 'codex';
 let _currentHighlight = null;
-let _currentLineageId = null;
 
 const GRADE_ORDER = ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"];
 const gradeColorsRaw = {
@@ -296,8 +285,6 @@ window.toggleJewelPanel = function() {
     if (layout && layout.classList.contains('view-jewel')) {
         closeJewelPanel();
     } else if (layout) {
-        layout.classList.remove('view-lineage');
-        _currentLineageId = null;
         layout.classList.add('view-jewel');
         _jewelPanelOpen = true;
         renderJewelMiniGrid();
@@ -316,8 +303,7 @@ function switchLayout(mode) {
     if (!layout || !btnToggle) return;
 
     _currentViewMode = mode;
-    layout.classList.remove('view-deduct', 'view-lineage', 'view-jewel');
-    _currentLineageId = null;
+    layout.classList.remove('view-deduct', 'view-jewel');
     _jewelPanelOpen = false;
 
     if (mode === 'deduct') {
@@ -333,177 +319,6 @@ function switchLayout(mode) {
 function toggleViewMode() {
     switchLayout(_currentViewMode === 'deduct' ? 'codex' : 'deduct');
 }
-
-window.toggleLineageNode = function(el) {
-    const node = el.closest('.tree-node');
-    const body = node?.querySelector(':scope > .tree-body');
-    const toggle = el.querySelector('.th-toggle');
-    if (body) {
-        body.classList.toggle('collapsed');
-        if (toggle) toggle.innerText = body.classList.contains('collapsed') ? '▶' : '▼';
-    }
-};
-
-window.toggleAllLineage = function() {
-    const btn = getEl('btnToggleAllLineage');
-    const container = getEl('lineageTreeContainer');
-    if (!container || !btn) return;
-
-    if (btn.innerText === '전체펼치기') {
-        container.querySelectorAll('.tree-body').forEach(el => el.classList.remove('collapsed'));
-        container.querySelectorAll('.th-toggle').forEach(el => el.innerText = '▼');
-        btn.innerText = '전체접기';
-    } else {
-        const rootBody = document.querySelector('#lineageTreeContainer > .tree-node > .tree-body');
-        if (rootBody) {
-            rootBody.querySelectorAll('.tree-body').forEach(el => el.classList.add('collapsed'));
-            rootBody.querySelectorAll('.th-toggle').forEach(el => el.innerText = '▶');
-        }
-        btn.innerText = '전체펼치기';
-    }
-};
-
-function isCostSameAsRecipe(uid) {
-    const u = unitMap.get(uid);
-    if (!u?.parsedRecipe?.length) return true;
-    return !u.parsedRecipe.some(pr => {
-        const childU = unitMap.get(pr.id);
-        return childU?.parsedRecipe?.length > 0;
-    });
-}
-
-function getLineageRecipeText(u, multiplier = 1) {
-    if (!u.parsedRecipe?.length) return '';
-    let parts = u.parsedRecipe.map(pr => {
-        let childU = unitMap.get(pr.id);
-        let origName = childU ? childU.name : pr.id;
-        let color = childU ? gradeColorsRaw[childU.grade] : 'var(--text)';
-        let childReqQty = (u.id === '로리스완' && pr.id === '낮까마귀') ? 1 : pr.qty * multiplier;
-
-        let nameStr = `<span style="color:${color}; font-weight:bold;">${origName}</span>`;
-        let condStr = pr.cond ? `(<span style="color:var(--text-sub);">${pr.cond}</span>)` : '';
-        return `${nameStr}${condStr}[${childReqQty}]`;
-    });
-    return `<div class="td-line"><span class="td-label">재료:</span> ${parts.join('+')}</div>`;
-}
-
-function getLineageMagicCostText(uid, multiplier = 1) {
-    const u = unitMap.get(uid);
-    if (!u?.parsedCost?.length) return '';
-
-    let costArr = [];
-    u.parsedCost.forEach(pc => {
-        let val = pc.qty * multiplier;
-        if (val > 0) costArr.push(`<span style="color:var(--g); font-weight:bold;">${pc.key}[${val}]</span>`);
-    });
-
-    return costArr.length ? `<div class="td-line" style="color:var(--g); font-weight:bold;"><span class="td-label" style="color:var(--g);">매직:</span> ${costArr.join(',')}</div>` : '';
-}
-
-function buildLineageTree(uid, reqQty=1, cond='', depth=0, isRoot=false) {
-    const u = unitMap.get(uid) || { id: uid, name: uid, grade: "일반", parsedRecipe: [] };
-    const hasChildren = u.parsedRecipe?.length > 0;
-    const color = gradeColorsRaw[u.grade] || "var(--text-sub)";
-    let hasMagicCost = !isCostSameAsRecipe(uid) && getLineageMagicCostText(uid, reqQty) !== '';
-
-    let html = `
-    <div class="tree-node" data-depth="${depth}">
-        <div class="tree-header-row">
-            <div class="tree-header-box" style="border-color:${color}66;" ${hasChildren ? `onclick="toggleLineageNode(this)"` : ''}>
-                <div class="th-thumb-lg" style="border-color:${color}88;">
-                    <img src="https://sldbox.github.io/site/image/ctg/${u.name}.png" alt="${u.name}" onerror="this.parentElement.style.display='none'">
-                </div>
-                <div class="th-info">
-                    <span class="gtag th-badge" style="border-color:${color}88; color:${color};">${u.grade}</span>
-                    <span class="th-name-lg" style="color:${color};">${u.name}</span>
-                </div>
-                ${hasChildren ? `<span class="th-toggle">${isRoot ? '▼' : '▶'}</span>` : ''}
-            </div>
-            ${!isRoot ? `${cond ? `<span class="th-cond">${cond}</span>` : ''}<span class="th-qty">[${reqQty}]</span>` : ''}
-        </div>`;
-
-    if (hasChildren || hasMagicCost) {
-        html += `<div class="tree-body ${isRoot ? '' : 'collapsed'}">
-                    <div class="tree-details">
-                        ${hasChildren ? getLineageRecipeText(u, reqQty) : ''}
-                        ${hasMagicCost ? getLineageMagicCostText(uid, reqQty) : ''}
-                    </div>`;
-        if (hasChildren) {
-            html += `<div class="tree-children">`;
-            u.parsedRecipe.forEach(child => {
-                let childReqQty = (u.id === '로리스완' && child.id === '낮까마귀') ? 1 : child.qty * reqQty;
-                html += buildLineageTree(child.id, childReqQty, child.cond, depth + 1, false);
-            });
-            html += `</div>`;
-        }
-        html += `</div>`;
-    }
-    return html + `</div>`;
-}
-
-window.openLineage = function(uid) {
-    const layout = getEl('mainLayout');
-    if (!layout) return;
-
-    if (layout.classList.contains('view-lineage') && _currentLineageId === uid) {
-        closeLineage();
-        return;
-    }
-
-    const u = unitMap.get(uid);
-    if (!u) return;
-
-    _currentLineageId = uid;
-    layout.classList.add('view-lineage');
-    layout.classList.remove('view-jewel');
-
-    const contentEl = getEl('lineageContent');
-    if (contentEl) contentEl.scrollTop = 0;
-
-    const titleEl = getEl('lineageTitle');
-    if (titleEl) {
-        titleEl.innerHTML = `<span style="color:${gradeColorsRaw[u.grade]}; font-size:0.9rem; vertical-align:middle; border:1px solid currentColor; padding:2px 6px; border-radius:6px; margin-right:6px;">${u.grade}</span> ${u.name} 계보`;
-    }
-
-    let html = '';
-    if (["히든", "레전드"].includes(u.grade)) {
-        let parents = Array.from(unitMap.values()).filter(p =>
-            ["슈퍼히든", "히든"].includes(p.grade) && p.parsedRecipe?.some(pr => pr.id === uid)
-        ).sort((a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
-
-        if (parents.length > 0) {
-            html += `<div class="lineage-parents-section">
-                        <div class="lp-title">🔼 상위 진화 트리</div>
-                        <div class="lp-list">
-                            ${parents.map(p => `
-                                <button class="lineage-nav-up" onclick="openLineage('${p.id}')">
-                                    <span class="lp-grade" style="color:${gradeColorsRaw[p.grade]}; border-color:${gradeColorsRaw[p.grade]}44;">${p.grade}</span>
-                                    <span>${p.name} (으)로 이동</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                     </div>`;
-        }
-    }
-
-    html += `<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px;">
-                <div style="font-size:1.1rem; color:var(--grade-super); font-weight:900; letter-spacing:0.5px; font-family:var(--font-display);">${u.name}</div>
-                <div class="lineage-ctrl-btns">
-                    <button class="l-ctrl-btn" id="btnToggleAllLineage" onclick="toggleAllLineage()">전체펼치기</button>
-                </div>
-             </div>
-             <div class="lineage-tree" id="lineageTreeContainer">
-                 ${buildLineageTree(uid, 1, '', 0, true)}
-             </div>`;
-
-    if (contentEl) contentEl.innerHTML = html;
-};
-
-window.closeLineage = function() {
-    const layout = getEl('mainLayout');
-    if (layout) layout.classList.remove('view-lineage');
-    _currentLineageId = null;
-};
 
 let searchTimeout = null;
 const ALIAS_MAP = {
@@ -609,6 +424,8 @@ function processCommand(val) {
     val.split('/').forEach(cmd => {
         let parts = cmd.split('*');
         let targetName = parts[0].trim();
+        if (!targetName) return;
+
         let qty = parts.length > 1 ? parseInt(parts[1]) || 1 : 1;
 
         const match = findUnitFlexible(targetName);
@@ -648,7 +465,6 @@ window.addEventListener('keydown', e => {
         hideRecipeTooltip();
         const layout = getEl('mainLayout');
         if (layout?.classList.contains('view-jewel')) closeJewelPanel();
-        if (layout?.classList.contains('view-lineage')) closeLineage();
 
         const searchEl = getEl('unitSearchInput');
         if (document.activeElement === searchEl) {
@@ -721,10 +537,12 @@ function showRecipeTooltip(id, event, isDeduction = false) {
 
     let x = event.pageX || event.touches?.[0]?.pageX || window.innerWidth/2;
     let y = event.pageY || event.touches?.[0]?.pageY || window.innerHeight/2;
+
     if (x + 280 > window.innerWidth) x = window.innerWidth - 290;
+    if (y + 150 > window.innerHeight) y = window.innerHeight - 160;
 
     tt.style.left = `${Math.max(10, x + 15)}px`;
-    tt.style.top = `${y + 15}px`;
+    tt.style.top = `${Math.max(10, y + 15)}px`;
 }
 
 function hideRecipeTooltip() {
@@ -1106,8 +924,10 @@ function updateDeductionBoard() {
                 if (reqEl) reqEl.innerText = netReq;
 
                 if (craftWrap) {
-                    let isTargetReady = isTarget && !unitMap.get(id)?.parsedRecipe?.some(pr => (completedUnits.get(pr.id) || 0) < pr.qty * netReq)
-                                                 && !unitMap.get(id)?.parsedCost?.some(pc => ['갓오타','메시브'].includes(pc.key) && (completedUnits.get(pc.key) || 0) < pc.qty * netReq);
+                    let isTargetReady = isTarget && !unitMap.get(id)?.parsedRecipe?.some(pr => {
+                        let requiredQty = (id === '로리스완' && pr.id === '낮까마귀') ? 1 : pr.qty * netReq;
+                        return (completedUnits.get(pr.id) || 0) < requiredQty;
+                    }) && !unitMap.get(id)?.parsedCost?.some(pc => ['갓오타','메시브'].includes(pc.key) && (completedUnits.get(pc.key) || 0) < pc.qty * netReq);
 
                     craftWrap.innerHTML = isTargetReady
                         ? `<button class="btn-complete final-target" onclick="completeUnit('${id}'); event.stopPropagation();">✨ 최종 제작 완료</button>`
@@ -1207,7 +1027,7 @@ const formatRecipeTooltip = (item, m = 1) => formatRecipe(item, m, true);
 
 function selectTab(idx) {
     _activeTabIdx = idx;
-    updateTabsUI(); renderCurrentTabContent(); closeLineage();
+    updateTabsUI(); renderCurrentTabContent();
     if (_jewelPanelOpen) closeJewelPanel();
 }
 
@@ -1227,7 +1047,6 @@ function renderCurrentTabContent() {
     if (items.length === 0) html += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>`;
 
     html += items.map((item, idx) => {
-        const lineageBtn = `<button id="btn-lineage-${item.id}" class="btn-lineage pulse" onclick="openLineage('${item.id}'); event.stopPropagation();">⎇ 계보</button>`;
         const stepper = isOneTime(item) ? '' : `
             <div class="smart-stepper active-stepper">
                 <button id="btn-minus-${item.id}" onmousedown="startSmartChange('${item.id}', -1, 'active', event)" ontouchstart="startSmartChange('${item.id}', -1, 'active', event)">-</button>
@@ -1249,7 +1068,7 @@ function renderCurrentTabContent() {
                     <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div>
                 </div>
                 <div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div>
-                <div class="uc-ctrl" onclick="event.stopPropagation()">${lineageBtn}${stepper}</div>
+                <div class="uc-ctrl" onclick="event.stopPropagation()">${stepper}</div>
             </div>
         </div>`;
     }).join('');
@@ -1267,12 +1086,6 @@ function updateTabContentUI() {
 
         const isActive = activeUnits.has(item.id);
         card.classList.toggle('active', isActive);
-
-        const lineageBtnEl = getEl(`btn-lineage-${item.id}`);
-        if (lineageBtnEl) {
-            lineageBtnEl.classList.toggle('pulse', !isActive);
-            lineageBtnEl.classList.toggle('muted', isActive);
-        }
 
         if (!isOneTime(item)) {
             const valEl = getEl(`val-${item.id}`);
@@ -1330,6 +1143,72 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         document.documentElement.lang = 'ko';
         document.documentElement.setAttribute('data-theme', 'dark');
+
+        const intro = getEl('introCinematic');
+        const main = getEl('mainLayout');
+        const counterEl = getEl('introCounter');
+        const fillEl = document.querySelector('.loader-fill');
+        const mCanvas = getEl('matrixCanvas');
+
+        if (intro && main && counterEl && fillEl && mCanvas) {
+            const ctx = mCanvas.getContext('2d');
+            let mWidth = mCanvas.width = window.innerWidth;
+            let mHeight = mCanvas.height = window.innerHeight;
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ'.split('');
+            const fontSize = 16;
+            const columns = mWidth / fontSize;
+            const drops = [];
+            for (let x = 0; x < columns; x++) drops[x] = 1;
+
+            let matrixInterval = setInterval(() => {
+                ctx.fillStyle = 'rgba(2, 3, 5, 0.15)';
+                ctx.fillRect(0, 0, mWidth, mHeight);
+                ctx.font = fontSize + 'px var(--font-mono)';
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillStyle = Math.random() > 0.95 ? '#fff' : 'rgba(0, 229, 255, 0.8)';
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > mHeight && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }, 33);
+
+            window.addEventListener('resize', () => {
+                if (!intro.classList.contains('hidden')) {
+                    mWidth = mCanvas.width = window.innerWidth;
+                    mHeight = mCanvas.height = window.innerHeight;
+                }
+            });
+
+            let progress = 0;
+            const duration = 2000;
+            const interval = 30;
+            const step = 100 / (duration / interval);
+
+            setTimeout(() => {
+                const timer = setInterval(() => {
+                    progress += step + (Math.random() * 2.5);
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(timer);
+                        counterEl.innerText = "100%";
+                        fillEl.style.width = "100%";
+
+                        setTimeout(() => {
+                            intro.classList.add('hidden');
+                            clearInterval(matrixInterval);
+                            setTimeout(() => {
+                                main.style.opacity = '1';
+                                main.style.transform = 'scale(1)';
+                            }, 400);
+                        }, 500);
+                    } else {
+                        counterEl.innerText = Math.floor(progress) + "%";
+                        fillEl.style.width = progress + "%";
+                    }
+                }, interval);
+            }, 600);
+        }
 
         if (typeof UNIT_DATABASE === 'undefined') { console.error("[오류] 데이터베이스 로드 실패"); return; }
 
