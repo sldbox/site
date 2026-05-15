@@ -1,4 +1,3 @@
-// app.js
 const unitMap = new Map(), activeUnits = new Map(), completedUnits = new Map(), depCache = new Map();
 const getEl = (id) => document.getElementById(id);
 const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
