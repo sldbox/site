@@ -140,7 +140,6 @@ function updateEssence() {
 }
 
 function updateMagicDashboard() {
-    // 1. 총 매직 코스트 계산
     let activeScore = 0, compScore = 0;
     activeUnits.forEach((qty, uid) => { activeScore += calculateTotalCostScore(unitMap.get(uid)?.cost) * qty; });
     completedUnits.forEach((qty, uid) => { compScore += calculateTotalCostScore(unitMap.get(uid)?.cost) * qty; });
@@ -150,7 +149,6 @@ function updateMagicDashboard() {
     if (magicTotalEl) magicTotalEl.innerText = Math.ceil(finalTotalCost);
     getEl('slot-total-magic')?.classList.toggle('active', finalTotalCost > 0);
 
-    // 2. 개별 유닛 코스트 계산
     const totalMap = {}, compMap = {};
     dashboardAtoms.forEach(a => {
         totalMap[a] = a === "갓오타/메시브" ? { 갓오타: 0, 메시브: 0 } : 0;
@@ -485,6 +483,8 @@ window.addEventListener('keydown', e => {
         const layout = getEl('mainLayout');
         if (layout?.classList.contains('view-jewel')) closeJewelPanel();
 
+        closeNoticeModal();
+
         const searchEl = getEl('unitSearchInput');
         if (document.activeElement === searchEl) {
             searchEl.value = '';
@@ -498,7 +498,333 @@ document.addEventListener('click', (e) => {
     if (_currentHighlight && !e.target.closest('.deduct-slot') && !e.target.closest('.d-reason-tag') && !e.target.closest('#recipeTooltip')) {
         toggleHighlight(null);
     }
+    if (e.target.id === 'noticeModal') {
+        closeNoticeModal();
+    }
 });
+
+/* ====================================
+   공지사항 모달 스크립트
+   ==================================== */
+window.openNoticeModal = function() {
+    const modal = getEl('noticeModal');
+    if(modal) modal.style.display = 'flex';
+};
+window.closeNoticeModal = function() {
+    const modal = getEl('noticeModal');
+    if(modal) modal.style.display = 'none';
+};
+
+/* ====================================
+   인터랙티브 가이드 투어 스크립트
+   ==================================== */
+let _guideStepIdx = 0;
+let _resizeTimer = null;
+let _guideBackupActive = new Map();
+let _guideBackupCompleted = new Map();
+let _currentGuideSteps = [];
+let _guideDemoUnitId = '비밀작전노바';
+let _guideDemoChildId = '자동포탑';
+
+// [개선] 가이드 자동 진행용 타이머 변수 추가
+let _autoGuideTimer = null;
+let _autoActionTimer = null;
+
+const getGuideSteps = () => {
+    let unitName = unitMap.get(_guideDemoUnitId)?.name || '유닛';
+    let childName = unitMap.get(_guideDemoChildId)?.name || '재료';
+
+    return [
+        {
+            id: 'jewel',
+            targetId: 'jewelPanel',
+            text: '💎 <b>쥬얼 도감</b><br>상단 버튼을 통해 진입할 수 있으며, 인게임 쥬얼들의 옵션과 정보를 넓은 화면에서 한눈에 확인할 수 있습니다.',
+            onEnter: (step) => {
+                if(!_jewelPanelOpen) toggleJewelPanel();
+            }
+        },
+        {
+            id: 'search',
+            targetId: 'searchWrap',
+            text: '🔍 <b>검색 및 커맨드</b><br>원하는 유닛을 검색하거나 단축 커맨드(예: 저격수*8/아몬/전쟁광*4)를 입력해 빠르게 목표에 추가할 수 있습니다.',
+            onEnter: (step) => {
+                if(_jewelPanelOpen) closeJewelPanel();
+                if(_currentViewMode !== 'codex') switchLayout('codex');
+            }
+        },
+        {
+            id: 'click-unit',
+            targetId: _guideDemoUnitId ? `card-${_guideDemoUnitId}` : 'tabContent',
+            fallbackId: 'tabContent',
+            text: `📖 <b>도감 및 유닛 추가</b><br>아래 도감에서 <b>${unitName}</b> 카드를 <b>직접 클릭</b>해서 목표 보드에 추가해 보세요!`,
+            isWaitAction: true,
+            onEnter: (step) => {
+                if(_currentViewMode !== 'codex') switchLayout('codex');
+                if (_guideDemoUnitId) {
+                    let u = unitMap.get(_guideDemoUnitId);
+                    if (u) {
+                        let catIdx = TAB_CATEGORIES.findIndex(c => c.key === u.category);
+                        if (catIdx !== -1 && _activeTabIdx !== catIdx) selectTab(catIdx);
+                    }
+                }
+            },
+            action: () => {
+                if (_guideDemoUnitId) toggleUnitSelection(_guideDemoUnitId, 1);
+            }
+        },
+        {
+            id: 'cost-dashboard',
+            targetId: 'costDashboardPanel',
+            text: `🔮 <b>코스트 전체 조망</b><br>방금 <b>직접 추가한</b> 목표 유닛의 필요 자원이 대시보드 전체에 <b>즉시 계산</b>되어 나타납니다.`,
+        },
+        {
+            id: 'switch-mode',
+            targetId: 'btnToggleMode',
+            text: '🔄 <b>체크리스트 모드 진입</b><br>화면 상단의 <b>[체크리스트 전환]</b> 버튼을 <b>직접 눌러서</b> 조립 모드로 진입해 보세요.',
+            isWaitAction: true,
+            action: () => toggleViewMode()
+        },
+        {
+            id: 'click-complete',
+            targetId: _guideDemoChildId ? `d-slot-wrap-${_guideDemoChildId}` : 'deductionBoard',
+            fallbackId: 'deductionBoard',
+            text: `✅ <b>재료 완료 처리</b><br>하위 재료를 확보했다면 완료 처리를 합니다.<br><b>${childName}</b>의 <b>[✔ 완료]</b> 버튼을 <b>직접 눌러보세요!</b>`,
+            isWaitAction: true,
+            onEnter: (step) => {
+                if(_currentViewMode !== 'deduct') switchLayout('deduct');
+            },
+            action: () => {
+                if (_guideDemoChildId) completeUnit(_guideDemoChildId);
+            }
+        },
+        {
+            id: 'auto-deduct',
+            targetId: 'costDashboardPanel',
+            text: `📉 <b>실시간 자동 차감</b><br>보시다시피 방금 완료 처리된 ${childName}의 코스트만큼 대시보드 전체 코스트가 정확히 <b>차감되어 실시간 반영</b>되었습니다!<br>이제 튜토리얼을 종료합니다.`,
+            onEnter: (step) => {
+                if(_currentViewMode !== 'deduct') switchLayout('deduct');
+                getEl('costDashboardPanel')?.classList.add('cost-reduction-flash');
+                setTimeout(() => getEl('costDashboardPanel')?.classList.remove('cost-reduction-flash'), 1000);
+            }
+        }
+    ];
+};
+
+window.startGuideTour = function() {
+    clearTimeout(_autoGuideTimer);
+    clearTimeout(_autoActionTimer);
+
+    _guideBackupActive = new Map(activeUnits);
+    _guideBackupCompleted = new Map(completedUnits);
+
+    activeUnits.clear();
+    completedUnits.clear();
+    debouncedUpdateAllPanels();
+
+    if (!unitMap.has('비밀작전노바')) {
+        const demo = Array.from(unitMap.values()).find(u =>
+            (u.grade === '유니크' || u.grade === '에픽' || u.grade === '레전드') &&
+            u.parsedRecipe && u.parsedRecipe.length > 0 && u.id !== '자동포탑'
+        );
+        if (demo) {
+            _guideDemoUnitId = demo.id;
+            const child = demo.parsedRecipe.find(r => r.id && !['갓오타', '메시브'].includes(r.id));
+            _guideDemoChildId = child ? child.id : null;
+        } else {
+            _guideDemoUnitId = null;
+            _guideDemoChildId = null;
+        }
+    } else {
+        _guideDemoUnitId = '비밀작전노바';
+        _guideDemoChildId = '자동포탑';
+    }
+
+    _currentGuideSteps = getGuideSteps();
+    _guideStepIdx = 0;
+
+    getEl('guideBlocker').style.display = 'block';
+    getEl('guideHighlight').style.display = 'block';
+    getEl('guideTooltip').style.display = 'block';
+
+    window.addEventListener('resize', handleGuideResize);
+    window.addEventListener('scroll', handleGuideResize, {passive: true});
+
+    // 시작 딜레이를 최소화하여 버벅임 체감 개선
+    setTimeout(() => showGuideStep(), 50);
+};
+
+window.endGuideTour = function() {
+    clearTimeout(_autoGuideTimer);
+    clearTimeout(_autoActionTimer);
+
+    getEl('guideBlocker').style.display = 'none';
+    getEl('guideHighlight').style.display = 'none';
+    getEl('guideClickCatcher').style.display = 'none';
+    getEl('guideTooltip').style.display = 'none';
+    window.removeEventListener('resize', handleGuideResize);
+    window.removeEventListener('scroll', handleGuideResize);
+
+    activeUnits.clear();
+    _guideBackupActive.forEach((v, k) => activeUnits.set(k, v));
+    completedUnits.clear();
+    _guideBackupCompleted.forEach((v, k) => completedUnits.set(k, v));
+    debouncedUpdateAllPanels();
+
+    if (_jewelPanelOpen) closeJewelPanel();
+    if (_currentViewMode === 'deduct') switchLayout('codex');
+    showToast("가이드 종료. 이전 상태로 복구되었습니다. ✔");
+};
+
+window.nextGuideStep = function() {
+    clearTimeout(_autoGuideTimer);
+    clearTimeout(_autoActionTimer);
+
+    _guideStepIdx++;
+    if (_guideStepIdx >= _currentGuideSteps.length) {
+        endGuideTour();
+    } else {
+        showGuideStep();
+    }
+};
+
+function showGuideStep() {
+    let step = _currentGuideSteps[_guideStepIdx];
+
+    if (step.onEnter) step.onEnter(step);
+
+    getEl('guideTooltip').style.opacity = '0';
+
+    // UI 렌더링 후 부드럽게 위치 잡도록 프레임 및 타이밍 보정
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            positionGuideHighlight(step);
+            getEl('guideTooltip').style.opacity = '1';
+        }, 150);
+    });
+}
+
+function positionGuideHighlight(step) {
+    if (!step) return;
+    let target = getEl(step.targetId);
+    if (!target && step.fallbackId) target = getEl(step.fallbackId);
+
+    if (!target) {
+         const hl = getEl('guideHighlight');
+         hl.style.width = '0'; hl.style.height = '0';
+         getEl('guideText').innerHTML = step.text;
+         getEl('btnGuideNext').style.display = 'block';
+         getEl('btnGuideNext').innerText = _guideStepIdx === _currentGuideSteps.length - 1 ? '가이드 종료 ✔' : '다음 ➔';
+
+         // [개선] 타겟이 없는 경우 자동 진행
+         clearTimeout(_autoGuideTimer);
+         clearTimeout(_autoActionTimer);
+         _autoGuideTimer = setTimeout(() => {
+             nextGuideStep();
+         }, 4000);
+         return;
+    }
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    setTimeout(() => {
+        // scrollIntoView 후 한 번 더 타겟이 유효한지 체크
+        if (!target) return;
+        const rect = target.getBoundingClientRect();
+        const hl = getEl('guideHighlight');
+        const tt = getEl('guideTooltip');
+        const catcher = getEl('guideClickCatcher');
+
+        let pad = 8;
+        hl.style.top = `${rect.top + window.scrollY - pad}px`;
+        hl.style.left = `${rect.left + window.scrollX - pad}px`;
+        hl.style.width = `${rect.width + pad * 2}px`;
+        hl.style.height = `${rect.height + pad * 2}px`;
+
+        getEl('guideText').innerHTML = step.text;
+
+        if (step.isWaitAction) {
+            catcher.style.top = hl.style.top;
+            catcher.style.left = hl.style.left;
+            catcher.style.width = hl.style.width;
+            catcher.style.height = hl.style.height;
+            catcher.style.display = 'block';
+
+            catcher.onclick = () => {
+                // [개선] 수동 조작 시 타이머 해제
+                clearTimeout(_autoGuideTimer);
+                clearTimeout(_autoActionTimer);
+                catcher.style.display = 'none';
+                if (step.action) step.action();
+                setTimeout(nextGuideStep, 250);
+            };
+
+            // 다음 버튼을 항상 노출하도록 수정 (수동 조작 가능하게 열어둠)
+            getEl('btnGuideNext').style.display = 'block';
+            getEl('btnGuideNext').innerText = '다음 ➔';
+        } else {
+            catcher.style.display = 'none';
+            getEl('btnGuideNext').style.display = 'block';
+            getEl('btnGuideNext').innerText = _guideStepIdx === _currentGuideSteps.length - 1 ? '가이드 종료 ✔' : '다음 ➔';
+        }
+
+        tt.style.display = 'block';
+        let ttW = tt.getBoundingClientRect().width || 320;
+        let ttH = tt.getBoundingClientRect().height || 150;
+
+        let ttTop = rect.bottom + window.scrollY + pad + 20;
+        let ttLeft = rect.left + window.scrollX + (rect.width / 2) - (ttW / 2);
+
+        if (rect.height > window.innerHeight * 0.4) {
+            if (rect.left > ttW + 20) {
+                ttLeft = rect.left + window.scrollX - ttW - 20;
+                ttTop = rect.top + window.scrollY + (rect.height / 2) - (ttH / 2);
+            }
+            else if (window.innerWidth - rect.right > ttW + 20) {
+                ttLeft = rect.right + window.scrollX + 20;
+                ttTop = rect.top + window.scrollY + (rect.height / 2) - (ttH / 2);
+            }
+        } else {
+            if (ttTop + ttH > window.scrollY + window.innerHeight) {
+                ttTop = rect.top + window.scrollY - pad - ttH - 20;
+            }
+        }
+
+        const screenMargin = 15;
+        if (ttLeft < screenMargin) ttLeft = screenMargin;
+        if (ttLeft + ttW > window.innerWidth - screenMargin) ttLeft = window.innerWidth - ttW - screenMargin;
+        if (ttTop < window.scrollY + screenMargin) ttTop = window.scrollY + screenMargin;
+
+        tt.style.top = `${ttTop}px`;
+        tt.style.left = `${ttLeft}px`;
+
+        // [개선] 자동 진행 로직 (위치 조정 완료 후 4초 대기)
+        clearTimeout(_autoGuideTimer);
+        clearTimeout(_autoActionTimer);
+        let autoDelay = 4000;
+
+        if (step.isWaitAction) {
+            _autoGuideTimer = setTimeout(() => {
+                catcher.style.display = 'none';
+                if (step.action) step.action();
+                _autoActionTimer = setTimeout(nextGuideStep, 600);
+            }, autoDelay);
+        } else {
+            _autoGuideTimer = setTimeout(() => {
+                nextGuideStep();
+            }, autoDelay + (_guideStepIdx === _currentGuideSteps.length - 1 ? 1500 : 0));
+        }
+
+    }, 150);
+}
+
+function handleGuideResize() {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+        if (getEl('guideHighlight')?.style.display === 'block') {
+            positionGuideHighlight(_currentGuideSteps[_guideStepIdx]);
+        }
+    }, 50);
+}
 
 let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0;
 
@@ -1124,11 +1450,11 @@ function renderDashboardAtoms() {
     db.innerHTML = `
         <div class="cost-slot total" id="slot-total-magic">
             <div class="cost-val" id="magic-total-val">0</div>
-            <div class="cost-name">총 코스트</div>
+            <div class="cost-name">통합 코스트</div>
         </div>
         <div class="cost-slot total" id="slot-total-essence">
             <div class="cost-val" id="essence-total-val">0</div>
-            <div class="cost-name">총 정수</div>
+            <div class="cost-name">통합 정수</div>
         </div>
         ${['coral|#FF6B6B|코랄', 'aiur|var(--grade-rare)|아이어', 'zerus|var(--grade-legend)|제루스'].map(d => {
             let [id, color, name] = d.split('|');
