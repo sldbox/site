@@ -448,7 +448,7 @@ function performSearch(query) {
     let exactMatches = [], partialMatches = [];
 
     unitMap.forEach(u => {
-        if (isTargetGrade(u)) {
+        if (getGradeIndex(u.grade) >= getGradeIndex("레전드")) {
             if (u.id === searchTarget) exactMatches.push(u);
             else if (u.id.includes(searchTarget)) partialMatches.push(u);
         }
@@ -485,10 +485,10 @@ function applySearchAutocomplete(unitName) {
 
     parts[parts.length - 1] = unitName + (multiplierMatch ? multiplierMatch[0] : '');
     inputEl.value = parts.join('/');
-    
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) inputEl.focus();
-    
+
     getEl('searchResults')?.classList.remove('active');
 }
 
@@ -753,7 +753,7 @@ window.endGuideTour = function() {
     clearTimeout(_autoActionTimer);
     // [개선] 가이드 투어 리사이즈 이벤트 누수 방어
     clearTimeout(_resizeTimer);
-    
+
     _autoGuideTimer = null;
     _autoActionTimer = null;
 
@@ -941,7 +941,7 @@ function startSmartChange(id, delta, type, event) {
     const action = () => {
         _touchHoldCount++;
         let accelDelta = delta * (event?.shiftKey ? 5 : (Math.floor(_touchHoldCount / 6) + 1));
-        
+
         let current = activeUnits.get(id) || 0;
         if (current === 0 && accelDelta > 0) toggleUnitSelection(id, accelDelta);
         else setUnitQty(id, current + accelDelta);
@@ -1535,7 +1535,7 @@ function initAllTabContents() {
 
     let html = '';
     TAB_CATEGORIES.forEach((cat) => {
-        let items = Array.from(unitMap.values()).filter(u => isTargetGrade(u) && u.category === cat.key);
+        let items = Array.from(unitMap.values()).filter(u => getGradeIndex(u.grade) >= getGradeIndex("레전드") && u.category === cat.key);
 
         items.sort((a, b) => {
             if (CONFIG_SORT_ORDER[a.name] || CONFIG_SORT_ORDER[b.name]) return (CONFIG_SORT_ORDER[b.name] || 0) - (CONFIG_SORT_ORDER[a.name] || 0);
@@ -1681,7 +1681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     progress += step + (Math.random() * 2.5);
                     // [오류] 인트로 시네마틱 퍼센트 초과 방어
                     let curProgress = Math.min(100, Math.floor(progress));
-                    
+
                     if (progress >= 100) {
                         clearInterval(timer);
                         counterEl.innerText = "100%";
@@ -1722,17 +1722,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const swipeArea = getEl('tabContent');
         if (swipeArea) {
             let startX = 0, startY = 0;
-            swipeArea.addEventListener('touchstart', e => { 
-                startX = e.changedTouches[0].screenX; 
-                startY = e.changedTouches[0].screenY; 
+            swipeArea.addEventListener('touchstart', e => {
+                startX = e.changedTouches[0].screenX;
+                startY = e.changedTouches[0].screenY;
             }, { passive: true });
 
             swipeArea.addEventListener('touchend', e => {
                 if (_isSwiping) return;
-                
+
                 const diffX = e.changedTouches[0].screenX - startX;
                 const diffY = e.changedTouches[0].screenY - startY;
-                
+
                 if (Math.abs(diffX) > 70 && Math.abs(diffY) < 50) {
                     _isSwiping = true;
                     if (diffX > 0 && _activeTabIdx > 0) {
