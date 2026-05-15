@@ -12,36 +12,33 @@ const dashboardAtoms = [
     "암흑집정관", "암흑불멸자", "원시히드라리스크", "땅거미지뢰", "자동포탑",
     "우르사돈암", "우르사돈수", "갓오타/메시브"
 ];
+const CLEANED_DASHBOARD_ATOMS = dashboardAtoms.map(a => ({ raw: a, clean: clean(a) }));
+const SPECIAL_UNIT_IDS = ['갓오타', '메시브', '자동포탑'];
+
 const EMPTY_SVG = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><line x1="3" y1="21" x2="21" y2="3"></line></svg>`;
 
 const isOneTime = (u) => u && (u.grade === "슈퍼히든" || ["데하카", "데하카고치", "데하카의오른팔", "유물"].includes(u.name));
 const isTargetGrade = (u) => ["슈퍼히든", "히든", "레전드"].includes(u.grade);
 
 function getUnitId(rawName) {
-    const c = clean(rawName);
-    const u = unitMap.get(c);
-    return u ? u.id : c;
+    return clean(rawName);
 }
 
-function calculateTotalCostScore(costStr) {
-    if (!costStr || IGNORE_PARSE_RECIPES.includes(costStr)) return 0;
-    let score = 0;
-    costStr.split('+').forEach(p => {
-        const m = p.match(/\[(\d+(?:\.\d+)?)\]/);
-        score += m ? parseFloat(m[1]) : 1;
-    });
-    return score;
+// [개선] 실시간 정규식 파싱 제거 및 캐싱 엔진 최적화
+function calculateTotalCostScore(u) {
+    if (!u || !u.parsedCost) return 0;
+    return u.parsedCost.reduce((sum, pc) => sum + (pc.qty || 0), 0);
 }
 
 function initializeCacheEngine() {
     unitMap.forEach(u => {
         u.parsedCost = [];
         if (u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
-            const safeCost = u.cost.replace(/[.\/]/g, '+');
+            const safeCost = u.cost.replace(/\//g, '+');
             safeCost.split('+').forEach(p => {
-                const m = p.match(/(.+?)\[(\d+(?:\.\d+)?)\]/);
+                const m = p.match(/(.+?)\[(\d+)\]/);
                 let name = m ? m[1].trim() : p.trim();
-                let qty = m ? parseFloat(m[2]) : 1;
+                let qty = m ? parseInt(m[2], 10) : 1;
                 let cName = clean(name);
                 let type = 'atom', key = cName;
 
@@ -141,8 +138,8 @@ function updateEssence() {
 
 function updateMagicDashboard() {
     let activeScore = 0, compScore = 0;
-    activeUnits.forEach((qty, uid) => { activeScore += calculateTotalCostScore(unitMap.get(uid)?.cost) * qty; });
-    completedUnits.forEach((qty, uid) => { compScore += calculateTotalCostScore(unitMap.get(uid)?.cost) * qty; });
+    activeUnits.forEach((qty, uid) => { activeScore += calculateTotalCostScore(unitMap.get(uid)) * qty; });
+    completedUnits.forEach((qty, uid) => { compScore += calculateTotalCostScore(unitMap.get(uid)) * qty; });
     let finalTotalCost = Math.max(0, activeScore - compScore);
 
     const magicTotalEl = getEl('magic-total-val');
@@ -167,7 +164,8 @@ function updateMagicDashboard() {
 
     completedUnits.forEach((c, k) => {
         if (c <= 0) return;
-        const atomKey = dashboardAtoms.find(a => clean(a) === clean(k));
+        const atomKeyObj = CLEANED_DASHBOARD_ATOMS.find(a => a.clean === k);
+        const atomKey = atomKeyObj ? atomKeyObj.raw : undefined;
 
         if (atomKey && atomKey !== '갓오타/메시브') compMap[atomKey] = (compMap[atomKey] || 0) + c;
         else if (k === '갓오타' || k === '메시브') compMap['갓오타/메시브'][k] += c;
@@ -249,6 +247,11 @@ const gradeColorsRaw = {
     "히든":"var(--grade-hidden)", "슈퍼히든":"var(--grade-super)"
 };
 
+const getGradeIndex = (grade) => {
+    const idx = GRADE_ORDER.indexOf(grade);
+    return idx !== -1 ? idx : -99;
+};
+
 const TAB_CATEGORIES = [
     {key:"테바", name:"테바", sym:"♆"},
     {key:"테메", name:"테메", sym:"♆"},
@@ -273,8 +276,6 @@ function resetCompleted() {
 }
 
 function setupInitialView() {
-    const layout = getEl('mainLayout');
-    if (layout) layout.style.display = '';
     switchLayout('codex');
     startTitleCycle();
 }
@@ -370,11 +371,10 @@ function findUnitFlexible(rawName) {
     if (aliased) qClean = clean(aliased);
 
     for (let [id, u] of unitMap) {
-        let uClean = clean(u.name);
-        if (uClean === qClean || id === qClean) return u;
+        if (id === qClean) return u;
     }
     for (let [id, u] of unitMap) {
-        if (clean(u.name).includes(qClean)) return u;
+        if (id.includes(qClean)) return u;
     }
     return null;
 }
@@ -396,14 +396,16 @@ function performSearch(query) {
 
     unitMap.forEach(u => {
         if (isTargetGrade(u)) {
-            let uClean = clean(u.name);
-            if (uClean === qClean || (aliasClean && uClean === aliasClean)) exactMatches.push(u);
-            else if (uClean.includes(qClean) || (aliasClean && uClean.includes(aliasClean))) partialMatches.push(u);
+            if (u.id === qClean || (aliasClean && u.id === aliasClean)) exactMatches.push(u);
+            else if (u.id.includes(qClean) || (aliasClean && u.id.includes(aliasClean))) partialMatches.push(u);
         }
     });
 
-    const sortByGrade = (a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade);
-    let combined = [...exactMatches.sort(sortByGrade), ...partialMatches.sort(sortByGrade)].slice(0, 10);
+    const sortByGrade = (a, b) => getGradeIndex(b.grade) - getGradeIndex(a.grade);
+
+    let sortedExact = [...exactMatches].sort(sortByGrade);
+    let sortedPartial = [...partialMatches].sort(sortByGrade);
+    let combined = [...sortedExact, ...sortedPartial].slice(0, 10);
 
     if (combined.length > 0) {
         sr.innerHTML = combined.map(u => `
@@ -428,7 +430,7 @@ function applySearchAutocomplete(unitName) {
     let parts = inputEl.value.split('/');
     let multiplierMatch = parts[parts.length - 1].match(/\*\d+/);
 
-    parts[parts.length - 1] = unitName + (multiplierMatch ? multiplierMatch[0] : '*1');
+    parts[parts.length - 1] = unitName + (multiplierMatch ? multiplierMatch[0] : '');
     inputEl.value = parts.join('/');
     inputEl.focus();
     getEl('searchResults')?.classList.remove('active');
@@ -503,9 +505,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-/* ====================================
-   공지사항 모달 스크립트
-   ==================================== */
 window.openNoticeModal = function() {
     const modal = getEl('noticeModal');
     if(modal) modal.style.display = 'flex';
@@ -515,9 +514,6 @@ window.closeNoticeModal = function() {
     if(modal) modal.style.display = 'none';
 };
 
-/* ====================================
-   인터랙티브 가이드 투어 스크립트
-   ==================================== */
 let _guideStepIdx = 0;
 let _resizeTimer = null;
 let _guideBackupActive = new Map();
@@ -526,7 +522,6 @@ let _currentGuideSteps = [];
 let _guideDemoUnitId = '비밀작전노바';
 let _guideDemoChildId = '자동포탑';
 
-// [개선] 가이드 자동 진행용 타이머 변수 추가
 let _autoGuideTimer = null;
 let _autoActionTimer = null;
 
@@ -614,6 +609,11 @@ window.startGuideTour = function() {
     clearTimeout(_autoGuideTimer);
     clearTimeout(_autoActionTimer);
 
+    if (window.innerWidth < 1200) {
+        showToast("모바일 환경에서는 가이드를 지원하지 않습니다.", true);
+        return;
+    }
+
     _guideBackupActive = new Map(activeUnits);
     _guideBackupCompleted = new Map(completedUnits);
 
@@ -649,7 +649,6 @@ window.startGuideTour = function() {
     window.addEventListener('resize', handleGuideResize);
     window.addEventListener('scroll', handleGuideResize, {passive: true});
 
-    // 시작 딜레이를 최소화하여 버벅임 체감 개선
     setTimeout(() => showGuideStep(), 50);
 };
 
@@ -694,7 +693,6 @@ function showGuideStep() {
 
     getEl('guideTooltip').style.opacity = '0';
 
-    // UI 렌더링 후 부드럽게 위치 잡도록 프레임 및 타이밍 보정
     requestAnimationFrame(() => {
         setTimeout(() => {
             positionGuideHighlight(step);
@@ -715,7 +713,6 @@ function positionGuideHighlight(step) {
          getEl('btnGuideNext').style.display = 'block';
          getEl('btnGuideNext').innerText = _guideStepIdx === _currentGuideSteps.length - 1 ? '가이드 종료 ✔' : '다음 ➔';
 
-         // [개선] 타겟이 없는 경우 자동 진행
          clearTimeout(_autoGuideTimer);
          clearTimeout(_autoActionTimer);
          _autoGuideTimer = setTimeout(() => {
@@ -727,7 +724,6 @@ function positionGuideHighlight(step) {
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     setTimeout(() => {
-        // scrollIntoView 후 한 번 더 타겟이 유효한지 체크
         if (!target) return;
         const rect = target.getBoundingClientRect();
         const hl = getEl('guideHighlight');
@@ -750,7 +746,6 @@ function positionGuideHighlight(step) {
             catcher.style.display = 'block';
 
             catcher.onclick = () => {
-                // [개선] 수동 조작 시 타이머 해제
                 clearTimeout(_autoGuideTimer);
                 clearTimeout(_autoActionTimer);
                 catcher.style.display = 'none';
@@ -758,7 +753,6 @@ function positionGuideHighlight(step) {
                 setTimeout(nextGuideStep, 250);
             };
 
-            // 다음 버튼을 항상 노출하도록 수정 (수동 조작 가능하게 열어둠)
             getEl('btnGuideNext').style.display = 'block';
             getEl('btnGuideNext').innerText = '다음 ➔';
         } else {
@@ -797,7 +791,6 @@ function positionGuideHighlight(step) {
         tt.style.top = `${ttTop}px`;
         tt.style.left = `${ttLeft}px`;
 
-        // [개선] 자동 진행 로직 (위치 조정 완료 후 4초 대기)
         clearTimeout(_autoGuideTimer);
         clearTimeout(_autoActionTimer);
         let autoDelay = 4000;
@@ -859,7 +852,8 @@ document.addEventListener('touchend', stopSmartChange);
 window.addEventListener('mouseleave', stopSmartChange);
 
 function showRecipeTooltip(id, event, isDeduction = false) {
-    if (event && event.type !== 'mousemove') event.stopPropagation();
+    if (event) event.stopPropagation();
+
     const u = unitMap.get(id);
     if (!u) return;
 
@@ -1043,23 +1037,6 @@ function calculateDeductedRequirements() {
     return { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason };
 }
 
-function getDeepCompleted(uid, visited = new Set()) {
-    if (visited.has(uid)) return 0;
-    visited.add(uid);
-    let count = 0;
-
-    const u = unitMap.get(uid);
-    u?.parsedRecipe?.forEach(pr => {
-        if (pr.id && !(uid === '로리스완' && pr.id === '낮까마귀')) {
-            count += (completedUnits.get(pr.id) || 0) + getDeepCompleted(pr.id, visited);
-        }
-    });
-    u?.parsedCost?.forEach(pc => {
-        if (['갓오타', '메시브'].includes(pc.key)) count += completedUnits.get(pc.key) || 0;
-    });
-    return count;
-}
-
 function attemptAutoMerge() {
     let merged = false, loopCount = 0;
 
@@ -1138,6 +1115,7 @@ window.completeUnit = function(uid) {
     }
 }
 
+// [개선] 로스터 썸네일 코드 완전 제거
 function renderActiveRoster() {
     const roster = getEl('activeRoster');
     if (!roster) return;
@@ -1148,9 +1126,6 @@ function renderActiveRoster() {
         if (u) {
             html += `
                 <div class="roster-tag" onclick="toggleUnitSelection('${id}')" style="border-color:${gradeColorsRaw[u.grade]}66;">
-                    <div style="width:20px;height:20px;border-radius:4px;overflow:hidden;flex-shrink:0;">
-                        <img src="https://sldbox.github.io/site/image/ctg/${u.name}.png" style="width:100%;height:100%;object-fit:cover;clip-path:inset(1px);transform:scale(1.1);" onerror="this.style.display='none'">
-                    </div>
                     <span style="color:${gradeColorsRaw[u.grade]}; font-weight:bold;">${u.name}</span>
                     <span class="roster-qty">×${qty}</span>
                 </div>`;
@@ -1176,7 +1151,7 @@ function renderDeductionBoard() {
     const renderSlot = (id, name, grade, parentId) => `
         <div class="deduct-slot" id="d-slot-wrap-${id}" data-orig-parent="${parentId}" style="display:none;" onclick="toggleHighlight('${id}', event)">
             <div class="d-reason-wrap" id="d-reason-${id}" style="display:none;"></div>
-            <div class="d-name" style="color:${gradeColorsRaw[grade] || 'var(--text)'}; cursor:help;" onclick="showRecipeTooltip('${id}', event, true); event.stopPropagation();">
+            <div class="d-name" style="color:${gradeColorsRaw[grade] || 'var(--text)'}; cursor:help;" onclick="showRecipeTooltip('${id}', event, true)">
                 <span class="gtag" style="border-color:${gradeColorsRaw[grade]}44; color:${gradeColorsRaw[grade]}; margin-right:6px;">${grade}</span>${name}
             </div>
             <div id="d-cond-${id}" style="display:none; text-align:center; font-size:0.8rem; color:#fde047; font-weight:bold; margin-top:2px; margin-bottom:6px; letter-spacing:-0.5px; word-break:keep-all;"></div>
@@ -1197,7 +1172,6 @@ function renderDeductionBoard() {
         </div>`;
 
     const allUnits = Array.from(unitMap.values());
-    const specialIds = ['갓오타', '메시브', '자동포탑'];
 
     let html = `<div id="deduct-empty-msg" style="text-align:center; padding:40px 20px; color:var(--text-sub); font-weight:bold; width:100%; display:none; line-height:1.6; font-size:1.05rem;">
                   <div style="font-size:2rem; margin-bottom:12px; color:var(--g-dim);">✨</div> 목표 유닛을 선택하면<br>필요한 재료 목록이 이곳에 생성됩니다.
@@ -1210,11 +1184,11 @@ function renderDeductionBoard() {
 
     html += getGroupHtml('group-hidden',
         `<span style="color:var(--grade-hidden);">♦</span> 히든 등급 재료`,
-        allUnits.filter(u => u.grade === "히든" && !specialIds.includes(u.id)), 'grid-hidden');
+        allUnits.filter(u => u.grade === "히든" && !SPECIAL_UNIT_IDS.includes(u.id)), 'grid-hidden');
 
     const topGrades = ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"];
-    const topItems = allUnits.filter(u => topGrades.includes(u.grade) && !specialIds.includes(u.id))
-                             .sort((a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade));
+    const topItems = allUnits.filter(u => topGrades.includes(u.grade) && !SPECIAL_UNIT_IDS.includes(u.id))
+                             .sort((a, b) => getGradeIndex(b.grade) - getGradeIndex(a.grade));
     html += getGroupHtml('group-top', `<span style="color:var(--grade-legend);">▲</span> 레어 - 레전드 재료`, topItems, 'grid-top', 'style="margin-bottom:0;"');
 
     board.innerHTML = html;
@@ -1259,13 +1233,14 @@ function updateDeductionBoard() {
             }
 
             const isTarget = activeUnits.has(id);
-            wrapEl.style.order = isTarget ? "-999" : (['갓오타', '메시브', '자동포탑'].includes(id) ? "999" : "-1");
+            wrapEl.style.order = isTarget ? "-999" : (SPECIAL_UNIT_IDS.includes(id) ? "999" : "-1");
 
             const reqEl = getEl(`d-req-${id}`);
             const craftWrap = getEl(`craft-wrap-${id}`);
 
             if (netReq > 0) {
-                wrapEl.classList.replace('is-completed', 'has-target') || wrapEl.classList.add('has-target');
+                wrapEl.classList.remove('is-completed');
+                wrapEl.classList.add('has-target');
                 if (reqEl) reqEl.innerText = netReq;
 
                 if (craftWrap) {
@@ -1279,7 +1254,8 @@ function updateDeductionBoard() {
                         : `<button class="btn-complete" onclick="completeUnit('${id}'); event.stopPropagation();">✔ 완료</button>`;
                 }
             } else {
-                wrapEl.classList.replace('has-target', 'is-completed') || wrapEl.classList.add('is-completed');
+                wrapEl.classList.remove('has-target');
+                wrapEl.classList.add('is-completed');
                 if (reqEl) reqEl.innerText = '0';
                 if (craftWrap) craftWrap.innerHTML = `<span style="font-size:0.85rem; color:var(--g-dim); font-weight:bold; padding-right:4px;">✨ 완료됨</span>`;
             }
@@ -1376,50 +1352,65 @@ function selectTab(idx) {
     if (_jewelPanelOpen) closeJewelPanel();
 }
 
-function renderCurrentTabContent() {
-    const catKey = TAB_CATEGORIES[_activeTabIdx].key;
-    let items = Array.from(unitMap.values()).filter(u => isTargetGrade(u) && u.category === catKey);
+let _isTabContentInitialized = false;
 
-    items.sort((a, b) => {
-        const specialOrders = { "아몬": 100, "어두운목소리": 99, "나루드": 97, "유물": 96 };
-        if (specialOrders[a.name] || specialOrders[b.name]) return (specialOrders[b.name] || 0) - (specialOrders[a.name] || 0);
-        if (isOneTime(a) !== isOneTime(b)) return isOneTime(a) ? -1 : 1;
-        if (a.grade !== b.grade) return GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade);
-        return calculateTotalCostScore(b.cost) - calculateTotalCostScore(a.cost);
+// [개선] 탭 콘텐츠 내 썸네일 노드 (uc-thumb-box) 완전 제거
+function initAllTabContents() {
+    const tc = getEl('tabContent');
+    if (!tc) return;
+
+    let html = '';
+    TAB_CATEGORIES.forEach((cat) => {
+        let items = Array.from(unitMap.values()).filter(u => isTargetGrade(u) && u.category === cat.key);
+
+        items.sort((a, b) => {
+            const specialOrders = { "아몬": 100, "어두운목소리": 99, "나루드": 97, "유물": 96 };
+            if (specialOrders[a.name] || specialOrders[b.name]) return (specialOrders[b.name] || 0) - (specialOrders[a.name] || 0);
+            if (isOneTime(a) !== isOneTime(b)) return isOneTime(a) ? -1 : 1;
+            if (a.grade !== b.grade) return getGradeIndex(b.grade) - getGradeIndex(a.grade);
+            return calculateTotalCostScore(b) - calculateTotalCostScore(a);
+        });
+
+        html += `<div id="cat-group-${cat.key}" class="cat-group" style="display:none; flex-direction:column; gap:4px;">`;
+        if (items.length === 0) {
+            html += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>`;
+        } else {
+            html += items.map((item, idx) => {
+                const stepper = isOneTime(item) ? '' : `
+                    <div class="smart-stepper active-stepper">
+                        <button id="btn-minus-${item.id}" onmousedown="startSmartChange('${item.id}', -1, 'active', event)" ontouchstart="startSmartChange('${item.id}', -1, 'active', event)">-</button>
+                        <div class="ss-val" id="val-${item.id}">-</div>
+                        <button id="btn-plus-${item.id}" onmousedown="startSmartChange('${item.id}', 1, 'active', event)" ontouchstart="startSmartChange('${item.id}', 1, 'active', event)">+</button>
+                    </div>`;
+
+                return `
+                <div id="card-${item.id}" class="unit-card" style="animation-delay:${idx * 0.03}s" onclick="toggleUnitSelection('${item.id}', 1)">
+                    <div class="uc-wrap">
+                        <div class="uc-identity">
+                            <div class="uc-grade"><span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span></div>
+                            <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div>
+                        </div>
+                        <div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div>
+                        <div class="uc-ctrl" onclick="event.stopPropagation()">${stepper}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        html += `</div>`;
     });
 
-    let html = `<div style="display:flex;flex-direction:column;gap:4px;">`;
-    if (items.length === 0) html += `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>`;
+    tc.innerHTML = html;
+    _isTabContentInitialized = true;
+}
 
-    html += items.map((item, idx) => {
-        const stepper = isOneTime(item) ? '' : `
-            <div class="smart-stepper active-stepper">
-                <button id="btn-minus-${item.id}" onmousedown="startSmartChange('${item.id}', -1, 'active', event)" ontouchstart="startSmartChange('${item.id}', -1, 'active', event)">-</button>
-                <div class="ss-val" id="val-${item.id}">-</div>
-                <button id="btn-plus-${item.id}" onmousedown="startSmartChange('${item.id}', 1, 'active', event)" ontouchstart="startSmartChange('${item.id}', 1, 'active', event)">+</button>
-            </div>`;
+function renderCurrentTabContent() {
+    if (!_isTabContentInitialized) initAllTabContents();
 
-        return `
-        <div id="card-${item.id}" class="unit-card" style="animation-delay:${idx * 0.03}s" onclick="toggleUnitSelection('${item.id}', 1)">
-            <div class="uc-wrap">
-                <div class="uc-thumb-box">
-                    <img src="https://sldbox.github.io/site/image/ctg/${item.name}.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;clip-path:inset(1px);transform:scale(1.08);">
-                    <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;color:${gradeColorsRaw[item.grade]};opacity:0.3;">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon></svg>
-                    </div>
-                </div>
-                <div class="uc-identity">
-                    <div class="uc-grade"><span class="gtag" style="border-color:${gradeColorsRaw[item.grade]}44; color:${gradeColorsRaw[item.grade]};">${item.grade}</span></div>
-                    <div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div>
-                </div>
-                <div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div>
-                <div class="uc-ctrl" onclick="event.stopPropagation()">${stepper}</div>
-            </div>
-        </div>`;
-    }).join('');
+    TAB_CATEGORIES.forEach((cat, idx) => {
+        const group = getEl(`cat-group-${cat.key}`);
+        if (group) group.style.display = (idx === _activeTabIdx) ? 'flex' : 'none';
+    });
 
-    const tc = getEl('tabContent');
-    if (tc) tc.innerHTML = html + '</div>';
     updateTabContentUI();
 }
 
@@ -1471,6 +1462,7 @@ function renderDashboardAtoms() {
             </div>`).join('')}`;
 }
 
+// [개선] 쥬얼 도감 썸네일은 유지하고 loading="lazy" 적용
 function renderJewelMiniGrid() {
     const g = getEl('jewelMiniGrid');
     if (!g || g.dataset.rendered || typeof JEWEL_DATABASE === 'undefined') return;
@@ -1480,7 +1472,7 @@ function renderJewelMiniGrid() {
         const kr = arr[0], c = (typeof JEWEL_COLORS !== 'undefined' ? JEWEL_COLORS[kr] : null) || "#ffffff";
         return `
         <div class="jwm-item" style="--jw-color:${c};--jw-color-a:${c}22;">
-            <div class="jwm-img-wrap"><img src="https://sldbox.github.io/site/image/jw/${arr[3] || kr}.png" onerror="this.style.opacity='0'"></div>
+            <div class="jwm-img-wrap"><img src="https://sldbox.github.io/site/image/jw/${arr[3] || kr}.png" loading="lazy" onerror="this.style.opacity='0'"></div>
             <div class="jwm-name">${kr}</div>
             <div class="jwm-stat legend"><span>${arr[1]}</span></div>
             ${arr[2]?.trim() ? `<div class="jwm-stat mythic"><span>✦ ${arr[2]}</span></div>` : ''}
@@ -1497,38 +1489,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const main = getEl('mainLayout');
         const counterEl = getEl('introCounter');
         const fillEl = document.querySelector('.loader-fill');
-        const mCanvas = getEl('matrixCanvas');
 
-        if (intro && main && counterEl && fillEl && mCanvas) {
-            const ctx = mCanvas.getContext('2d');
-            let mWidth = mCanvas.width = window.innerWidth;
-            let mHeight = mCanvas.height = window.innerHeight;
-            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ'.split('');
-            const fontSize = 16;
-            const columns = mWidth / fontSize;
-            const drops = [];
-            for (let x = 0; x < columns; x++) drops[x] = 1;
-
-            let matrixInterval = setInterval(() => {
-                ctx.fillStyle = 'rgba(2, 3, 5, 0.15)';
-                ctx.fillRect(0, 0, mWidth, mHeight);
-                ctx.font = fontSize + 'px var(--font-mono)';
-                for (let i = 0; i < drops.length; i++) {
-                    const text = chars[Math.floor(Math.random() * chars.length)];
-                    ctx.fillStyle = Math.random() > 0.95 ? '#fff' : 'rgba(0, 229, 255, 0.8)';
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                    if (drops[i] * fontSize > mHeight && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
-                }
-            }, 33);
-
-            window.addEventListener('resize', () => {
-                if (!intro.classList.contains('hidden')) {
-                    mWidth = mCanvas.width = window.innerWidth;
-                    mHeight = mCanvas.height = window.innerHeight;
-                }
-            });
-
+        if (intro && main && counterEl && fillEl) {
             let progress = 0;
             const duration = 2000;
             const interval = 30;
@@ -1545,7 +1507,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         setTimeout(() => {
                             intro.classList.add('hidden');
-                            clearInterval(matrixInterval);
                             setTimeout(() => {
                                 main.style.opacity = '1';
                                 main.style.transform = 'scale(1)';
