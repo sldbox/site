@@ -47,33 +47,37 @@
 <main class="main-layout" id="mainLayout" style="opacity: 0; transform: scale(0.98); transition: opacity 1s ease, transform 1s cubic-bezier(0.2,0.8,0.2,1);">
     <aside class="hud-panel panel-codex" id="leftPanel">
         <div class="corner-tl"></div><div class="corner-br"></div>
-        <header class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg);">
+        <header class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg); z-index:20; overflow:visible;">
             <div style="padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:stretch; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden; min-height: 54px;">
                 <div class="header-scanline"></div>
                 <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2; min-width: 145px; height: 38px; justify-content: flex-start;">
                     <div class="nexus-main-title" id="nexusCycleTitle">개복디 넥서스</div>
                 </div>
                 <nav style="display:flex; gap:6px; position:relative; z-index:2; align-items: stretch; flex-wrap: wrap; justify-content: flex-end;">
-                    <button class="btn-hdr-sm neon" data-action="startGuideTour" style="color:#a855f7; border-color:rgba(168,85,247,0.3);">💡 가이드</button>
+                    <button class="btn-hdr-sm neon" data-action="openStaticGuide" style="color:#a855f7; border-color:rgba(168,85,247,0.3);">💡 가이드</button>
                     <button class="btn-hdr-sm neon" data-action="openNoticeModal" style="color:#3b82f6; border-color:rgba(59,130,246,0.3);">📢 공지/건의</button>
                     <button class="btn-hdr-sm" id="btnJewelToggle" data-action="toggleJewelPanel" aria-label="쥬얼 도감 열기" aria-expanded="false" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">✦ 쥬얼도감</button>
-                    <button class="btn-hdr-sm neon" data-action="resetCodex" aria-label="선택 초기화">⟲ 선택 초기화</button>
                 </nav>
             </div>
             <div id="classicSearchContainer">
                 <div class="search-wrap" id="searchWrap">
-                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="유닛 검색 또는 다중 커맨드 (예: 저격수*8/아몬/전쟁광*4)" autocomplete="off" role="combobox" aria-controls="searchResults" aria-expanded="false" aria-autocomplete="list">
+                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="유닛 검색 또는 다중 커맨드 (예: 불새/아몬/나루드/땅굴*8)" autocomplete="off" role="combobox" aria-controls="searchResults" aria-expanded="false" aria-autocomplete="list">
                     <div class="search-results" id="searchResults" role="listbox" aria-live="polite"></div>
                     <div id="activeRoster" class="active-roster"></div>
                 </div>
             </div>
-            <nav class="codex-tabs-wrap" id="codexTabsWrap" style="display:flex; flex-direction:column; width:100%; gap:10px; padding:10px; border-bottom:1px solid var(--border);">
-                <div class="codex-tabs" id="codexTabs" role="tablist"></div>
-                <button class="cart-bar-btn" id="btnCartMode" data-action="toggleCartMode" style="display:none;">
-                    <span class="cb-icon">🛒</span> 
-                    <span style="flex:1; text-align:center;">선택된 유닛만 모아보기</span> 
-                    <span class="cb-count" id="cartCount">0종</span>
-                </button>
+            <nav class="codex-tabs-wrap" id="codexTabsWrap" style="display:flex; flex-direction:column; width:100%; gap:10px; padding:10px 16px; border-bottom:1px solid var(--border);">
+                <div style="display:flex; gap:10px; width:100%; align-items:center; justify-content:space-between;">
+                    <div class="codex-tabs" id="codexTabs" role="tablist" style="flex:1; min-width:0;"></div>
+                    <div style="display:flex; gap:6px; flex-shrink:0;">
+                        <button class="btn-hdr-sm btn-cart" id="btnCartMode" data-action="toggleCartMode" disabled>
+                            <span class="cb-icon" style="margin-right:4px;">🛒</span>
+                            <span class="cb-text" style="font-weight:800;">선택 유닛</span>
+                            <span class="cb-count" id="cartCount" style="margin-left:6px; font-family:var(--font-mono); font-size:0.75rem; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">0종</span>
+                        </button>
+                        <button class="btn-hdr-sm neon" data-action="resetCodex" aria-label="선택 초기화" style="padding:0 12px;">⟲ 선택 초기화</button>
+                    </div>
+                </div>
             </nav>
         </header>
         <div class="panel-body" id="leftPanelBody">
@@ -84,7 +88,7 @@
     <section class="col-center" id="centerPanel">
         <article class="hud-panel" id="costDashboardPanel" style="flex: 1 1 auto;">
             <div class="corner-tl"></div><div class="corner-br"></div>
-            <header class="panel-header" style="justify-content: space-between;">
+            <header class="panel-header" style="justify-content: space-between; z-index:20; overflow:visible;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span class="ph-icon" aria-hidden="true" style="color:var(--grade-epic); border-color:var(--grade-epic);">❖</span>
                     <h2 class="ph-title" style="text-shadow:0 0 15px rgba(251,146,60,0.8), 0 0 5px rgba(251,146,60,0.5); margin:0;">코스트 대시보드</h2>
@@ -103,7 +107,7 @@
 
     <aside class="hud-panel col-right" id="rightPanel" style="display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
         <div class="corner-tl"></div><div class="corner-br"></div>
-        <header class="panel-header" style="justify-content: space-between;">
+        <header class="panel-header" style="justify-content: space-between; z-index:20; overflow:visible;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span class="ph-icon" aria-hidden="true" style="color:var(--grade-unique); border-color:var(--grade-unique);">⊖</span>
                 <h2 class="ph-title" style="text-shadow:0 0 15px rgba(239,68,68,0.8), 0 0 5px rgba(239,68,68,0.5); margin:0;">체크리스트 보드</h2>
@@ -115,25 +119,24 @@
         </header>
         <div class="panel-body" id="deductionBoard" style="padding:16px; overflow-y:auto; background:transparent;"></div>
     </aside>
-
-    <aside class="col-jewel" id="jewelPanel" style="display:none;">
-        <article class="hud-panel" style="height:100%;">
-            <div class="corner-tl"></div><div class="corner-br"></div>
-            <header class="panel-header" style="justify-content:space-between; background:rgba(255,215,0,0.05);">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <span class="ph-icon" aria-hidden="true" style="color:#FFD700; border-color:#FFD700;">✦</span>
-                    <h2 class="ph-title" style="text-shadow:0 0 15px rgba(255,215,0,0.7); margin:0;">쥬얼 도감</h2>
-                </div>
-                <button class="btn-hdr-sm neon" data-action="closeJewelPanel" aria-label="쥬얼 도감 닫기" style="border-color:rgba(255,215,0,0.35); color:#FFD700;">✖ 메인화면으로</button>
-            </header>
-            <div class="panel-body" style="padding:20px; overflow-y:auto; background:transparent;">
-                <div id="jewelMiniGrid" class="jewel-mini-grid"></div>
-            </div>
-        </article>
-    </aside>
 </main>
 
-<div id="noticeModal" class="notice-modal-overlay" style="display:none;">
+<div id="jewelModalOverlay" class="notice-modal-overlay" style="display:none; z-index: 25000;">
+    <div id="jewelModalBox" class="notice-modal" style="max-width: 800px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;" role="dialog" aria-modal="true" aria-labelledby="jewelModalTitle">
+        <header class="notice-header" style="background:rgba(255,215,0,0.05);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="ph-icon" aria-hidden="true" style="color:#FFD700; border-color:#FFD700;">✦</span>
+                <h2 id="jewelModalTitle" style="font-family:var(--font-display); font-size:1.1rem; color:#FFD700; text-shadow:0 0 10px rgba(255,215,0,0.5); margin:0; letter-spacing:1px;">쥬얼 도감</h2>
+            </div>
+            <button class="notice-close" data-action="closeJewelPanel" aria-label="창 닫기">✖</button>
+        </header>
+        <div class="notice-body" style="padding:20px; overflow-y:auto; background:transparent; flex:1;">
+            <div id="jewelMiniGrid" class="jewel-mini-grid"></div>
+        </div>
+    </div>
+</div>
+
+<div id="noticeModal" class="notice-modal-overlay" style="display:none; z-index: 25000;">
     <div class="notice-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <header class="notice-header">
             <h2 id="modalTitle">📢 공지사항 및 건의</h2>
@@ -154,14 +157,39 @@
     </div>
 </div>
 
-<div id="guideBlocker" class="guide-blocker" style="display:none;"></div>
-<div id="guideHighlight" class="guide-highlight" style="display:none;"></div>
-<div id="guideClickCatcher" class="guide-click-catcher" style="display:none;"></div>
-<div id="guideTooltip" class="guide-tooltip" style="display:none;">
-    <div id="guideText" class="guide-text"></div>
-    <div class="guide-ctrl">
-        <button class="btn-guide-skip" data-action="endGuideTour">건너뛰기</button>
-        <button class="btn-guide-next" id="btnGuideNext" data-action="nextGuideStep">다음 ➔</button>
+<div id="staticGuideModalOverlay" class="notice-modal-overlay" style="display:none; z-index: 25000;">
+    <div class="notice-modal" role="dialog" aria-modal="true" aria-labelledby="staticGuideTitle" style="max-width: 500px;">
+        <header class="notice-header" style="background:rgba(168,85,247,0.05);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="ph-icon" aria-hidden="true" style="color:#a855f7; border-color:#a855f7;">💡</span>
+                <h2 id="staticGuideTitle" style="font-family:var(--font-display); font-size:1.1rem; color:#a855f7; text-shadow:0 0 10px rgba(168,85,247,0.5); margin:0; letter-spacing:1px;">이용 가이드</h2>
+            </div>
+            <button class="notice-close" data-action="closeStaticGuide" aria-label="창 닫기">✖</button>
+        </header>
+        <div class="notice-body" style="padding:20px; overflow-y:auto; background:transparent;">
+            <ul class="guide-list">
+                <li>
+                    <strong>🔍 다중 커맨드</strong>
+                    <p><code>저격수*8/아몬</code> 처럼 검색창에 입력해 한 번에 여러 목표를 등록할 수 있습니다.</p>
+                </li>
+                <li>
+                    <strong>🛒 선택 유닛 (장바구니)</strong>
+                    <p>도감에서 클릭해 목표로 지정한 유닛들을 상단 탭에서 따로 모아볼 수 있습니다.</p>
+                </li>
+                <li>
+                    <strong>🔮 코스트 대시보드</strong>
+                    <p>등록된 목표들의 필요 코스트와 정수가 실시간으로 자동 연산되어 합산 표시됩니다.</p>
+                </li>
+                <li>
+                    <strong>✅ 체크리스트 (조립 모드)</strong>
+                    <p>재료 트리를 확인하고 완료 처리(✔)를 하면 대시보드의 코스트가 실시간으로 차감됩니다.</p>
+                </li>
+                <li>
+                    <strong>💎 쥬얼 도감</strong>
+                    <p>우측 상단 버튼을 통해 인게임 쥬얼들의 옵션과 정보를 쉽게 확인할 수 있습니다.</p>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 

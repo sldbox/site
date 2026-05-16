@@ -11,11 +11,18 @@
             strictMatchTerms: ['아몬', '데하카']
         },
         essence: {
-            excludedIds: ['미니성큰']
-        },
-        guide: {
-            defaultUnitId: '비밀작전노바',
-            defaultChildId: '타이커스핀들레이'
+            excludedIds: ['미니성큰'],
+            mapping: {
+                "테바": "코랄", "테메": "코랄",
+                "토바": "아이어", "토메": "아이어",
+                "저그": "제루스", "중립": "제루스",
+                "혼종": "혼종"
+            },
+            display: [
+                { id: 'coral', color: '#FF6B6B', name: '코랄' },
+                { id: 'aiur', color: 'var(--grade-rare)', name: '아이어' },
+                { id: 'zerus', color: 'var(--grade-legend)', name: '제루스' }
+            ]
         },
         sorting: {
             order: { "아몬": 100, "나루드": 97, "유물": 96 }
@@ -28,8 +35,34 @@
             maxUnitCapacity: 16,
             craftBatch: {
                 "자동포탑": 5
+            },
+            resetGroups: {
+                top: ["레어", "에픽", "유니크", "헬", "레전드", "슈퍼히든"],
+                hidden: ["히든"]
             }
         },
+        grades: {
+            order: ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"],
+            colors: {
+                "매직": "var(--grade-magic)",
+                "레어": "var(--grade-rare)",
+                "에픽": "var(--grade-epic)",
+                "유니크": "var(--grade-unique)",
+                "헬": "var(--grade-hell)",
+                "레전드": "var(--grade-legend)",
+                "히든": "var(--grade-hidden)",
+                "슈퍼히든": "var(--grade-super)"
+            }
+        },
+        tabs: [
+            { key: "테바", name: "테바" },
+            { key: "테메", name: "테메" },
+            { key: "토바", name: "토바" },
+            { key: "토메", name: "토메" },
+            { key: "저그", name: "저그" },
+            { key: "중립", name: "중립" },
+            { key: "혼종", name: "혼종" }
+        ],
         dashboardAtoms: [
             "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수", "코브라", "암흑고위기사",
             "암흑추적자", "변종가시지옥", "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
@@ -71,6 +104,7 @@
     const isOneTime = (u) => u && (SYSTEM_CONFIG.policy.oneTimeUnits.includes(u.name) || u.grade === "슈퍼히든");
     const getUnitId = (rawName) => clean(rawName);
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
+    const getGradeIndex = (grade) => { let i = SYSTEM_CONFIG.grades.order.indexOf(grade); return i !== -1 ? i : -99; };
 
     function splitRecipe(recipeStr) {
         let parts = [], current = '', depth = 0;
@@ -136,10 +170,12 @@
         const u = unitMap.get(uid); if (!u) return;
 
         if (["히든", "슈퍼히든"].includes(u.grade)) {
-            if (["테바", "테메"].includes(u.category)) counts.코랄++;
-            else if (["토바", "토메"].includes(u.category)) counts.아이어++;
-            else if (["저그", "중립"].includes(u.category) && !SYSTEM_CONFIG.essence.excludedIds.includes(u.name)) counts.제루스++;
-            else if (u.category === "혼종") counts.혼종++;
+            const targetEssence = SYSTEM_CONFIG.essence.mapping[u.category];
+            if (targetEssence) {
+                if (!(targetEssence === "제루스" && SYSTEM_CONFIG.essence.excludedIds.includes(u.name))) {
+                    counts[targetEssence]++;
+                }
+            }
         }
         u.parsedRecipe?.forEach(pr => { if (pr.id) calcEssenceRecursiveFast(pr.id, counts, visited); });
     }
@@ -228,15 +264,6 @@
     }
 
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _isCartMode = false;
-    const GRADE_ORDER = ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"];
-    const gradeColorsRaw = {"매직":"var(--grade-magic)", "레어":"var(--grade-rare)", "에픽":"var(--grade-epic)", "유니크":"var(--grade-unique)", "헬":"var(--grade-hell)", "레전드":"var(--grade-legend)", "히든":"var(--grade-hidden)", "슈퍼히든":"var(--grade-super)"};
-    const getGradeIndex = (grade) => { let i = GRADE_ORDER.indexOf(grade); return i !== -1 ? i : -99; };
-
-    const TAB_CATEGORIES = [
-        {key:"테바", name:"테바"}, {key:"테메", name:"테메"},
-        {key:"토바", name:"토바"}, {key:"토메", name:"토메"},
-        {key:"저그", name:"저그"}, {key:"중립", name:"중립"}, {key:"혼종", name:"혼종"}
-    ];
 
     function triggerHaptic() { navigator.vibrate?.(15); }
     function resetCodex(silent = false) { activeUnits.clear(); completedUnits.clear(); toggleHighlight(null); debouncedUpdateAllPanels(); if(!silent) showToast("목표 유닛이 초기화되었습니다."); }
@@ -248,8 +275,8 @@
             completedUnits.clear();
             showToast("목표 및 하위 전체가 초기화되었습니다.");
         } else {
-            const topGrades = ["레어", "에픽", "유니크", "헬", "레전드", "슈퍼히든"];
-            const hiddenGrades = ["히든"];
+            const topGrades = SYSTEM_CONFIG.policy.resetGroups.top;
+            const hiddenGrades = SYSTEM_CONFIG.policy.resetGroups.hidden;
             let directMats = new Set();
             activeUnits.forEach((_, uid) => unitMap.get(uid)?.parsedRecipe?.forEach(pr => pr.id && directMats.add(pr.id)));
 
@@ -287,18 +314,33 @@
 
     function toggleJewelPanel() {
         hideRecipeTooltip();
-        const layout = getEl('mainLayout');
-        if (layout?.classList.contains('view-jewel')) closeJewelPanel();
-        else if (layout) { layout.classList.add('view-jewel'); getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'true'); _jewelPanelOpen = true; renderJewelMiniGrid(); }
+        const modal = getEl('jewelModalOverlay');
+        if (modal?.style.display === 'flex') {
+            closeJewelPanel();
+        } else if (modal) {
+            modal.style.display = 'flex';
+            getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'true');
+            _jewelPanelOpen = true;
+            renderJewelMiniGrid();
+            document.body.style.overflow = 'hidden';
+            modal.focus();
+        }
     }
 
-    function closeJewelPanel() { getEl('mainLayout')?.classList.remove('view-jewel'); getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'false'); _jewelPanelOpen = false; }
+    function closeJewelPanel() {
+        const modal = getEl('jewelModalOverlay');
+        if (modal) modal.style.display = 'none';
+        getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'false');
+        _jewelPanelOpen = false;
+        document.body.style.overflow = '';
+    }
 
     function switchLayout(mode) {
         hideRecipeTooltip();
         const layout = getEl('mainLayout'), btn = getEl('btnToggleMode');
         if (!layout || !btn) return;
-        _currentViewMode = mode; layout.classList.remove('view-deduct', 'view-jewel'); _jewelPanelOpen = false;
+        _currentViewMode = mode;
+        layout.classList.remove('view-deduct');
         if (mode === 'deduct') {
             layout.classList.add('view-deduct'); btn.classList.remove('active'); btn.setAttribute('aria-expanded', 'false');
             btn.innerHTML = '<span class="toggle-icon" aria-hidden="true">◧</span> 도감 모드 전환';
@@ -364,111 +406,16 @@
     let _previousFocus = null;
     function openNoticeModal() { _previousFocus = document.activeElement; const m = getEl('noticeModal'); if(m) { m.style.display = 'flex'; m.focus(); m.addEventListener('keydown', trapModalFocus); } }
     function closeNoticeModal() { const m = getEl('noticeModal'); if(m) { m.style.display = 'none'; m.removeEventListener('keydown', trapModalFocus); } if(_previousFocus) _previousFocus.focus(); }
-    function trapModalFocus(e) { if (e.key === 'Escape') closeNoticeModal(); }
 
-    let _guideStepIdx = 0, _resizeTimer = null, _guideBackupActive = new Map(), _guideBackupCompleted = new Map();
-    let _currentGuideSteps = [], _guideDemoUnitId = '', _guideDemoChildId = '', _autoGuideTimer = null, _autoActionTimer = null;
+    function openStaticGuide() { _previousFocus = document.activeElement; const m = getEl('staticGuideModalOverlay'); if(m) { m.style.display = 'flex'; m.focus(); m.addEventListener('keydown', trapModalFocus); } }
+    function closeStaticGuide() { const m = getEl('staticGuideModalOverlay'); if(m) { m.style.display = 'none'; m.removeEventListener('keydown', trapModalFocus); } if(_previousFocus) _previousFocus.focus(); }
 
-    const getGuideSteps = () => [
-        {id:'jewel', targetId:'jewelPanel', text:'💎 <b>쥬얼 도감</b><br>상단 버튼을 통해 진입할 수 있으며, 인게임 쥬얼들의 옵션과 정보를 넓은 화면에서 한눈에 확인할 수 있습니다.', onEnter:()=> { if(!_jewelPanelOpen) toggleJewelPanel(); }},
-        {id:'search', targetId:'searchWrap', text:'🔍 <b>검색 및 커맨드</b><br>원하는 유닛을 검색하거나 단축 커맨드(예: 저격수*8/아몬/전쟁광*4)를 입력해 빠르게 목표에 추가할 수 있습니다.', onEnter:()=> { if(_jewelPanelOpen) closeJewelPanel(); if(_currentViewMode !== 'codex') switchLayout('codex'); }},
-        {id:'click-unit', targetId:_guideDemoUnitId?`card-${_guideDemoUnitId}`:'tabContent', fallbackId:'tabContent', text:`📖 <b>도감 및 유닛 추가</b><br>아래 도감에서 <b>${unitMap.get(_guideDemoUnitId)?.name||'유닛'}</b> 카드를 <b>직접 클릭</b>해서 목표 보드에 추가해 보세요!`, isWaitAction:true, onEnter:()=> { if(_currentViewMode !== 'codex') switchLayout('codex'); let catIdx = TAB_CATEGORIES.findIndex(c => c.key === unitMap.get(_guideDemoUnitId)?.category); if(catIdx !== -1 && _activeTabIdx !== catIdx) selectTab(catIdx); }, action:()=> { if(_guideDemoUnitId) toggleUnitSelection(_guideDemoUnitId, 1); }},
-        {id:'cost-dashboard', targetId:'costDashboardPanel', text:`🔮 <b>코스트 전체 조망</b><br>방금 <b>직접 추가한</b> 목표 유닛의 필요 자원이 대시보드 전체에 <b>즉시 계산</b>되어 나타납니다.`},
-        {id:'switch-mode', targetId:'btnToggleMode', text:'🔄 <b>체크리스트 모드 진입</b><br>화면 상단의 <b>[체크리스트 전환]</b> 버튼을 <b>직접 눌러서</b> 조립 모드로 진입해 보세요.', isWaitAction:true, action:()=>toggleViewMode()},
-        {id:'click-complete', targetId:_guideDemoChildId?`d-slot-wrap-${_guideDemoChildId}`:'deductionBoard', fallbackId:'deductionBoard', exposeIds:['centerPanel', 'rightPanel', 'costDashboardPanel'], text:`✅ <b>재료 완료 처리</b><br>하위 재료를 확보했다면 완료 처리를 합니다.<br><b>${unitMap.get(_guideDemoChildId)?.name||'재료'}</b>의 <b>[✔ 완료]</b> 버튼을 <b>직접 눌러보세요!</b>`, isWaitAction:true, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); }, action:()=> { if(_guideDemoChildId) completeUnit(_guideDemoChildId); }},
-        {id:'auto-deduct', targetId:'costDashboardPanel', exposeIds:['centerPanel', 'rightPanel', 'costDashboardPanel'], text:`📉 <b>실시간 자동 차감</b><br>보시다시피 방금 완료 처리된 ${unitMap.get(_guideDemoChildId)?.name||'재료'}의 코스트만큼 대시보드 전체 코스트가 정확히 <b>차감되어 실시간 반영</b>되었습니다!<br>이제 튜토리얼을 종료합니다.`, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); getEl('costDashboardPanel')?.classList.add('cost-reduction-flash'); setTimeout(()=>getEl('costDashboardPanel')?.classList.remove('cost-reduction-flash'), 1000); }}
-    ];
-
-    function startGuideTour() {
-        clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer);
-        if (window.innerWidth < 1200) return showToast("모바일 환경에서는 가이드를 지원하지 않습니다.", true);
-        _guideBackupActive = new Map(activeUnits); _guideBackupCompleted = new Map(completedUnits);
-        activeUnits.clear(); completedUnits.clear(); debouncedUpdateAllPanels();
-
-        let defUnit = SYSTEM_CONFIG.guide.defaultUnitId;
-        let defChild = SYSTEM_CONFIG.guide.defaultChildId;
-
-        let demo = unitMap.has(defUnit) ? unitMap.get(defUnit) : Array.from(unitMap.values()).find(u => (u.grade==='유니크'||u.grade==='에픽'||u.grade==='레전드') && u.parsedRecipe?.length > 0 && !isSpecialRender(u.id));
-        if (demo) {
-            _guideDemoUnitId = demo.id;
-            _guideDemoChildId = demo.parsedRecipe.some(r => r.id === defChild) ? defChild : (demo.parsedRecipe.find(r => r.id && !SYSTEM_CONFIG.specialCostKeys.includes(r.id))?.id || null);
+    function trapModalFocus(e) {
+        if (e.key === 'Escape') {
+            closeNoticeModal();
+            closeStaticGuide();
         }
-
-        _currentGuideSteps = getGuideSteps(); _guideStepIdx = 0;
-        ['guideBlocker', 'guideHighlight', 'guideTooltip'].forEach(id => getEl(id).style.display = 'block');
-        window.addEventListener('resize', handleGuideResize); window.addEventListener('scroll', handleGuideResize, {passive: true});
-        setTimeout(() => showGuideStep(), 50);
     }
-
-    function endGuideTour() {
-        clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer); clearTimeout(_resizeTimer);
-        _autoGuideTimer = _autoActionTimer = null;
-        ['guideBlocker', 'guideHighlight', 'guideClickCatcher', 'guideTooltip'].forEach(id => getEl(id).style.display = 'none');
-        document.querySelectorAll('.guide-exposed').forEach(el => el.classList.remove('guide-exposed'));
-        window.removeEventListener('resize', handleGuideResize); window.removeEventListener('scroll', handleGuideResize);
-        activeUnits.clear(); _guideBackupActive.forEach((v, k) => activeUnits.set(k, v));
-        completedUnits.clear(); _guideBackupCompleted.forEach((v, k) => completedUnits.set(k, v));
-        debouncedUpdateAllPanels();
-        if (_jewelPanelOpen) closeJewelPanel();
-        if (_currentViewMode === 'deduct') switchLayout('codex');
-        showToast("가이드 종료. 이전 상태로 복구되었습니다. ✔");
-    }
-
-    function nextGuideStep() { clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer); _guideStepIdx++; _guideStepIdx >= _currentGuideSteps.length ? endGuideTour() : showGuideStep(); }
-
-    function showGuideStep() {
-        let step = _currentGuideSteps[_guideStepIdx]; step.onEnter?.(step); getEl('guideTooltip').style.opacity = '0';
-
-        document.querySelectorAll('.guide-exposed').forEach(el => el.classList.remove('guide-exposed'));
-        if (step.exposeIds) {
-            step.exposeIds.forEach(id => {
-                let el = getEl(id);
-                if (el) el.classList.add('guide-exposed');
-            });
-        }
-
-        requestAnimationFrame(() => setTimeout(() => { positionGuideHighlight(step); getEl('guideTooltip').style.opacity = '1'; }, 150));
-    }
-
-    function positionGuideHighlight(step) {
-        let target = getEl(step?.targetId) || getEl(step?.fallbackId);
-        if (!target) {
-             let hl = getEl('guideHighlight'); hl.style.width = hl.style.height = '0';
-             getEl('guideText').innerHTML = step.text; getEl('btnGuideNext').style.display = 'block'; getEl('btnGuideNext').innerText = _guideStepIdx === _currentGuideSteps.length - 1 ? '가이드 종료 ✔' : '다음 ➔';
-             clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer); _autoGuideTimer = setTimeout(() => nextGuideStep(), 4000); return;
-        }
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => {
-            let rect = target.getBoundingClientRect(), hl = getEl('guideHighlight'), tt = getEl('guideTooltip'), catcher = getEl('guideClickCatcher'), pad = 8;
-            hl.style.top = `${rect.top + window.scrollY - pad}px`; hl.style.left = `${rect.left + window.scrollX - pad}px`; hl.style.width = `${rect.width + pad * 2}px`; hl.style.height = `${rect.height + pad * 2}px`;
-            getEl('guideText').innerHTML = step.text;
-
-            if (step.isWaitAction) {
-                catcher.style.top = hl.style.top; catcher.style.left = hl.style.left; catcher.style.width = hl.style.width; catcher.style.height = hl.style.height; catcher.style.display = 'block';
-                catcher.onclick = () => { clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer); catcher.style.display = 'none'; step.action?.(); setTimeout(nextGuideStep, 250); };
-                getEl('btnGuideNext').style.display = 'block'; getEl('btnGuideNext').innerText = '다음 ➔';
-            } else {
-                catcher.style.display = 'none'; getEl('btnGuideNext').style.display = 'block'; getEl('btnGuideNext').innerText = _guideStepIdx === _currentGuideSteps.length - 1 ? '가이드 종료 ✔' : '다음 ➔';
-            }
-
-            tt.style.display = 'block'; let ttW = tt.getBoundingClientRect().width || 320, ttH = tt.getBoundingClientRect().height || 150;
-            let ttTop = rect.bottom + window.scrollY + pad + 20, ttLeft = rect.left + window.scrollX + (rect.width / 2) - (ttW / 2);
-            if (rect.height > window.innerHeight * 0.4) {
-                if (rect.left > ttW + 20) { ttLeft = rect.left + window.scrollX - ttW - 20; ttTop = rect.top + window.scrollY + (rect.height / 2) - (ttH / 2); }
-                else if (window.innerWidth - rect.right > ttW + 20) { ttLeft = rect.right + window.scrollX + 20; ttTop = rect.top + window.scrollY + (rect.height / 2) - (ttH / 2); }
-            } else if (ttTop + ttH > window.scrollY + window.innerHeight) ttTop = rect.top + window.scrollY - pad - ttH - 20;
-
-            let screenMargin = 15; ttLeft = Math.max(screenMargin, Math.min(ttLeft, window.innerWidth - ttW - screenMargin)); ttTop = Math.max(window.scrollY + screenMargin, ttTop);
-            tt.style.top = `${ttTop}px`; tt.style.left = `${ttLeft}px`;
-
-            clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer);
-            let autoDelay = 4000;
-            if (step.isWaitAction) _autoGuideTimer = setTimeout(() => { catcher.style.display = 'none'; step.action?.(); _autoActionTimer = setTimeout(nextGuideStep, 600); }, autoDelay);
-            else _autoGuideTimer = setTimeout(() => nextGuideStep(), autoDelay + (_guideStepIdx === _currentGuideSteps.length - 1 ? 1500 : 0));
-        }, 150);
-    }
-
-    function handleGuideResize() { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(() => { if (getEl('guideHighlight')?.style.display === 'block') positionGuideHighlight(_currentGuideSteps[_guideStepIdx]); }, 50); }
 
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = 80, _touchHoldCount = 0;
     function startSmartChange(id, delta, type, event) {
@@ -501,7 +448,7 @@
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
         let multi = isDeduction ? parseInt(getEl(`d-req-${id}`)?.innerText || 0) : 1; multi = multi > 1 ? multi : 1;
 
-        tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeTooltip(u, multi)}</div><div class="tooltip-footer">화면 터치/클릭 또는 ESC로 닫힙니다.</div>`;
+        tt.innerHTML = `<div class="tooltip-header" style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeTooltip(u, multi)}</div><div class="tooltip-footer">화면 터치/클릭 또는 ESC로 닫힙니다.</div>`;
 
         let viewWidth = document.documentElement.clientWidth; tt.style.maxWidth = `${viewWidth - 20}px`; tt.classList.add('active');
         let x = (event?.clientX || event?.touches?.[0]?.clientX || viewWidth/2) + window.scrollX, y = (event?.clientY || event?.touches?.[0]?.clientY || window.innerHeight/2) + window.scrollY;
@@ -672,13 +619,12 @@
 
     function renderActiveRoster() {
         getEl('activeRoster').innerHTML = Array.from(activeUnits.entries()).map(([id, qty]) => {
-            const u = unitMap.get(id); return u ? `<div class="roster-tag" data-action="toggleUnit" data-uid="${id}" style="border-color:${gradeColorsRaw[u.grade]}66;"><span style="color:${gradeColorsRaw[u.grade]}; font-weight:bold;">${u.name}</span><span class="roster-qty">×${qty}</span></div>` : '';
+            const u = unitMap.get(id); return u ? `<div class="roster-tag" data-action="toggleUnit" data-uid="${id}" style="border-color:${SYSTEM_CONFIG.grades.colors[u.grade]}66;"><span style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}; font-weight:bold;">${u.name}</span><span class="roster-qty">×${qty}</span></div>` : '';
         }).join('') || '<span style="color:var(--text-muted); font-size:0.85rem;">선택된 유닛 대기열 (검색 후 엔터)</span>';
     }
 
     let updateTimer = null;
 
-    // 🌟 1. 버그 픽스: 액티브 유닛 수량이 변경될 때 완료 수량을 자동으로 깎는 스마트 보정 함수
     function clampCompletedUnits() {
         const { baseMap, baseSpecialReq } = calculateDeductedRequirements();
         for (let [uid, compQty] of completedUnits.entries()) {
@@ -693,7 +639,7 @@
     function debouncedUpdateAllPanels() {
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
-            clampCompletedUnits(); // 업데이트 직전에 초과된 완료 수량 자동 교정
+            clampCompletedUnits();
             updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster(); saveNexusState();
         });
     }
@@ -793,7 +739,7 @@
     function renderTabs() {
         const t = getEl('codexTabs');
         if (t) {
-            t.innerHTML = TAB_CATEGORIES.map((c, i) => `<button id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join('');
+            t.innerHTML = SYSTEM_CONFIG.tabs.map((c, i) => `<button id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join('');
             updateTabsUI();
         }
     }
@@ -803,9 +749,9 @@
         for (let id of activeUnits.keys()) {
             let u = unitMap.get(id);
             if (u?.category) aCats.add(u.category);
-            if (aCats.size === TAB_CATEGORIES.length) break;
+            if (aCats.size === SYSTEM_CONFIG.tabs.length) break;
         }
-        TAB_CATEGORIES.forEach((c, i) => {
+        SYSTEM_CONFIG.tabs.forEach((c, i) => {
             let btn = getEl(`tab-btn-${i}`), has = aCats.has(c.key);
             if (!btn) return;
             let isActiveTab = (!_isCartMode && i === _activeTabIdx);
@@ -816,11 +762,13 @@
         let typeCount = activeUnits.size;
         let cartBtn = getEl('btnCartMode');
         if (cartBtn) {
+            getEl('cartCount').innerText = `${typeCount}종`;
             if (typeCount > 0) {
-                cartBtn.style.display = 'flex';
-                getEl('cartCount').innerText = `${typeCount}종`;
+                cartBtn.disabled = false;
+                cartBtn.classList.add('has-items');
             } else {
-                cartBtn.style.display = 'none';
+                cartBtn.disabled = true;
+                cartBtn.classList.remove('has-items');
                 if (_isCartMode) toggleCartMode();
             }
             if (_isCartMode) {
@@ -837,7 +785,7 @@
         if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div style="color:var(--text-muted);font-size:0.85rem;">정보 없음</div>`;
         let partsHtml = splitRecipe(item.recipe).map((p, i, arr) => {
             const m = p.match(/^([^(\[ ]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/); let html = '';
-            if (m) { const u = unitMap.get(getUnitId(m[1].trim())), c = u ? gradeColorsRaw[u.grade] : "var(--text)"; html = `<div class="recipe-badge" style="color:${c}; border-color:${c}44;">${m[1].trim()} <span class="badge-cond">${m[2] ? `(${m[2]})` : ''}[${(m[3] ? parseInt(m[3], 10) : 1) * multi}]</span></div>`; }
+            if (m) { const u = unitMap.get(getUnitId(m[1].trim())), c = u ? SYSTEM_CONFIG.grades.colors[u.grade] : "var(--text)"; html = `<div class="recipe-badge" style="color:${c}; border-color:${c}44;">${m[1].trim()} <span class="badge-cond">${m[2] ? `(${m[2]})` : ''}[${(m[3] ? parseInt(m[3], 10) : 1) * multi}]</span></div>`; }
             else html = `<div style="color:var(--text-sub); font-size:0.85rem; white-space:nowrap;">${p}</div>`;
             return html + (showSep && i < arr.length - 1 ? `<div style="color:var(--text-muted); font-size:0.9rem; font-weight:bold;">+</div>` : '');
         }).join('');
@@ -865,17 +813,17 @@
     let _isTabContentInitialized = false;
     function initAllTabContents() {
         const tc = getEl('tabContent'); if (!tc) return;
-        tc.innerHTML = TAB_CATEGORIES.map(cat => {
+        tc.innerHTML = SYSTEM_CONFIG.tabs.map(cat => {
             let items = Array.from(unitMap.values()).filter(u => getGradeIndex(u.grade) >= getGradeIndex("레전드") && u.category === cat.key).sort((a,b) => (SYSTEM_CONFIG.sorting.order[b.name]||0)-(SYSTEM_CONFIG.sorting.order[a.name]||0) || (isOneTime(a)?-1:isOneTime(b)?1:0) || getGradeIndex(b.grade)-getGradeIndex(a.grade) || calculateTotalCostScore(b)-calculateTotalCostScore(a));
 
-            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" style="display:none; flex-direction:column; gap:4px;">${!items.length ? `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>` : items.map((item, idx) => `<div id="card-${item.id}" class="unit-card" style="animation-delay:${idx*0.03}s" data-action="toggleUnit" data-uid="${item.id}"><div class="uc-wrap"><div class="uc-identity"><div class="uc-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></div><div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div></div><div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div><div class="uc-ctrl"><div class="uc-cart-badge" id="cart-badge-${item.id}" style="display:none;">🛒 <span class="cb-val">1</span>개</div>${isOneTime(item)?'':`<div class="smart-stepper active-stepper"><button data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">-</button><div class="ss-val" id="val-unit-${item.id}" aria-live="polite">-</div><button data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`}</div></div></div>`).join('')}</div>`;
+            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" style="display:none; flex-direction:column; gap:4px;">${!items.length ? `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>` : items.map((item, idx) => `<div id="card-${item.id}" class="unit-card" style="animation-delay:${idx*0.03}s" data-action="toggleUnit" data-uid="${item.id}"><div class="uc-wrap"><div class="uc-identity"><div class="uc-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></div><div class="uc-name-row" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</div></div><div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div><div class="uc-ctrl">${isOneTime(item)?'':`<div class="smart-stepper active-stepper"><button data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">-</button><div class="ss-val" id="val-unit-${item.id}" aria-live="polite">-</div><button data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`}</div></div></div>`).join('')}</div>`;
         }).join('');
         _isTabContentInitialized = true;
     }
 
     function renderCurrentTabContent() {
         if (!_isTabContentInitialized) initAllTabContents();
-        TAB_CATEGORIES.forEach((c, i) => {
+        SYSTEM_CONFIG.tabs.forEach((c, i) => {
             let g = getEl(`cat-group-${c.key}`);
             if (g) g.style.display = (_isCartMode || i === _activeTabIdx) ? 'flex' : 'none';
         });
@@ -887,12 +835,6 @@
             let card = getEl(`card-${item.id}`);
             if (!card) return;
             let isActive = activeUnits.has(item.id);
-
-            let badge = getEl(`cart-badge-${item.id}`);
-            if (badge) {
-                badge.style.display = (isActive && !_isCartMode) ? 'flex' : 'none';
-                if (isActive) badge.querySelector('.cb-val').innerText = activeUnits.get(item.id);
-            }
 
             if (!isOneTime(item)) {
                 let v = getEl(`val-unit-${item.id}`);
@@ -912,7 +854,7 @@
 
     function renderDashboardAtoms() {
         let db = getEl('magicDashboard'); if (!db) return;
-        db.innerHTML = `<div class="cost-slot total" id="slot-total-magic"><div class="cost-val" id="magic-total-val">0</div><div class="cost-name">통합 코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val">0</div><div class="cost-name">통합 정수</div></div>${['coral|#FF6B6B|코랄', 'aiur|var(--grade-rare)|아이어', 'zerus|var(--grade-legend)|제루스'].map(d => { let [id, c, n] = d.split('|'); return `<div class="cost-slot" id="slot-essence-${id}"><div class="cost-val" id="val-essence-${id}" style="color:${c};">0</div><div class="cost-sub" id="sub-essence-${id}" style="font-size:0.8rem; margin:-2px 0 2px; height:14px; font-family:var(--font-mono); line-height:1; display:flex; gap:4px; align-items:center; justify-content:center;"></div><div class="cost-name">${n}</div></div>`; }).join('')}${SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === '갓오타/메시브' ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('')}`;
+        db.innerHTML = `<div class="cost-slot total" id="slot-total-magic"><div class="cost-val" id="magic-total-val">0</div><div class="cost-name">통합 코스트</div></div><div class="cost-slot total" id="slot-total-essence"><div class="cost-val" id="essence-total-val">0</div><div class="cost-name">통합 정수</div></div>${SYSTEM_CONFIG.essence.display.map(d => `<div class="cost-slot" id="slot-essence-${d.id}"><div class="cost-val" id="val-essence-${d.id}" style="color:${d.color};">0</div><div class="cost-sub" id="sub-essence-${d.id}" style="font-size:0.8rem; margin:-2px 0 2px; height:14px; font-family:var(--font-mono); line-height:1; display:flex; gap:4px; align-items:center; justify-content:center;"></div><div class="cost-name">${d.name}</div></div>`).join('')}${SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === '갓오타/메시브' ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('')}`;
     }
 
     function renderJewelMiniGrid() {
@@ -933,6 +875,8 @@
                 toggleHighlight(null);
             }
             if (e.target.id === 'noticeModal') closeNoticeModal();
+            if (e.target.id === 'staticGuideModalOverlay') closeStaticGuide();
+            if (e.target.id === 'jewelModalOverlay') closeJewelPanel();
             if (getEl('recipeTooltip')?.classList.contains('active') && !e.target.closest('#recipeTooltip')) {
                 hideRecipeTooltip();
             }
@@ -943,7 +887,8 @@
         const uid = actionEl.dataset.uid;
 
         switch (action) {
-            case 'startGuideTour': startGuideTour(); break;
+            case 'openStaticGuide': openStaticGuide(); break;
+            case 'closeStaticGuide': closeStaticGuide(); break;
             case 'openNoticeModal': openNoticeModal(); break;
             case 'closeNoticeModal': closeNoticeModal(); break;
             case 'toggleJewelPanel': toggleJewelPanel(); break;
@@ -951,8 +896,6 @@
             case 'resetCodex': resetCodex(); break;
             case 'resetCompleted': resetCompleted(); break;
             case 'toggleViewMode': toggleViewMode(); break;
-            case 'endGuideTour': endGuideTour(); break;
-            case 'nextGuideStep': nextGuideStep(); break;
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
             case 'toggleCartMode': toggleCartMode(); break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
@@ -988,7 +931,9 @@
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             if (getEl('noticeModal')?.style.display === 'flex') return closeNoticeModal();
-            hideRecipeTooltip(); if (getEl('mainLayout')?.classList.contains('view-jewel')) closeJewelPanel();
+            if (getEl('staticGuideModalOverlay')?.style.display === 'flex') return closeStaticGuide();
+            if (_jewelPanelOpen) return closeJewelPanel();
+            hideRecipeTooltip();
             if (document.activeElement === getEl('unitSearchInput')) getEl('unitSearchInput').blur();
         }
     });
@@ -1004,7 +949,7 @@
                 let progress = 0; setTimeout(() => {
                     let timer = setInterval(() => {
                         progress += (100/(2000/30)) + (Math.random()*2.5); let cur = Math.min(100, Math.floor(progress));
-                        if (progress >= 100) { clearInterval(timer); cEl.innerText="100%"; cEl.setAttribute('aria-valuenow','100'); fEl.style.width="100%"; setTimeout(() => { intro.classList.add('hidden'); setTimeout(() => { main.style.opacity='1'; main.style.transform='scale(1)'; }, 400); }, 500); }
+                        if (progress >= 100) { clearInterval(timer); cEl.innerText="100%"; cEl.setAttribute('aria-valuenow','100'); fEl.style.width="100%"; setTimeout(() => { intro.classList.add('hidden'); setTimeout(() => { main.style.opacity='1'; main.style.transform='scale(1)'; setTimeout(() => { main.style.transform='none'; }, 1000); }, 400); }, 500); }
                         else { cEl.innerText=cur+"%"; cEl.setAttribute('aria-valuenow', cur); fEl.style.width=cur+"%"; }
                     }, 30);
                 }, 600);
@@ -1022,7 +967,7 @@
                 sArea.addEventListener('touchend', e => {
                     if (_isSwiping || _isCartMode) return;
                     let dX = e.changedTouches[0].screenX - sX, dY = e.changedTouches[0].screenY - sY;
-                    if (Math.abs(dX) > 70 && Math.abs(dY) < 50) { _isSwiping = true; if (dX > 0 && _activeTabIdx > 0) selectTab(_activeTabIdx - 1); else if (dX < 0 && _activeTabIdx < TAB_CATEGORIES.length - 1) selectTab(_activeTabIdx + 1); setTimeout(() => _isSwiping = false, 300); }
+                    if (Math.abs(dX) > 70 && Math.abs(dY) < 50) { _isSwiping = true; if (dX > 0 && _activeTabIdx > 0) selectTab(_activeTabIdx - 1); else if (dX < 0 && _activeTabIdx < SYSTEM_CONFIG.tabs.length - 1) selectTab(_activeTabIdx + 1); setTimeout(() => _isSwiping = false, 300); }
                 }, { passive: true });
             }
         } catch (err) { console.error("[오류] 넥서스 초기화 중 에러 발생:", err); }
