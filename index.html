@@ -50,8 +50,8 @@
         <header class="panel-header" style="flex-direction:column; align-items:stretch; padding:0; background:var(--panel-hdr-bg);">
             <div style="padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:stretch; justify-content:space-between; gap:16px; background:var(--g-faint); position:relative; overflow:hidden; min-height: 54px;">
                 <div class="header-scanline"></div>
-                <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2;">
-                    <span class="nexus-main-title" id="nexusCycleTitle">개복디 넥서스</span>
+                <div style="display:flex; align-items:center; gap:12px; position:relative; z-index:2; min-width: 145px; height: 38px; justify-content: flex-start;">
+                    <div class="nexus-main-title" id="nexusCycleTitle">개복디 넥서스</div>
                 </div>
                 <nav style="display:flex; gap:6px; position:relative; z-index:2; align-items: stretch; flex-wrap: wrap; justify-content: flex-end;">
                     <button class="btn-hdr-sm neon" data-action="startGuideTour" style="color:#a855f7; border-color:rgba(168,85,247,0.3);">💡 가이드</button>
@@ -67,8 +67,13 @@
                     <div id="activeRoster" class="active-roster"></div>
                 </div>
             </div>
-            <nav class="codex-tabs-wrap" id="codexTabsWrap" style="display:flex; width:100%; gap:6px; padding:10px; border-bottom:1px solid var(--border); align-items:center;">
+            <nav class="codex-tabs-wrap" id="codexTabsWrap" style="display:flex; flex-direction:column; width:100%; gap:10px; padding:10px; border-bottom:1px solid var(--border);">
                 <div class="codex-tabs" id="codexTabs" role="tablist"></div>
+                <button class="cart-bar-btn" id="btnCartMode" data-action="toggleCartMode" style="display:none;">
+                    <span class="cb-icon">🛒</span> 
+                    <span style="flex:1; text-align:center;">선택된 유닛만 모아보기</span> 
+                    <span class="cb-count" id="cartCount">0종</span>
+                </button>
             </nav>
         </header>
         <div class="panel-body" id="leftPanelBody">
@@ -105,7 +110,7 @@
             </div>
             <nav style="display: flex; align-items: stretch; gap: 8px;">
                 <button class="btn-hdr-sm neon" data-action="resetCodex" aria-label="목표 초기화">⟲ 목표 초기화</button>
-                <button class="btn-hdr-sm neon" data-action="resetCompleted" aria-label="완료 초기화" style="color:#10b981; border-color:rgba(16,185,129,0.3);">✔ 완료 초기화</button>
+                <button class="btn-hdr-sm neon" data-action="resetCompleted" aria-label="완료 초기화" style="color:#10b981; border-color:rgba(16,185,129,0.3);">✔ 완료 전체 초기화</button>
             </nav>
         </header>
         <div class="panel-body" id="deductionBoard" style="padding:16px; overflow-y:auto; background:transparent;"></div>

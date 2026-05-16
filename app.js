@@ -25,7 +25,10 @@
             hybridWeight: 3,
             maxLoopQueue: 1000,
             maxLoopMerge: 30,
-            maxUnitCapacity: 16
+            maxUnitCapacity: 16,
+            craftBatch: {
+                "자동포탑": 5
+            }
         },
         dashboardAtoms: [
             "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴", "저격수", "코브라", "암흑고위기사",
@@ -224,15 +227,15 @@
         });
     }
 
-    let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null;
+    let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _isCartMode = false;
     const GRADE_ORDER = ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"];
     const gradeColorsRaw = {"매직":"var(--grade-magic)", "레어":"var(--grade-rare)", "에픽":"var(--grade-epic)", "유니크":"var(--grade-unique)", "헬":"var(--grade-hell)", "레전드":"var(--grade-legend)", "히든":"var(--grade-hidden)", "슈퍼히든":"var(--grade-super)"};
     const getGradeIndex = (grade) => { let i = GRADE_ORDER.indexOf(grade); return i !== -1 ? i : -99; };
 
     const TAB_CATEGORIES = [
-        {key:"테바", name:"테바", sym:"♆"}, {key:"테메", name:"테메", sym:"♆"},
-        {key:"토바", name:"토바", sym:"⟡"}, {key:"토메", name:"토메", sym:"⟡"},
-        {key:"저그", name:"저그", sym:"☣︎"}, {key:"중립", name:"중립", sym:"❂"}, {key:"혼종", name:"혼종", sym:"⌬"}
+        {key:"테바", name:"테바"}, {key:"테메", name:"테메"},
+        {key:"토바", name:"토바"}, {key:"토메", name:"토메"},
+        {key:"저그", name:"저그"}, {key:"중립", name:"중립"}, {key:"혼종", name:"혼종"}
     ];
 
     function triggerHaptic() { navigator.vibrate?.(15); }
@@ -240,7 +243,35 @@
     function resetCompleted() { completedUnits.clear(); debouncedUpdateAllPanels(); showToast("완료 기록이 모두 초기화되었습니다."); }
     function setupInitialView() { switchLayout('codex'); startTitleCycle(); }
 
-    const _cycleTitles = ['개복디 넥서스', '제작자 | 회장', 'ID : 3-S2-1-2461127'];
+    function resetGroupCompleted(level) {
+        if (level === 3) {
+            completedUnits.clear();
+            showToast("목표 및 하위 전체가 초기화되었습니다.");
+        } else {
+            const topGrades = ["레어", "에픽", "유니크", "헬", "레전드", "슈퍼히든"];
+            const hiddenGrades = ["히든"];
+            let directMats = new Set();
+            activeUnits.forEach((_, uid) => unitMap.get(uid)?.parsedRecipe?.forEach(pr => pr.id && directMats.add(pr.id)));
+
+            for (let uid of completedUnits.keys()) {
+                if (level < 3 && (activeUnits.has(uid) || directMats.has(uid) || isSpecialRender(uid))) continue;
+
+                let u = unitMap.get(uid);
+                if (!u) continue;
+                if (topGrades.includes(u.grade)) completedUnits.delete(uid);
+                else if (level >= 2 && hiddenGrades.includes(u.grade)) completedUnits.delete(uid);
+            }
+            showToast(`해당 그룹 및 하위 재료가 모두 초기화되었습니다.<br><span style="font-size:0.75rem;color:#94a3b8;">소모된 재료는 복구되지 않습니다.</span>`);
+        }
+        toggleHighlight(null);
+        attemptAutoMerge();
+        debouncedUpdateAllPanels();
+    }
+
+    const _cycleTitles = [
+        '개복디 넥서스',
+        '<div style="line-height:1.2; padding-top:2px;">제작자 <span style="font-weight:400;opacity:0.6;">|</span> 회장<br><span style="font-size:0.65rem; color:var(--text-sub); font-family:var(--font-mono); font-weight:normal;">ID : 3-S2-1-2461127</span></div>'
+    ];
     let _cycleTitleIdx = 0, _titleInterval = null, _jewelPanelOpen = false;
 
     function startTitleCycle() {
@@ -250,11 +281,12 @@
         _titleInterval = setInterval(() => {
             _cycleTitleIdx = (_cycleTitleIdx + 1) % _cycleTitles.length;
             el.classList.add('cycle-fade-out');
-            setTimeout(() => { el.textContent = _cycleTitles[_cycleTitleIdx]; el.classList.remove('cycle-fade-out'); }, 350);
-        }, 3000);
+            setTimeout(() => { el.innerHTML = _cycleTitles[_cycleTitleIdx]; el.classList.remove('cycle-fade-out'); }, 250);
+        }, 4000);
     }
 
     function toggleJewelPanel() {
+        hideRecipeTooltip();
         const layout = getEl('mainLayout');
         if (layout?.classList.contains('view-jewel')) closeJewelPanel();
         else if (layout) { layout.classList.add('view-jewel'); getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'true'); _jewelPanelOpen = true; renderJewelMiniGrid(); }
@@ -263,6 +295,7 @@
     function closeJewelPanel() { getEl('mainLayout')?.classList.remove('view-jewel'); getEl('btnJewelToggle')?.setAttribute('aria-expanded', 'false'); _jewelPanelOpen = false; }
 
     function switchLayout(mode) {
+        hideRecipeTooltip();
         const layout = getEl('mainLayout'), btn = getEl('btnToggleMode');
         if (!layout || !btn) return;
         _currentViewMode = mode; layout.classList.remove('view-deduct', 'view-jewel'); _jewelPanelOpen = false;
@@ -336,7 +369,15 @@
     let _guideStepIdx = 0, _resizeTimer = null, _guideBackupActive = new Map(), _guideBackupCompleted = new Map();
     let _currentGuideSteps = [], _guideDemoUnitId = '', _guideDemoChildId = '', _autoGuideTimer = null, _autoActionTimer = null;
 
-    const getGuideSteps = () => [{id:'jewel', targetId:'jewelPanel', text:'💎 <b>쥬얼 도감</b><br>상단 버튼을 통해 진입할 수 있으며, 인게임 쥬얼들의 옵션과 정보를 넓은 화면에서 한눈에 확인할 수 있습니다.', onEnter:()=> { if(!_jewelPanelOpen) toggleJewelPanel(); }}, {id:'search', targetId:'searchWrap', text:'🔍 <b>검색 및 커맨드</b><br>원하는 유닛을 검색하거나 단축 커맨드(예: 저격수*8/아몬/전쟁광*4)를 입력해 빠르게 목표에 추가할 수 있습니다.', onEnter:()=> { if(_jewelPanelOpen) closeJewelPanel(); if(_currentViewMode !== 'codex') switchLayout('codex'); }}, {id:'click-unit', targetId:_guideDemoUnitId?`card-${_guideDemoUnitId}`:'tabContent', fallbackId:'tabContent', text:`📖 <b>도감 및 유닛 추가</b><br>아래 도감에서 <b>${unitMap.get(_guideDemoUnitId)?.name||'유닛'}</b> 카드를 <b>직접 클릭</b>해서 목표 보드에 추가해 보세요!`, isWaitAction:true, onEnter:()=> { if(_currentViewMode !== 'codex') switchLayout('codex'); let catIdx = TAB_CATEGORIES.findIndex(c => c.key === unitMap.get(_guideDemoUnitId)?.category); if(catIdx !== -1 && _activeTabIdx !== catIdx) selectTab(catIdx); }, action:()=> { if(_guideDemoUnitId) toggleUnitSelection(_guideDemoUnitId, 1); }}, {id:'cost-dashboard', targetId:'costDashboardPanel', text:`🔮 <b>코스트 전체 조망</b><br>방금 <b>직접 추가한</b> 목표 유닛의 필요 자원이 대시보드 전체에 <b>즉시 계산</b>되어 나타납니다.`}, {id:'switch-mode', targetId:'btnToggleMode', text:'🔄 <b>체크리스트 모드 진입</b><br>화면 상단의 <b>[체크리스트 전환]</b> 버튼을 <b>직접 눌러서</b> 조립 모드로 진입해 보세요.', isWaitAction:true, action:()=>toggleViewMode()}, {id:'click-complete', targetId:_guideDemoChildId?`d-slot-wrap-${_guideDemoChildId}`:'deductionBoard', fallbackId:'deductionBoard', text:`✅ <b>재료 완료 처리</b><br>하위 재료를 확보했다면 완료 처리를 합니다.<br><b>${unitMap.get(_guideDemoChildId)?.name||'재료'}</b>의 <b>[✔ 완료]</b> 버튼을 <b>직접 눌러보세요!</b>`, isWaitAction:true, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); }, action:()=> { if(_guideDemoChildId) completeUnit(_guideDemoChildId); }}, {id:'auto-deduct', targetId:'costDashboardPanel', text:`📉 <b>실시간 자동 차감</b><br>보시다시피 방금 완료 처리된 ${unitMap.get(_guideDemoChildId)?.name||'재료'}의 코스트만큼 대시보드 전체 코스트가 정확히 <b>차감되어 실시간 반영</b>되었습니다!<br>이제 튜토리얼을 종료합니다.`, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); getEl('costDashboardPanel')?.classList.add('cost-reduction-flash'); setTimeout(()=>getEl('costDashboardPanel')?.classList.remove('cost-reduction-flash'), 1000); }}];
+    const getGuideSteps = () => [
+        {id:'jewel', targetId:'jewelPanel', text:'💎 <b>쥬얼 도감</b><br>상단 버튼을 통해 진입할 수 있으며, 인게임 쥬얼들의 옵션과 정보를 넓은 화면에서 한눈에 확인할 수 있습니다.', onEnter:()=> { if(!_jewelPanelOpen) toggleJewelPanel(); }},
+        {id:'search', targetId:'searchWrap', text:'🔍 <b>검색 및 커맨드</b><br>원하는 유닛을 검색하거나 단축 커맨드(예: 저격수*8/아몬/전쟁광*4)를 입력해 빠르게 목표에 추가할 수 있습니다.', onEnter:()=> { if(_jewelPanelOpen) closeJewelPanel(); if(_currentViewMode !== 'codex') switchLayout('codex'); }},
+        {id:'click-unit', targetId:_guideDemoUnitId?`card-${_guideDemoUnitId}`:'tabContent', fallbackId:'tabContent', text:`📖 <b>도감 및 유닛 추가</b><br>아래 도감에서 <b>${unitMap.get(_guideDemoUnitId)?.name||'유닛'}</b> 카드를 <b>직접 클릭</b>해서 목표 보드에 추가해 보세요!`, isWaitAction:true, onEnter:()=> { if(_currentViewMode !== 'codex') switchLayout('codex'); let catIdx = TAB_CATEGORIES.findIndex(c => c.key === unitMap.get(_guideDemoUnitId)?.category); if(catIdx !== -1 && _activeTabIdx !== catIdx) selectTab(catIdx); }, action:()=> { if(_guideDemoUnitId) toggleUnitSelection(_guideDemoUnitId, 1); }},
+        {id:'cost-dashboard', targetId:'costDashboardPanel', text:`🔮 <b>코스트 전체 조망</b><br>방금 <b>직접 추가한</b> 목표 유닛의 필요 자원이 대시보드 전체에 <b>즉시 계산</b>되어 나타납니다.`},
+        {id:'switch-mode', targetId:'btnToggleMode', text:'🔄 <b>체크리스트 모드 진입</b><br>화면 상단의 <b>[체크리스트 전환]</b> 버튼을 <b>직접 눌러서</b> 조립 모드로 진입해 보세요.', isWaitAction:true, action:()=>toggleViewMode()},
+        {id:'click-complete', targetId:_guideDemoChildId?`d-slot-wrap-${_guideDemoChildId}`:'deductionBoard', fallbackId:'deductionBoard', exposeIds:['centerPanel', 'rightPanel', 'costDashboardPanel'], text:`✅ <b>재료 완료 처리</b><br>하위 재료를 확보했다면 완료 처리를 합니다.<br><b>${unitMap.get(_guideDemoChildId)?.name||'재료'}</b>의 <b>[✔ 완료]</b> 버튼을 <b>직접 눌러보세요!</b>`, isWaitAction:true, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); }, action:()=> { if(_guideDemoChildId) completeUnit(_guideDemoChildId); }},
+        {id:'auto-deduct', targetId:'costDashboardPanel', exposeIds:['centerPanel', 'rightPanel', 'costDashboardPanel'], text:`📉 <b>실시간 자동 차감</b><br>보시다시피 방금 완료 처리된 ${unitMap.get(_guideDemoChildId)?.name||'재료'}의 코스트만큼 대시보드 전체 코스트가 정확히 <b>차감되어 실시간 반영</b>되었습니다!<br>이제 튜토리얼을 종료합니다.`, onEnter:()=>{ if(_currentViewMode !== 'deduct') switchLayout('deduct'); getEl('costDashboardPanel')?.classList.add('cost-reduction-flash'); setTimeout(()=>getEl('costDashboardPanel')?.classList.remove('cost-reduction-flash'), 1000); }}
+    ];
 
     function startGuideTour() {
         clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer);
@@ -363,6 +404,7 @@
         clearTimeout(_autoGuideTimer); clearTimeout(_autoActionTimer); clearTimeout(_resizeTimer);
         _autoGuideTimer = _autoActionTimer = null;
         ['guideBlocker', 'guideHighlight', 'guideClickCatcher', 'guideTooltip'].forEach(id => getEl(id).style.display = 'none');
+        document.querySelectorAll('.guide-exposed').forEach(el => el.classList.remove('guide-exposed'));
         window.removeEventListener('resize', handleGuideResize); window.removeEventListener('scroll', handleGuideResize);
         activeUnits.clear(); _guideBackupActive.forEach((v, k) => activeUnits.set(k, v));
         completedUnits.clear(); _guideBackupCompleted.forEach((v, k) => completedUnits.set(k, v));
@@ -376,6 +418,15 @@
 
     function showGuideStep() {
         let step = _currentGuideSteps[_guideStepIdx]; step.onEnter?.(step); getEl('guideTooltip').style.opacity = '0';
+
+        document.querySelectorAll('.guide-exposed').forEach(el => el.classList.remove('guide-exposed'));
+        if (step.exposeIds) {
+            step.exposeIds.forEach(id => {
+                let el = getEl(id);
+                if (el) el.classList.add('guide-exposed');
+            });
+        }
+
         requestAnimationFrame(() => setTimeout(() => { positionGuideHighlight(step); getEl('guideTooltip').style.opacity = '1'; }, 150));
     }
 
@@ -420,12 +471,12 @@
     function handleGuideResize() { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(() => { if (getEl('guideHighlight')?.style.display === 'block') positionGuideHighlight(_currentGuideSteps[_guideStepIdx]); }, 50); }
 
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = 80, _touchHoldCount = 0;
-    function startSmartChange(id, delta, 입력, event) {
+    function startSmartChange(id, delta, type, event) {
         if (event) {
-            if (event.입력 === 'touchstart' || event.입력 === 'pointerdown') {
-                _lastInteractionTime = Date.지금();
-            } else if (event.입력 === 'mousedown') {
-                if (Date.지금() - _lastInteractionTime < 500) {
+            if (event.type === 'touchstart' || event.type === 'pointerdown') {
+                _lastInteractionTime = Date.now();
+            } else if (event.type === 'mousedown') {
+                if (Date.now() - _lastInteractionTime < 500) {
                     if (event.cancelable) event.preventDefault();
                     event.stopPropagation?.();
                     return;
@@ -449,7 +500,9 @@
     function showRecipeTooltip(id, event, isDeduction = false) {
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
         let multi = isDeduction ? parseInt(getEl(`d-req-${id}`)?.innerText || 0) : 1; multi = multi > 1 ? multi : 1;
-        tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeTooltip(u, multi)}</div><div class="tooltip-footer">[ESC] 닫기.</div>`;
+
+        tt.innerHTML = `<div class="tooltip-header" style="color:${gradeColorsRaw[u.grade]}">${u.name} 조합법 ${multi > 1 ? `<span style="font-size:0.8rem; color:var(--text-sub);">(${multi}개 기준)</span>` : ''}</div><div class="tooltip-body">${formatRecipeTooltip(u, multi)}</div><div class="tooltip-footer">화면 터치/클릭 또는 ESC로 닫힙니다.</div>`;
+
         let viewWidth = document.documentElement.clientWidth; tt.style.maxWidth = `${viewWidth - 20}px`; tt.classList.add('active');
         let x = (event?.clientX || event?.touches?.[0]?.clientX || viewWidth/2) + window.scrollX, y = (event?.clientY || event?.touches?.[0]?.clientY || window.innerHeight/2) + window.scrollY;
         let ttRect = tt.getBoundingClientRect(), ttWidth = ttRect.width || 300, ttHeight = ttRect.height || 150;
@@ -603,10 +656,17 @@
     }
 
     let _completeLock = new Set();
-    function completeUnit(uid) {
+
+    function completeUnit(uid, amount) {
         if (_completeLock.has(uid)) return; _completeLock.add(uid);
         const reqVal = parseInt(getEl(`d-req-${uid}`)?.innerText || 0);
-        if (reqVal > 0) { consumeCompletedRecipe(uid, reqVal); completedUnits.set(uid, (completedUnits.get(uid) || 0) + reqVal); toggleHighlight(null); attemptAutoMerge(); triggerHaptic(); debouncedUpdateAllPanels(); }
+        const processQty = amount !== undefined ? amount : reqVal;
+
+        if (processQty > 0 && reqVal >= processQty) {
+            consumeCompletedRecipe(uid, processQty);
+            completedUnits.set(uid, (completedUnits.get(uid) || 0) + processQty);
+            toggleHighlight(null); attemptAutoMerge(); triggerHaptic(); debouncedUpdateAllPanels();
+        }
         setTimeout(() => _completeLock.delete(uid), 250);
     }
 
@@ -617,22 +677,46 @@
     }
 
     let updateTimer = null;
+
+    // 🌟 1. 버그 픽스: 액티브 유닛 수량이 변경될 때 완료 수량을 자동으로 깎는 스마트 보정 함수
+    function clampCompletedUnits() {
+        const { baseMap, baseSpecialReq } = calculateDeductedRequirements();
+        for (let [uid, compQty] of completedUnits.entries()) {
+            let maxAllowed = SYSTEM_CONFIG.specialCostKeys.includes(uid) ? (baseSpecialReq[uid] || 0) : (baseMap.get(uid) || 0);
+            if (compQty > maxAllowed) {
+                if (maxAllowed <= 0) completedUnits.delete(uid);
+                else completedUnits.set(uid, maxAllowed);
+            }
+        }
+    }
+
     function debouncedUpdateAllPanels() {
         if (updateTimer) cancelAnimationFrame(updateTimer);
-        updateTimer = requestAnimationFrame(() => { updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster(); saveNexusState(); });
+        updateTimer = requestAnimationFrame(() => {
+            clampCompletedUnits(); // 업데이트 직전에 초과된 완료 수량 자동 교정
+            updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster(); saveNexusState();
+        });
     }
 
     function renderDeductionBoard() {
         const renderSlot = (id, n, g, pid) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-orig-parent="${pid}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span>${n}</div><div id="d-cond-${id}" class="d-cond-text"></div><div class="d-bottom-area"><div class="req-text"><span id="d-req-${id}">0</span><span class="req-label">필요</span></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div></div>`;
-        const getGrp = (id, t, items, pid, exClass='') => `<div class="deduct-group ${exClass}" id="${id}"><div class="deduct-group-title">${t}</div><div class="deduct-grid" id="${pid}">${items.map(u => renderSlot(u.id, u.name, u.grade, pid)).join('')}</div></div>`;
+
+        const getGrp = (id, t, items, pid, exClass='', resetLevel=0) => `
+        <div class="deduct-group ${exClass}" id="${id}">
+            <div class="deduct-group-title" style="justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">${t}</div>
+                ${resetLevel > 0 ? `<button class="btn-text-link" data-action="resetGroup" data-level="${resetLevel}" style="color:#f87171; text-decoration:none; padding:4px 8px; background:rgba(239,68,68,0.1); border-radius:6px; border:1px solid rgba(239,68,68,0.3);">⟲ 하위 통합 초기화</button>` : ''}
+            </div>
+            <div class="deduct-grid" id="${pid}">${items.map(u => renderSlot(u.id, u.name, u.grade, pid)).join('')}</div>
+        </div>`;
 
         const allUnits = Array.from(unitMap.values());
         const specialUnits = SYSTEM_CONFIG.specialRenderIds.map(id => unitMap.get(id) || { id, name: id, grade: '레어' });
 
         getEl('deductionBoard').innerHTML = `<div id="deduct-empty-msg" class="empty-msg"><div class="empty-icon-text">✨</div> 목표 유닛을 선택하면<br>필요한 재료 목록이 이곳에 생성됩니다.</div>`
-        + getGrp('group-special', `<span class="grp-icon grp-icon-super">✦</span> 목표 유닛 및 직속 재료`, specialUnits, 'grid-special', 'grp-special')
-        + getGrp('group-hidden', `<span class="grp-icon grp-icon-hidden">♦</span> 히든 등급 재료`, allUnits.filter(u => u.grade === "히든" && !isSpecialRender(u.id)), 'grid-hidden')
-        + getGrp('group-top', `<span class="grp-icon grp-icon-legend">▲</span> 레어 - 레전드 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top');
+        + getGrp('group-special', `<span class="grp-icon grp-icon-super">✦</span> 목표 유닛 및 직속 재료`, specialUnits, 'grid-special', 'grp-special', 3)
+        + getGrp('group-hidden', `<span class="grp-icon grp-icon-hidden">♦</span> 히든 등급 재료`, allUnits.filter(u => u.grade === "히든" && !isSpecialRender(u.id)), 'grid-hidden', '', 2)
+        + getGrp('group-top', `<span class="grp-icon grp-icon-legend">▲</span> 레어 - 레전드 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top', 1);
     }
 
     function updateDeductionBoard() {
@@ -651,13 +735,39 @@
                 } else { if (rCon) rCon.style.display = 'none'; if (cEl) cEl.style.display = 'none'; }
                 wrapEl.style.order = isTarget ? "-999" : (isSpecialRender(id) ? "999" : "-1");
                 const reqEl = getEl(`d-req-${id}`), cWrap = getEl(`craft-wrap-${id}`);
+
                 if (netReq > 0) {
                     wrapEl.classList.remove('is-completed'); wrapEl.classList.add('has-target'); if (reqEl) reqEl.innerText = netReq;
                     if (cWrap) {
                         let isFinalReady = isTarget && !unitMap.get(id)?.parsedRecipe?.some(pr => (completedUnits.get(pr.id)||0) < (isToolRequirement(id, pr.id)?1:pr.qty*netReq)) && !unitMap.get(id)?.parsedCost?.some(pc => SYSTEM_CONFIG.specialCostKeys.includes(pc.key) && (completedUnits.get(pc.key)||0)<pc.qty*netReq);
-                        cWrap.innerHTML = isFinalReady ? `<button class="btn-complete final-target" data-action="completeUnit" data-uid="${id}">✨ 최종 제작 완료</button>` : `<button class="btn-complete" data-action="completeUnit" data-uid="${id}">✔ 완료</button>`;
+                        let completeBtnHtml = isFinalReady ? `<button class="btn-complete final-target" data-action="completeUnit" data-uid="${id}">✨ 최종완료</button>` : `<button class="btn-complete" data-action="completeUnit" data-uid="${id}">✔ 전체완료</button>`;
+
+                        let batchSize = SYSTEM_CONFIG.policy.craftBatch?.[id] || 1;
+
+                        if (netReq > batchSize || (batchSize > 1 && netReq > 0)) {
+                            cWrap.innerHTML = `
+                                <div class="partial-ctrl">
+                                    <button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="${batchSize}" title="${batchSize}개씩 조립 완료">+ ${batchSize}개 완료</button>
+                                </div>
+                                ${completeBtnHtml}
+                            `;
+                        } else if (netReq > 1) {
+                            cWrap.innerHTML = `
+                                <div class="partial-ctrl">
+                                    <button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1" title="1개씩 조립 완료">+ 1개 완료</button>
+                                </div>
+                                ${completeBtnHtml}
+                            `;
+                        } else {
+                            cWrap.innerHTML = completeBtnHtml;
+                        }
                     }
-                } else { wrapEl.classList.remove('has-target'); wrapEl.classList.add('is-completed'); if (reqEl) reqEl.innerText = '0'; if (cWrap) cWrap.innerHTML = `<span style="font-size:0.85rem; color:var(--g-dim); font-weight:bold; padding-right:4px;">✨ 완료됨</span>`; }
+                } else {
+                    wrapEl.classList.remove('has-target'); wrapEl.classList.add('is-completed');
+                    if (reqEl) reqEl.innerText = '0';
+                    if (cWrap) cWrap.innerHTML = `<span style="font-size:0.85rem; color:var(--g-dim); font-weight:bold; padding-right:4px;">✨ 완료됨</span>`;
+                }
+
                 let tParent = (directMaterials.has(id) || isTarget) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
                 if (tParent && wrapEl.parentElement !== tParent) { if (!fragmentMap.has(tParent)) fragmentMap.set(tParent, document.createDocumentFragment()); fragmentMap.get(tParent).appendChild(wrapEl); }
             } else { wrapEl.classList.remove('is-visible'); }
@@ -680,16 +790,45 @@
         if (_currentHighlight) { let deps = getDependencies(_currentHighlight); document.querySelectorAll('.deduct-slot').forEach(el => el.classList.toggle('highlighted-tree', deps.has(el.id.replace('d-slot-wrap-', '')))); }
     }
 
-    function renderTabs() { const t = getEl('codexTabs'); if (t) { t.innerHTML = TAB_CATEGORIES.map((c, i) => `<button id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span class="tab-sym" aria-hidden="true" style="font-size:1.1rem; padding:2px 5px; border-radius:3px; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); color:var(--text-sub);">${c.sym}</span><span>${c.name}</span></button>`).join(''); updateTabsUI(); } }
+    function renderTabs() {
+        const t = getEl('codexTabs');
+        if (t) {
+            t.innerHTML = TAB_CATEGORIES.map((c, i) => `<button id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join('');
+            updateTabsUI();
+        }
+    }
 
     function updateTabsUI() {
-        let aCats = new Set(); for (let id of activeUnits.keys()) { let u = unitMap.get(id); if (u?.category) aCats.add(u.category); if (aCats.size === TAB_CATEGORIES.length) break; }
+        let aCats = new Set();
+        for (let id of activeUnits.keys()) {
+            let u = unitMap.get(id);
+            if (u?.category) aCats.add(u.category);
+            if (aCats.size === TAB_CATEGORIES.length) break;
+        }
         TAB_CATEGORIES.forEach((c, i) => {
             let btn = getEl(`tab-btn-${i}`), has = aCats.has(c.key);
             if (!btn) return;
-            if (btn.classList.contains('active') !== (i === _activeTabIdx)) { btn.classList.toggle('active', i === _activeTabIdx); btn.setAttribute('aria-selected', i === _activeTabIdx ? 'true' : 'false'); }
+            let isActiveTab = (!_isCartMode && i === _activeTabIdx);
+            if (btn.classList.contains('active') !== isActiveTab) { btn.classList.toggle('active', isActiveTab); btn.setAttribute('aria-selected', isActiveTab ? 'true' : 'false'); }
             if (btn.classList.contains('has-active') !== has) btn.classList.toggle('has-active', has);
         });
+
+        let typeCount = activeUnits.size;
+        let cartBtn = getEl('btnCartMode');
+        if (cartBtn) {
+            if (typeCount > 0) {
+                cartBtn.style.display = 'flex';
+                getEl('cartCount').innerText = `${typeCount}종`;
+            } else {
+                cartBtn.style.display = 'none';
+                if (_isCartMode) toggleCartMode();
+            }
+            if (_isCartMode) {
+                cartBtn.classList.add('active');
+            } else {
+                cartBtn.classList.remove('active');
+            }
+        }
     }
 
     const formatRecipeHorizontal = (item, m = 1) => formatRecipe(item, m, false);
@@ -705,35 +844,69 @@
         return `<div class="${showSep?'':'recipe-vertical'}" ${showSep?'style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;"':''}>${partsHtml}</div>`;
     }
 
-    function selectTab(idx) { _activeTabIdx = idx; updateTabsUI(); renderCurrentTabContent(); if (_jewelPanelOpen) closeJewelPanel(); }
+    function selectTab(idx) {
+        hideRecipeTooltip();
+        _isCartMode = false;
+        _activeTabIdx = idx;
+        updateTabsUI();
+        renderCurrentTabContent();
+        if (_jewelPanelOpen) closeJewelPanel();
+    }
+
+    function toggleCartMode() {
+        hideRecipeTooltip();
+        _isCartMode = !_isCartMode;
+        if (_isCartMode) _activeTabIdx = -1;
+        else _activeTabIdx = 0;
+        updateTabsUI();
+        renderCurrentTabContent();
+    }
 
     let _isTabContentInitialized = false;
     function initAllTabContents() {
         const tc = getEl('tabContent'); if (!tc) return;
         tc.innerHTML = TAB_CATEGORIES.map(cat => {
             let items = Array.from(unitMap.values()).filter(u => getGradeIndex(u.grade) >= getGradeIndex("레전드") && u.category === cat.key).sort((a,b) => (SYSTEM_CONFIG.sorting.order[b.name]||0)-(SYSTEM_CONFIG.sorting.order[a.name]||0) || (isOneTime(a)?-1:isOneTime(b)?1:0) || getGradeIndex(b.grade)-getGradeIndex(a.grade) || calculateTotalCostScore(b)-calculateTotalCostScore(a));
-            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" style="display:none; flex-direction:column; gap:4px;">${!items.length ? `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>` : items.map((item, idx) => `<div id="card-${item.id}" class="unit-card" style="animation-delay:${idx*0.03}s" data-action="toggleUnit" data-uid="${item.id}"><div class="uc-wrap"><div class="uc-identity"><div class="uc-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></div><div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div></div><div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div><div class="uc-ctrl">${isOneTime(item)?'':`<div class="smart-stepper active-stepper"><button data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">-</button><div class="ss-val" id="val-unit-${item.id}" aria-live="polite">-</div><button data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`}</div></div></div>`).join('')}</div>`;
+
+            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" style="display:none; flex-direction:column; gap:4px;">${!items.length ? `<div style="text-align:center; padding:30px; color:var(--text-sub); font-weight:bold; font-size:1.05rem;">해당 분류에 유닛이 없습니다.</div>` : items.map((item, idx) => `<div id="card-${item.id}" class="unit-card" style="animation-delay:${idx*0.03}s" data-action="toggleUnit" data-uid="${item.id}"><div class="uc-wrap"><div class="uc-identity"><div class="uc-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></div><div class="uc-name-row" style="color:${gradeColorsRaw[item.grade]};">${item.name}</div></div><div class="uc-recipe-col">${formatRecipeHorizontal(item)}</div><div class="uc-ctrl"><div class="uc-cart-badge" id="cart-badge-${item.id}" style="display:none;">🛒 <span class="cb-val">1</span>개</div>${isOneTime(item)?'':`<div class="smart-stepper active-stepper"><button data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">-</button><div class="ss-val" id="val-unit-${item.id}" aria-live="polite">-</div><button data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`}</div></div></div>`).join('')}</div>`;
         }).join('');
         _isTabContentInitialized = true;
     }
 
     function renderCurrentTabContent() {
         if (!_isTabContentInitialized) initAllTabContents();
-        TAB_CATEGORIES.forEach((c, i) => { let g = getEl(`cat-group-${c.key}`); if (g) g.style.display = i === _activeTabIdx ? 'flex' : 'none'; });
+        TAB_CATEGORIES.forEach((c, i) => {
+            let g = getEl(`cat-group-${c.key}`);
+            if (g) g.style.display = (_isCartMode || i === _activeTabIdx) ? 'flex' : 'none';
+        });
         updateTabContentUI();
     }
 
     function updateTabContentUI() {
         unitMap.forEach(item => {
-            if (item.category !== TAB_CATEGORIES[_activeTabIdx].key) return;
-            let card = getEl(`card-${item.id}`), isActive = activeUnits.has(item.id);
-            card?.classList.toggle('active', isActive);
-            if (!isOneTime(item)) {
-                let v = getEl(`val-unit-${item.id}`); if (v) v.innerText = isActive ? activeUnits.get(item.id) : '-';
-                if (card) {
-                    card.querySelectorAll('.smart-stepper button').forEach(b => b.disabled = !isActive);
-                }
+            let card = getEl(`card-${item.id}`);
+            if (!card) return;
+            let isActive = activeUnits.has(item.id);
+
+            let badge = getEl(`cart-badge-${item.id}`);
+            if (badge) {
+                badge.style.display = (isActive && !_isCartMode) ? 'flex' : 'none';
+                if (isActive) badge.querySelector('.cb-val').innerText = activeUnits.get(item.id);
             }
+
+            if (!isOneTime(item)) {
+                let v = getEl(`val-unit-${item.id}`);
+                if (v) v.innerText = isActive ? activeUnits.get(item.id) : '-';
+                card.querySelectorAll('.smart-stepper button').forEach(b => b.disabled = !isActive);
+            }
+
+            if (_isCartMode) {
+                card.style.display = isActive ? 'flex' : 'none';
+            } else {
+                card.style.display = 'flex';
+            }
+
+            card.classList.toggle('active', isActive);
         });
     }
 
@@ -760,6 +933,9 @@
                 toggleHighlight(null);
             }
             if (e.target.id === 'noticeModal') closeNoticeModal();
+            if (getEl('recipeTooltip')?.classList.contains('active') && !e.target.closest('#recipeTooltip')) {
+                hideRecipeTooltip();
+            }
             return;
         }
 
@@ -778,11 +954,21 @@
             case 'endGuideTour': endGuideTour(); break;
             case 'nextGuideStep': nextGuideStep(); break;
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
+            case 'toggleCartMode': toggleCartMode(); break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
+            case 'addComplete':
+                e.stopPropagation();
+                let batch = parseInt(actionEl.dataset.batch || 1, 10);
+                completeUnit(uid, batch);
+                break;
             case 'completeUnit':
                 e.stopPropagation();
                 completeUnit(uid);
+                break;
+            case 'resetGroup':
+                e.stopPropagation();
+                resetGroupCompleted(parseInt(actionEl.dataset.level, 10));
                 break;
             case 'showRecipeTooltip':
                 e.stopPropagation();
@@ -834,7 +1020,7 @@
                 let sX = 0, sY = 0;
                 sArea.addEventListener('touchstart', e => { sX = e.changedTouches[0].screenX; sY = e.changedTouches[0].screenY; }, { passive: true });
                 sArea.addEventListener('touchend', e => {
-                    if (_isSwiping) return;
+                    if (_isSwiping || _isCartMode) return;
                     let dX = e.changedTouches[0].screenX - sX, dY = e.changedTouches[0].screenY - sY;
                     if (Math.abs(dX) > 70 && Math.abs(dY) < 50) { _isSwiping = true; if (dX > 0 && _activeTabIdx > 0) selectTab(_activeTabIdx - 1); else if (dX < 0 && _activeTabIdx < TAB_CATEGORIES.length - 1) selectTab(_activeTabIdx + 1); setTimeout(() => _isSwiping = false, 300); }
                 }, { passive: true });

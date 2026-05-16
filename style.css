@@ -30,8 +30,7 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 
-/* 모바일 터치 최적화: 고스트 클릭 및 딜레이 방지 */
-button, a, input, .tab-btn, .unit-card, .btn-complete, .roster-tag, .smart-stepper button, .d-name, .d-reason-tag { touch-action: manipulation; }
+button, a, input, .tab-btn, .unit-card, .btn-complete, .roster-tag, .smart-stepper button, .d-name, .d-reason-tag, .pc-btn { touch-action: manipulation; }
 
 html{height:100%}
 body{
@@ -146,14 +145,26 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 @keyframes toastIn{from{opacity:0;transform:translateY(25px) scale(0.85);}to{opacity:1;transform:translateY(0) scale(1);}}
 @keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1);}to{opacity:0;transform:translateY(-20px) scale(0.9);}}
 
-.codex-tabs{ display:flex;gap:6px;flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none; background:rgba(0,0,0,0.5);padding:6px;border-radius:12px; border:1px solid rgba(255,255,255,0.03); box-shadow: inset 0 2px 8px rgba(0,0,0,0.8); scroll-snap-type:x mandatory; }
+.codex-tabs{ display:flex;gap:6px;flex:1;overflow-x:auto;white-space:nowrap;scrollbar-width:none; background:rgba(0,0,0,0.5);padding:6px;border-radius:12px; border:1px solid rgba(255,255,255,0.03); box-shadow: inset 0 2px 8px rgba(0,0,0,0.8); scroll-snap-type:x mandatory; width:100%; }
 .codex-tabs::-webkit-scrollbar{display:none;}
-.tab-btn{ background:linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.2)); border:1px solid rgba(255,255,255,0.05);color:var(--text-muted); font-family:var(--font-body);font-size:0.86rem;font-weight:800; padding:8px 16px;cursor:pointer; transition:all 0.25s cubic-bezier(0.4,0,0.2,1); border-radius:8px;flex:1 1 0;min-width:0; white-space:nowrap;word-break:keep-all; display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px; scroll-snap-align:start;position:relative; box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); }
+.tab-btn{ background:linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.2)); border:1px solid rgba(255,255,255,0.05);color:var(--text-muted); font-family:var(--font-body);font-size:0.86rem;font-weight:800; padding:8px 12px;cursor:pointer; transition:all 0.25s cubic-bezier(0.4,0,0.2,1); border-radius:8px;flex:1 1 0;min-width:0; white-space:nowrap;word-break:keep-all; display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px; scroll-snap-align:start;position:relative; box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); }
 .tab-btn:hover{color:var(--text);background:linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.1)); transform:translateY(-1px);}
 .tab-btn.active{ background:linear-gradient(to bottom, rgba(0,229,255,0.15), rgba(0,229,255,0.02)); color:var(--g); border-color: var(--g-border); box-shadow:0 4px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 10px rgba(0,229,255,0.1); text-shadow:0 0 12px rgba(0,229,255,0.5); transform:translateY(1px); }
 .tab-btn.active::after{ content:"";position:absolute;bottom:0;left:10%;width:80%;height:3px; border-radius:3px 3px 0 0; background:var(--g);box-shadow:0 -2px 10px var(--g-glow); }
-.tab-btn.has-active{color:#fff;}
-.codex-tabs .tab-btn.has-active .tab-sym{ color:var(--g); border-color:var(--g-border); box-shadow:0 0 8px var(--g-faint), inset 0 0 5px rgba(0,229,255,0.2); }
+.tab-btn.has-active { color:#10b981; border-color:rgba(16,185,129,0.4); background:linear-gradient(to bottom, rgba(16,185,129,0.1), rgba(0,0,0,0.2)); box-shadow: 0 0 10px rgba(16,185,129,0.15), inset 0 1px 0 rgba(255,255,255,0.05); text-shadow: 0 0 8px rgba(16,185,129,0.4); }
+.tab-btn.has-active:hover { color:#fff; }
+
+.cart-bar-btn {
+    width: 100%; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(4, 120, 87, 0.2));
+    border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; color: #34d399;
+    padding: 10px 16px; font-size: 0.9rem; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+.cart-bar-btn:hover { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(4, 120, 87, 0.3)); color: #fff; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transform:translateY(-1px); }
+.cart-bar-btn:active { transform:translateY(1px); }
+.cart-bar-btn.active { background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(4, 120, 87, 0.5)); border-color: #10b981; color: #fff; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+.cb-icon { font-size: 1.1rem; }
+.cb-count { background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(16,185,129,0.3); }
 
 .unit-card{ background:var(--card-bg); border:1px solid rgba(255,255,255,0.05); border-radius:12px; margin-bottom:8px;cursor:pointer; transition:transform 0.3s cubic-bezier(0.2,0.8,0.2,1),box-shadow 0.3s,background 0.3s,border-color 0.3s; display:flex;flex-direction:column;overflow:hidden;position:relative; box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03); }
 .unit-card::after { content:""; position:absolute; top:0; left:-100%; width:50%; height:100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); transform: skewX(-20deg); pointer-events: none; z-index: 5; }
@@ -171,10 +182,19 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .uc-grade{display:flex;align-items:center;gap:8px;}
 .uc-name-row{font-size:1.05rem;font-weight:900;white-space:nowrap;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,0.8);}
 .uc-recipe-row{display:flex;align-items:center;width:100%;flex-wrap:wrap;gap:5px;}
+
+/* 카드의 조작부 영역 규격 고정 */
 .uc-ctrl{display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:96px;flex-shrink:0;padding-left:10px;border-left:1px solid rgba(255,255,255,0.04);gap:8px;}
 .recipe-vertical{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
 
-/* 등급별 태그 & 뱃지 설정 클래스화 */
+/* 장바구니 미니 뱃지 (스텝퍼와 규격 완벽 통일) */
+.uc-cart-badge {
+    background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #34d399; font-size: 0.85rem; font-weight: 900; padding: 0 10px; border-radius: 8px; /* Match stepper */
+    display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); z-index: 5;
+    height: 32px; width: 100%; flex-shrink: 0; white-space: nowrap;
+}
+
 .gtag{ display:inline-flex;align-items:center;justify-content:center; padding:3px 10px;border:1px solid currentColor;border-radius:20px; font-weight:900;font-family:var(--font-body);font-size:0.7rem;letter-spacing:0.5px; background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.3)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.5); text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 .gtag.sh-integrated{ padding:4px 12px;font-size:0.8rem; background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(0,0,0,0.4)); border-color: rgba(255,215,0,0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 10px rgba(255,215,0,0.2); }
 .grade-매직 { border-color: rgba(96,165,250,0.4); color: var(--grade-magic); }
@@ -194,11 +214,11 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 
 .recipe-tooltip{position:absolute;z-index:var(--z-tooltip);background:linear-gradient(160deg, rgba(20,28,40,0.98), rgba(8,12,18,0.98));border:1px solid var(--g);border-radius:14px;padding:16px;box-shadow:0 25px 60px rgba(0,0,0,0.95),0 0 30px rgba(0,229,255,0.15), inset 0 1px 0 rgba(255,255,255,0.1);opacity:0;transition:opacity 0.2s cubic-bezier(0.4,0,0.2,1);width:300px;pointer-events:none; max-height: 80vh; overflow-y: auto;}
 .recipe-tooltip.active{opacity:1;pointer-events:auto;}
-
 .tooltip-header{font-weight:900;font-size:1.05rem;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px;margin-bottom:10px; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .tooltip-footer{font-size:0.75rem;color:var(--text-sub);margin-top:12px;text-align:center; background:rgba(0,0,0,0.3); padding:6px; border-radius:6px;}
 
-.smart-stepper{ display:flex;align-items:stretch;width:100%;height:32px; background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07); border-radius:8px;overflow:hidden; box-shadow: none; }
+/* 스텝퍼 기본 규격 설정 */
+.smart-stepper{ display:flex;align-items:stretch;width:100%;height:32px; background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07); border-radius:8px;overflow:hidden; box-shadow: none; flex-shrink:0; }
 .smart-stepper button{ flex:3;background:transparent;border:none;color:var(--text-muted); font-size:1.1rem;font-weight:900;cursor:pointer;transition:all 0.2s; display:flex;align-items:center;justify-content:center; }
 .smart-stepper button:hover{background:rgba(0,229,255,0.08);color:#fff; text-shadow:0 0 8px var(--g);}
 .smart-stepper button:active{background:rgba(0,229,255,0.15);color:var(--g);}
@@ -207,6 +227,7 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .unit-card.active .smart-stepper{ background:transparent; border-color:rgba(0,229,255,0.3); box-shadow:0 0 10px rgba(0,229,255,0.06); }
 .unit-card.active .smart-stepper button{color:var(--g);}
 .unit-card.active .smart-stepper .ss-val{ color:#fff;text-shadow:0 0 12px var(--g-glow), 0 2px 5px rgba(0,0,0,0.8); background:transparent; }
+
 .magic-grid{display:grid;grid-template-columns:repeat(5,1fr);grid-auto-rows:minmax(0,1fr);gap:clamp(6px,1.5vh,12px);height:100%;flex:1;}
 
 .cost-slot{ background: #040609; border:1px solid rgba(255,255,255,0.04);border-radius:12px; display:flex;flex-direction:column;align-items:center;justify-content:center; padding:clamp(4px,1vh,8px);width:100%;height:100%; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); position:relative;overflow:hidden; box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.04);min-height:0; }
@@ -228,7 +249,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .cost-slot.is-skill-slot.active .cost-val{color:#fff;text-shadow:0 0 20px rgba(236,72,153,0.6), 0 2px 5px rgba(0,0,0,0.8), 0 0 10px var(--grade-hell);}
 .cost-name{font-size:clamp(0.7rem,1.5vh,0.9rem);color:var(--text-sub);margin-top:clamp(4px,1vh,8px);font-weight:800;text-align:center;line-height:1.2;word-break:keep-all;width:100%;letter-spacing:0.5px;padding-bottom:clamp(4px,1vh,8px);}
 
-/* 갓오타/메시브 특수 표시부용 분리 클래스 */
 .sp-wrap { display: flex; width: 100%; height: 100%; }
 .sp-col { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .sp-col-border { border-right: 1px solid rgba(251,191,36,0.3); }
@@ -237,10 +257,9 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .sp-label { font-size: 0.7rem; color: rgba(255,255,255,0.7); letter-spacing: -0.5px; }
 
 .deduct-group{ background:linear-gradient(to bottom, rgba(10,15,25,0.6), rgba(5,8,12,0.8)); border:1px solid rgba(255,255,255,0.05);border-radius:16px; padding:18px;margin-bottom:18px; box-shadow:inset 0 5px 20px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.3); }
-.deduct-group-title{font-size:1.05rem;font-weight:900;font-family:var(--font-display);color:#fff;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px;letter-spacing:1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+.deduct-group-title{font-size:1.05rem;font-weight:900;font-family:var(--font-display);color:#fff;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:12px;margin-bottom:16px;display:flex;align-items:center;letter-spacing:1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
 .deduct-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));gap:12px;}
 
-/* 동적 보드 그룹 커스텀 클래스 */
 .grp-special { border-color: rgba(251,191,36,0.3); background: linear-gradient(to bottom, rgba(30,25,10,0.6), rgba(15,10,5,0.8)); }
 .grp-top { margin-bottom: 0; }
 .grp-icon { margin-right: 6px; }
@@ -248,7 +267,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .grp-icon-hidden { color: var(--grade-hidden); }
 .grp-icon-legend { color: var(--grade-legend); }
 
-/* 빈 상태 메시지 */
 .empty-msg { text-align: center; padding: 40px 20px; color: var(--text-sub); font-weight: bold; width: 100%; display: none; line-height: 1.6; font-size: 1.05rem; }
 .empty-icon-text { font-size: 2rem; margin-bottom: 12px; color: var(--g-dim); }
 
@@ -268,10 +286,16 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .d-name:hover { background: rgba(255,255,255,0.03); cursor:help; }
 .d-name .gtag{font-size:0.68rem;padding:2px 8px;}
 .d-cond-text { display: none; text-align: center; font-size: 0.8rem; color: #fde047; font-weight: bold; margin-top: 2px; margin-bottom: 6px; letter-spacing: -0.5px; word-break: keep-all; }
-.d-bottom-area { position: relative; padding: 10px 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.05); }
+.d-bottom-area { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.05); }
 .req-text { font-family: var(--font-mono); font-size: 1.2rem; color: #fbbf24; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,1); }
 .req-label { font-size: 0.8rem; color: var(--text-sub); margin-left: 4px; font-family: var(--font-body); }
-.craft-wrap { position: absolute; right: 12px; }
+
+/* 체크리스트 부분 완료 컨트롤 */
+.craft-wrap { display:flex; align-items:center; gap:6px; }
+.partial-ctrl { display:flex; align-items:center; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:6px; overflow:hidden; }
+.pc-btn { background:transparent; border:none; color:var(--text); padding:4px 10px; font-weight:bold; cursor:pointer; font-size:0.95rem; transition:0.2s; white-space:nowrap; }
+.pc-btn:hover:not(:disabled) { background:rgba(16,185,129,0.3); color:#34d399; }
+.pc-btn:disabled { opacity:0.3; cursor:not-allowed; }
 
 .btn-complete { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(4,120,87,0.4)); border: 1px solid rgba(16,185,129,0.5); color: #34d399; font-weight: 900; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap; }
 .btn-complete:hover { background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(4,120,87,0.6)); color: #fff; box-shadow: 0 4px 15px rgba(16,185,129,0.4); transform: translateY(-1px); border-color: #10b981; }
@@ -287,6 +311,21 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 
 .empty-icon { width: 36px; height: 36px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0.2; }
 
+/* 🌟 중간 해상도 (720px - 950px) 겹침 완벽 해결 로직 (Stacking 구조 고도화) */
+@media(min-width: 720px) and (max-width: 950px) {
+    .uc-wrap { flex-wrap: wrap; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+    .uc-identity { width: 100%; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; }
+    .uc-recipe-col { width: 100%; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: 4px; }
+    
+    /* 조작부(uc-ctrl)를 가로로 늘리고 뱃지와 스텝퍼를 나란히 배치 */
+    .uc-ctrl { width: 100%; flex-direction: row; align-items: center; justify-content: flex-end; padding-left: 0; border-left: none; margin-top: 4px; gap: 10px; }
+    
+    /* 내부 스텝퍼와 뱃지 사이즈 제한 및 Flex 제어 */
+    .smart-stepper { width: 120px; height: 32px; flex: 0 0 auto; }
+    .uc-cart-badge { width: 100px; height: 32px; flex: 0 0 auto; margin-bottom: 0; }
+}
+
+/* 모바일 해상도 (719px 이하) Layout 교정 */
 @media(max-width:719px){
     body .main-layout .panel-header{ padding:6px 12px;min-height:40px;gap:6px;align-items:center;justify-content:flex-start; position: sticky; top: 0; z-index: 1000; background: rgba(10,15,25,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
     body .main-layout .panel-codex .panel-header>div:first-child{flex-direction:column;align-items:flex-start;gap:12px;padding:12px 16px;height:auto;}
@@ -311,15 +350,20 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
     body .main-layout .uc-identity{display:flex; flex-direction:column; justify-content:center; align-items:flex-start; min-width:0; width:100%;}
     body .main-layout .uc-name-row{font-size:0.95rem; display:flex; flex-wrap:wrap; gap:6px;}
     body .main-layout .uc-recipe-col{padding:10px 4px; border-top:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.06); margin:4px 0; width:100%;}
-    body .main-layout .uc-ctrl{width:100%; flex-direction:row; justify-content:space-between; align-items:center; padding:6px 0 0 0; border-left:none; gap:10px;}
+    
+    /* 조작부(uc-ctrl) 모바일 가로 배열 교정 */
+    body .main-layout .uc-ctrl{width:100%; flex-direction:row; justify-content:flex-end; align-items:center; padding:6px 0 0 0; border-left:none; gap:10px;}
 
-    body .main-layout .smart-stepper { flex:2; height: 34px; }
+    body .main-layout .smart-stepper { flex: 0 0 110px; height: 34px; max-width: 120px; }
+    body .main-layout .uc-cart-badge { flex: 0 0 90px; height: 34px; max-width: 100px; margin-bottom: 0; }
+    
     body .main-layout .deduct-group{padding:12px;margin-bottom:12px;}
     body .main-layout .deduct-group-title{font-size:0.95rem;padding-bottom:10px;margin-bottom:12px;}
     body .main-layout .deduct-grid{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:8px;}
     body .main-layout .deduct-slot{max-height: none;}
     body .main-layout .d-name{font-size:0.78rem;padding:6px;}
-    body .main-layout .btn-complete { font-size: 0.75rem; padding: 4px 10px; }
+    body .main-layout .d-bottom-area { justify-content: space-between; gap: 8px; }
+    body .main-layout .btn-complete { font-size: 0.75rem; padding: 4px 8px; }
     body .main-layout .d-bottom-area .req-text { font-size: 1rem; }
     body .main-layout .jewel-mini-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     body .main-layout .jwm-item { padding: 10px 8px; }
@@ -373,6 +417,11 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .btn-guide-skip:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .btn-guide-next { background: var(--g); border: none; color: #000; font-weight: 900; padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; box-shadow: 0 0 10px var(--g-glow); font-family: var(--font-body); }
 .btn-guide-next:hover { background: #fff; box-shadow: 0 0 15px #fff; transform: translateY(-1px); }
+
+/* 🌟 가이드 다중 패널 노출 (Dim 뚫기) 완벽 관통 솔루션 */
+.guide-exposed { position: relative; z-index: var(--z-guide-highlight) !important; pointer-events: auto !important; }
+/* 개별 패널(hud-panel)이 관통 대상일 때만 테두리 글로우 효과 부여 */
+.hud-panel.guide-exposed { box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 15px rgba(255,255,255,0.1) !important; border-color: var(--g) !important; }
 
 @keyframes costFlashCyan {
     0% { background-color: transparent; border-color: var(--g-border); box-shadow: 0 0 0px transparent; }
