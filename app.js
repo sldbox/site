@@ -11,7 +11,7 @@
             strictMatchTerms: ['아몬', '데하카']
         },
         essence: {
-            excludedIds: [], // 미니성큰 삭제에 따른 데드코드 제거로 무결성 확보
+            excludedIds: [],
             mapping: {
                 "테바": "코랄", "테메": "코랄",
                 "토바": "아이어", "토메": "아이어",
@@ -163,7 +163,10 @@
     function saveNexusState() {
         try {
             localStorage.setItem('nexusSaveData', JSON.stringify({ active: [...activeUnits], completed: [...completedUnits] }));
-        } catch(e) { console.warn("[오류] 데이터 저장 실패", e); }
+        } catch(e) {
+            console.warn("[오류] 데이터 저장 실패", e);
+            showToast("저장 공간이 부족하여 데이터를 저장할 수 없습니다.", true);
+        }
     }
 
     function calcEssenceRecursiveFast(uid, counts, visited) {
@@ -301,7 +304,7 @@
 
     const _cycleTitles = [
         '개복디 넥서스',
-        '<div style="line-height:1.2; padding-top:2px;">제작자 <span style="font-weight:400;opacity:0.6;">|</span> 회장<br><span style="font-size:0.65rem; color:var(--text-sub); font-family:var(--font-mono); font-weight:normal;">ID : 3-S2-1-2461127</span></div>'
+        '<div class="nexus-creator-info"><span class="cr-role">제작자</span><span class="cr-sep">|</span><span class="cr-name">회장</span><span class="cr-id">ID : 3-S2-1-2461127</span></div>'
     ];
     let _cycleTitleIdx = 0, _titleInterval = null, _jewelPanelOpen = false;
 
@@ -526,7 +529,10 @@
             let processedMap = new Map();
 
             while (queue.length > 0) {
-                if (guard++ >= SYSTEM_CONFIG.policy.maxLoopQueue) break;
+                if (guard++ >= SYSTEM_CONFIG.policy.maxLoopQueue) {
+                    console.warn("[시스템 경고] 재료 탐색 엔진 무한 루프 가드 발동 (순환 참조 의심)");
+                    break;
+                }
                 let currentLevel = [...queue]; queue = []; queueSet.clear();
                 currentLevel.forEach(uid => {
                     let totalNeeded = defMap.get(uid) || 0;
@@ -586,40 +592,62 @@
         return { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason };
     }
 
+    // [개선] 스킬류 자동 병합 프리패스 기능 추가
     function attemptAutoMerge() {
         let merged = false, loopCount = 0;
         do {
-            merged = false; if (loopCount++ >= SYSTEM_CONFIG.policy.maxLoopMerge) break;
+            merged = false;
+            if (loopCount++ >= SYSTEM_CONFIG.policy.maxLoopMerge) {
+                console.warn("[시스템 경고] 자동 조립 엔진 무한 루프 가드 발동");
+                break;
+            }
             let { reqMap } = calculateDeductedRequirements();
             unitMap.forEach((u, uid) => {
                 if (activeUnits.has(uid) || !u.parsedRecipe?.length || (reqMap.get(uid) || 0) <= 0) return;
                 let maxCraftable = Number.MAX_SAFE_INTEGER, hasValidRecipe = false;
-                const check = (id, qty, isTool) => { hasValidRecipe = true; let comp = completedUnits.get(id) || 0; if (isTool) { if (comp < 1) maxCraftable = 0; } else maxCraftable = Math.min(maxCraftable, Math.floor(comp / qty)); };
+
+                const check = (id, qty, isTool) => {
+                    hasValidRecipe = true;
+                    if (SYSTEM_CONFIG.specialRenderIds.includes(id)) return;
+
+                    let comp = completedUnits.get(id) || 0;
+                    if (isTool) { if (comp < 1) maxCraftable = 0; }
+                    else maxCraftable = Math.min(maxCraftable, Math.floor(comp / qty));
+                };
 
                 u.parsedRecipe.forEach(child => child.id && check(child.id, child.qty, isToolRequirement(uid, child.id)));
                 u.parsedCost?.forEach(pc => SYSTEM_CONFIG.specialCostKeys.includes(pc.key) && check(pc.key, pc.qty, false));
 
                 let mergeAmount = Math.min(hasValidRecipe ? maxCraftable : 0, reqMap.get(uid));
                 if (mergeAmount > 0) {
-                    u.parsedRecipe.forEach(child => { if (child.id && !isToolRequirement(uid, child.id)) completedUnits.set(child.id, (completedUnits.get(child.id) || 0) - (child.qty * mergeAmount)); });
-                    u.parsedCost?.forEach(pc => { if (SYSTEM_CONFIG.specialCostKeys.includes(pc.key)) completedUnits.set(pc.key, (completedUnits.get(pc.key) || 0) - (pc.qty * mergeAmount)); });
+                    u.parsedRecipe.forEach(child => {
+                        if (child.id && !isToolRequirement(uid, child.id) && !SYSTEM_CONFIG.specialRenderIds.includes(child.id)) {
+                            completedUnits.set(child.id, (completedUnits.get(child.id) || 0) - (child.qty * mergeAmount));
+                        }
+                    });
+                    u.parsedCost?.forEach(pc => {
+                        if (SYSTEM_CONFIG.specialCostKeys.includes(pc.key) && !SYSTEM_CONFIG.specialRenderIds.includes(pc.key)) {
+                            completedUnits.set(pc.key, (completedUnits.get(pc.key) || 0) - (pc.qty * mergeAmount));
+                        }
+                    });
                     completedUnits.set(uid, (completedUnits.get(uid) || 0) + mergeAmount); merged = true;
                 }
             });
         } while (merged);
     }
 
+    // [개선] 스킬류 수동 완료 시 차감 방지 로직 적용
     function deleteCompletedRecipe(uid, multiplier) {
         const u = unitMap.get(uid); if (!u) return;
         u.parsedRecipe?.forEach(child => {
-            if (child.id && !isToolRequirement(uid, child.id)) {
+            if (child.id && !isToolRequirement(uid, child.id) && !SYSTEM_CONFIG.specialRenderIds.includes(child.id)) {
                 let needed = child.qty * multiplier, comp = completedUnits.get(child.id) || 0, consume = Math.min(needed, comp);
                 if (consume > 0) completedUnits.set(child.id, comp - consume);
                 if (needed - consume > 0) deleteCompletedRecipe(child.id, needed - consume);
             }
         });
         u.parsedCost?.forEach(pc => {
-            if (SYSTEM_CONFIG.specialCostKeys.includes(pc.key)) {
+            if (SYSTEM_CONFIG.specialCostKeys.includes(pc.key) && !SYSTEM_CONFIG.specialRenderIds.includes(pc.key)) {
                 let needed = pc.qty * multiplier, comp = completedUnits.get(pc.key) || 0, consume = Math.min(needed, comp);
                 if (consume > 0) completedUnits.set(pc.key, comp - consume);
             }
@@ -629,14 +657,20 @@
     let _completeLock = new Set();
 
     function completeUnit(uid, amount) {
-        if (_completeLock.has(uid)) return; _completeLock.add(uid);
-        const reqVal = parseInt(getEl(`d-req-${uid}`)?.innerText || 0);
-        const processQty = amount !== undefined ? amount : reqVal;
+        if (_completeLock.has(uid)) return;
+        _completeLock.add(uid);
 
-        if (processQty > 0 && reqVal >= processQty) {
+        const reqVal = parseInt(getEl(`d-req-${uid}`)?.innerText || 0);
+        const requestedQty = amount !== undefined ? amount : reqVal;
+        const processQty = Math.min(requestedQty, reqVal);
+
+        if (processQty > 0) {
             deleteCompletedRecipe(uid, processQty);
             completedUnits.set(uid, (completedUnits.get(uid) || 0) + processQty);
-            toggleHighlight(null); attemptAutoMerge(); triggerHaptic(); debouncedUpdateAllPanels();
+            toggleHighlight(null);
+            attemptAutoMerge();
+            triggerHaptic();
+            debouncedUpdateAllPanels();
         }
         setTimeout(() => _completeLock.delete(uid), 250);
     }
@@ -689,6 +723,7 @@
         + getGrp('group-top', `레어 - 레전드 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top', 1);
     }
 
+    // [개선] 스킬류 자동 완료 시각적 피드백 연동
     function updateDeductionBoard() {
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calculateDeductedRequirements();
         const directMaterials = new Set(), fragmentMap = new Map();
@@ -696,38 +731,39 @@
 
         const updateSlot = (id, netReq, baseReq, reasons) => {
             const wrapEl = getEl(`d-slot-wrap-${id}`); if (!wrapEl) return;
-            if (baseReq > 0) {
+            const isTarget = activeUnits.has(id);
+            const isSkill = SYSTEM_CONFIG.specialRenderIds.includes(id);
+
+            if (baseReq > 0 && !isTarget) {
                 wrapEl.classList.add('is-visible');
-                const rCon = getEl(`d-reason-${id}`), cEl = getEl(`d-cond-${id}`), isTarget = activeUnits.has(id);
+                wrapEl.style.display = 'flex';
+                const rCon = getEl(`d-reason-${id}`), cEl = getEl(`d-cond-${id}`);
+
                 if (reasons?.size > 0 && netReq > 0) {
                     if (rCon) { rCon.innerHTML = Array.from(reasons.entries()).map(([rId, i]) => `<span class="d-reason-tag" data-action="toggleHighlight" data-uid="${rId}">${i.text || i}</span>`).join(''); rCon.style.display = 'flex'; }
                     if (cEl) { let conds = [...new Set(Array.from(reasons.values()).map(i => i.cond).filter(Boolean))]; cEl.style.display = conds.length ? 'block' : 'none'; cEl.innerHTML = conds.map(c => `[${c}]`).join(' / '); }
                 } else { if (rCon) rCon.style.display = 'none'; if (cEl) cEl.style.display = 'none'; }
-                wrapEl.style.order = isTarget ? "-999" : (isSpecialRender(id) ? "999" : "-1");
+                wrapEl.style.order = isSkill ? "999" : "-1";
                 const reqEl = getEl(`d-req-${id}`), cWrap = getEl(`craft-wrap-${id}`);
 
-                if (netReq > 0) {
+                if (isSkill) {
+                    wrapEl.classList.remove('has-target');
+                    wrapEl.classList.add('is-completed');
+                    if (reqEl) reqEl.innerText = '0';
+                    if (cWrap) {
+                        const displayQty = netReq > 0 ? ` (${netReq}개)` : '';
+                        cWrap.innerHTML = `<span style="font-size:0.85rem; color:#f472b6; font-weight:bold; padding-right:4px;">⚡ 자동 적용됨${displayQty}</span>`;
+                    }
+                } else if (netReq > 0) {
                     wrapEl.classList.remove('is-completed'); wrapEl.classList.add('has-target'); if (reqEl) reqEl.innerText = netReq;
                     if (cWrap) {
-                        let isFinalReady = isTarget && !unitMap.get(id)?.parsedRecipe?.some(pr => (completedUnits.get(pr.id)||0) < (isToolRequirement(id, pr.id)?1:pr.qty*netReq)) && !unitMap.get(id)?.parsedCost?.some(pc => SYSTEM_CONFIG.specialCostKeys.includes(pc.key) && (completedUnits.get(pc.key)||0)<pc.qty*netReq);
-                        let completeBtnHtml = isFinalReady ? `<button class="btn-complete final-target" data-action="completeUnit" data-uid="${id}">✨ 최종완료</button>` : `<button class="btn-complete" data-action="completeUnit" data-uid="${id}">✔ 전체완료</button>`;
-
+                        let completeBtnHtml = `<button class="btn-complete" data-action="completeUnit" data-uid="${id}">✔ 전체완료</button>`;
                         let batchSize = SYSTEM_CONFIG.policy.craftBatch?.[id] || 1;
 
                         if (netReq > batchSize || (batchSize > 1 && netReq > 0)) {
-                            cWrap.innerHTML = `
-                                <div class="partial-ctrl">
-                                    <button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="${batchSize}" title="${batchSize}개씩 조립 완료">+ ${batchSize}개 완료</button>
-                                </div>
-                                ${completeBtnHtml}
-                            `;
+                            cWrap.innerHTML = `<div class="partial-ctrl"><button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="${batchSize}" title="${batchSize}개씩 조립 완료">+ ${batchSize}개 완료</button></div>${completeBtnHtml}`;
                         } else if (netReq > 1) {
-                            cWrap.innerHTML = `
-                                <div class="partial-ctrl">
-                                    <button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1" title="1개씩 조립 완료">+ 1개 완료</button>
-                                </div>
-                                ${completeBtnHtml}
-                            `;
+                            cWrap.innerHTML = `<div class="partial-ctrl"><button class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1" title="1개씩 조립 완료">+ 1개 완료</button></div>${completeBtnHtml}`;
                         } else {
                             cWrap.innerHTML = completeBtnHtml;
                         }
@@ -738,15 +774,15 @@
                     if (cWrap) cWrap.innerHTML = `<span style="font-size:0.85rem; color:var(--g-dim); font-weight:bold; padding-right:4px;">✨ 완료됨</span>`;
                 }
 
-                let tParent = (directMaterials.has(id) || isTarget) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
+                let tParent = directMaterials.has(id) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
                 if (tParent && wrapEl.parentElement !== tParent) { if (!fragmentMap.has(tParent)) fragmentMap.set(tParent, document.createDocumentFragment()); fragmentMap.get(tParent).appendChild(wrapEl); }
-            } else { wrapEl.classList.remove('is-visible'); }
+            } else {
+                wrapEl.classList.remove('is-visible');
+                wrapEl.style.display = 'none';
+            }
         };
 
-        SYSTEM_CONFIG.specialCostKeys.forEach(k => {
-            updateSlot(k, specialReq[k], baseSpecialReq[k], specialReason[k]);
-        });
-
+        SYSTEM_CONFIG.specialCostKeys.forEach(k => { updateSlot(k, specialReq[k], baseSpecialReq[k], specialReason[k]); });
         unitMap.forEach(u => {
             if (["레어", "에픽", "유니크", "헬", "레전드", "히든", "슈퍼히든"].includes(u.grade) || isSpecialRender(u.id)) {
                 if (SYSTEM_CONFIG.specialCostKeys.includes(u.id)) return;
@@ -802,7 +838,6 @@
             }
         }
 
-        // 전체 선택 버튼 상태 및 텍스트 동적 동기화 시스템
         const selectAllBtn = getEl('btnSelectAllTab');
         if (selectAllBtn) {
             if (_isCartMode) {
@@ -836,11 +871,9 @@
         const allSelected = catItems.every(item => activeUnits.has(item.id));
 
         if (allSelected) {
-            // 전체 해제 처리
             catItems.forEach(item => activeUnits.delete(item.id));
             showToast(`✖ ${currentTab.name} 분류 전체 선택 해제`);
         } else {
-            // 전체 선택 처리
             catItems.forEach(item => {
                 if (!activeUnits.has(item.id)) {
                     activeUnits.set(item.id, 1);
