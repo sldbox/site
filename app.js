@@ -302,7 +302,6 @@
         debouncedUpdateAllPanels();
     }
 
-    // [개선 사항] 이질감을 줄이기 위해 ID 표기 공백 정돈 및 정렬 클래스 최적화 연동
     const _cycleTitles = [
         '개복디 넥서스',
         '<div class="nexus-creator-info"><span class="cr-role">제작자</span><span class="cr-sep">|</span><span class="cr-name">회장</span><span class="cr-id">ID: 3-S2-1-2461127</span></div>'
@@ -698,22 +697,26 @@
     function renderDeductionBoard() {
         const renderSlot = (id, n, g, pid) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-orig-parent="${pid}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span>${n}</div><div id="d-cond-${id}" class="d-cond-text"></div><div class="d-bottom-area"><div class="req-text"><span id="d-req-${id}">0</span><span class="req-label">필요</span></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div></div>`;
 
-        const getGrp = (id, t, items, pid, exClass='', resetLevel=0) => `
-        <div class="deduct-group ${exClass}" id="${id}">
-            <div class="deduct-group-title" style="justify-content:space-between;">
-                <div style="display:flex; align-items:center; gap:10px;"><span class="grp-icon grp-icon-super">✨</span> ${t}</div>
-                ${resetLevel > 0 ? `<button class="btn-text-link" data-action="resetGroup" data-level="${resetLevel}" style="color:#f87171; text-decoration:none; padding:4px 8px; background:rgba(239,68,68,0.1); border-radius:6px; border:1px solid rgba(239,68,68,0.3);">⟲ 하위 통합 초기화</button>` : ''}
+        const getGrp = (id, t, items, pid, exClass='', resetLevel=0, isCollapsed=false) => `
+        <div class="deduct-group ${exClass} ${isCollapsed ? 'collapsed' : ''}" id="${id}">
+            <div class="deduct-group-title" data-action="toggleGroup" data-grid-id="${pid}" style="cursor:pointer; user-select:none; justify-content:space-between; transition:opacity 0.2s;">
+                <div style="display:flex; align-items:center; gap:8px; pointer-events:none;">
+                    <span class="grp-toggle-icon" style="display:inline-block; transition:transform 0.2s; transform:${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; font-size:0.8rem;">▼</span>
+                    <span class="grp-icon grp-icon-super">✨</span> <span class="grp-title-text">${t}</span>
+                </div>
+                ${resetLevel > 0 ? `<button class="btn-text-link" data-action="resetGroup" data-level="${resetLevel}" style="color:#f87171; text-decoration:none; padding:4px 8px; background:rgba(239,68,68,0.1); border-radius:6px; border:1px solid rgba(239,68,68,0.3); pointer-events:auto;">⟲ 하위 통합 초기화</button>` : ''}
             </div>
-            <div class="deduct-grid" id="${pid}">${items.map(u => renderSlot(u.id, u.name, u.grade, pid)).join('')}</div>
+            <div class="deduct-grid" id="${pid}" style="${isCollapsed ? 'display:none;' : ''}">${items.map(u => renderSlot(u.id, u.name, u.grade, pid)).join('')}</div>
         </div>`;
 
         const allUnits = Array.from(unitMap.values());
         const specialUnits = SYSTEM_CONFIG.specialRenderIds.map(id => unitMap.get(id) || { id, name: id, grade: '레어' });
 
         getEl('deductionBoard').innerHTML = `<div id="deduct-empty-msg" class="empty-msg"><div class="empty-icon-text">✨</div> 목표 유닛을 선택하면<br>필요한 재료 목록이 이곳에 생성됩니다.</div>`
-        + getGrp('group-special', `목표 유닛 및 직속 재료`, specialUnits, 'grid-special', 'grp-special', 3)
-        + getGrp('group-hidden', `히든 등급 재료`, allUnits.filter(u => u.grade === "히든" && !isSpecialRender(u.id)), 'grid-hidden', '', 2)
-        + getGrp('group-top', `레어 - 레전드 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top', 1);
+        + getGrp('group-special', `직속 재료`, [], 'grid-special', 'grp-special', 3, false)
+        + getGrp('group-hidden', `히든 재료`, allUnits.filter(u => u.grade === "히든" && !isSpecialRender(u.id)), 'grid-hidden', '', 2, false)
+        + getGrp('group-top', `하위 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top', 1, false)
+        + getGrp('group-auto', `자동완성 재료`, specialUnits, 'grid-auto', 'grp-auto', 0, true);
     }
 
     function updateDeductionBoard() {
@@ -771,7 +774,13 @@
                     wrapEl.classList.remove('is-visible');
                 }
 
-                let tParent = directMaterials.has(id) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
+                let tParent;
+                if (isSkill) {
+                    tParent = getEl('grid-auto');
+                } else {
+                    tParent = directMaterials.has(id) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
+                }
+
                 if (tParent && wrapEl.parentElement !== tParent) { if (!fragmentMap.has(tParent)) fragmentMap.set(tParent, document.createDocumentFragment()); fragmentMap.get(tParent).appendChild(wrapEl); }
             } else {
                 wrapEl.classList.remove('is-visible');
@@ -1005,6 +1014,17 @@
             case 'toggleSelectAllTab': toggleSelectAllTab(); break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
+            case 'toggleGroup':
+                const grp = actionEl.closest('.deduct-group');
+                const gridEl = getEl(actionEl.dataset.gridId);
+                const icon = actionEl.querySelector('.grp-toggle-icon');
+                if (grp) {
+                    grp.classList.toggle('collapsed');
+                    let isCol = grp.classList.contains('collapsed');
+                    if (gridEl) gridEl.style.display = isCol ? 'none' : 'grid';
+                    if (icon) icon.style.transform = isCol ? 'rotate(-90deg)' : 'rotate(0deg)';
+                }
+                break;
             case 'addComplete':
                 e.stopPropagation();
                 let batch = parseInt(actionEl.dataset.batch || 1, 10);
