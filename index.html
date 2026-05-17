@@ -39,26 +39,22 @@
     <aside class="hud-panel panel-codex" id="leftPanel">
         <div class="corner-tl"></div><div class="corner-br"></div>
         <header class="panel-header codex-panel-header">
-            <!-- 1행: 제목 -->
             <div class="codex-hdr-top">
                 <div class="header-scanline"></div>
                 <div class="nexus-main-title" id="nexusCycleTitle">개복디 넥서스</div>
             </div>
-            <!-- 2행: 버튼 3개 -->
             <nav class="codex-hdr-nav">
-                <button class="btn-hdr-sm neon codex-nav-btn btn-guide" data-action="openStaticGuide">💡 가이드</button>
+                <button class="btn-hdr-sm codex-nav-btn btn-guide btn-guide-emphasis" data-action="openStaticGuide">💡 이용 가이드</button>
                 <button class="btn-hdr-sm neon codex-nav-btn btn-notice" data-action="openNoticeModal">📢 공지/건의</button>
                 <button class="btn-hdr-sm codex-nav-btn btn-jewel" id="btnJewelToggle" data-action="toggleJewelPanel" aria-label="쥬얼 도감 열기" aria-expanded="false">✦ 쥬얼도감</button>
             </nav>
-            <!-- 3행: 검색창 -->
             <div id="classicSearchContainer">
                 <div class="search-wrap" id="searchWrap">
-                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="유닛 검색 또는 다중 커맨드 (예: 타이커스*8/아몬)" autocomplete="off" role="combobox" aria-controls="searchResults" aria-expanded="false" aria-autocomplete="list">
+                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="레전드·히든·슈퍼히든 검색 또는 타이커스*8/아몬" autocomplete="off" role="combobox" aria-controls="searchResults" aria-expanded="false" aria-autocomplete="list">
                     <div class="search-results" id="searchResults" role="listbox" aria-live="polite"></div>
                     <div id="activeRoster" class="active-roster"></div>
                 </div>
             </div>
-            <!-- 4행: 종족 탭 + 하단 3버튼 -->
             <nav class="codex-tabs-wrap" id="codexTabsWrap">
                 <div class="codex-tabs" id="codexTabs" role="tablist"></div>
                 <div class="codex-action-row">
@@ -91,7 +87,7 @@
                     </button>
                 </div>
             </header>
-            <div class="panel-body" style="padding:12px;">
+            <div class="panel-body" style="padding:12px; position:relative;">
                 <div class="magic-grid" id="magicDashboard"></div>
             </div>
         </article>
@@ -114,185 +110,285 @@
 </main>
 
 <div id="jewelModalOverlay" class="notice-modal-overlay" style="display:none; z-index: 25000;">
-    <div id="jewelModalBox" class="notice-modal" style="max-width: 800px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;" role="dialog" aria-modal="true" aria-labelledby="jewelModalTitle">
-        <header class="notice-header" style="background:rgba(255,215,0,0.05);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span class="ph-icon" aria-hidden="true" style="color:#FFD700; border-color:#FFD700;">✦</span>
-                <h2 id="jewelModalTitle" style="font-family:var(--font-display); font-size:1.1rem; color:#FFD700; text-shadow:0 0 10px rgba(255,215,0,0.5); margin:0; letter-spacing:1px;">쥬얼 도감</h2>
+    <div id="jewelModalBox" class="notice-modal jewel-modal" role="dialog" aria-modal="true" aria-labelledby="jewelModalTitle">
+        <header class="notice-header jewel-modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="jewel-hdr-icon">✦</span>
+                <div>
+                    <h2 id="jewelModalTitle" class="jewel-hdr-title">쥬얼 도감</h2>
+                    <p class="jewel-hdr-sub"><span style="color:#c084fc;">전설 등급</span> · <span style="color:#fbbf24;">✦ 신화 등급</span> 능력치를 확인하세요</p>
+                </div>
             </div>
             <button class="notice-close" data-action="closeJewelPanel" aria-label="창 닫기">✖</button>
         </header>
-        <div class="notice-body" style="padding:20px; overflow-y:auto; background:transparent; flex:1;">
+        <div class="notice-body" style="padding:16px; overflow-y:auto; background:transparent; flex:1;">
             <div id="jewelMiniGrid" class="jewel-mini-grid"></div>
         </div>
     </div>
 </div>
 
 <div id="noticeModal" class="notice-modal-overlay" style="display:none; z-index: 25000;">
-    <div class="notice-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <header class="notice-header">
-            <h2 id="modalTitle">📢 공지사항 및 건의</h2>
+    <div class="notice-modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" style="max-width: 360px; height: auto;">
+        <header class="notice-header guide-modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="guide-hdr-icon">📢</span>
+                <div>
+                    <h2 id="modalTitle" class="guide-hdr-title">공지사항 및 건의</h2>
+                    <p class="guide-hdr-sub">오류 제보 및 기능 건의를 환영합니다</p>
+                </div>
+            </div>
             <button class="notice-close" data-action="closeNoticeModal" aria-label="창 닫기">✖</button>
         </header>
-        <div class="notice-body" style="user-select: text; -webkit-user-select: text;">
-            <p><strong>개복디 넥서스</strong>를 이용해 주셔서 감사합니다!</p>
-            <p style="margin-top:10px;">
-                사용 중 발생하는 <strong>오류 제보</strong>나 더 나은 서비스를 위한<br>
-                <strong>기능 건의/피드백</strong>은 언제든 환영합니다.
-            </p>
-            <div class="contact-box">
-                <div><span class="c-icon" aria-hidden="true">🎮</span> 인게임 귓말: <strong style="color:var(--grade-magic);">회장</strong></div>
-                <div><span class="c-icon" aria-hidden="true">💬</span> 디스코드 멘션: <strong style="color:var(--grade-legend);">@회장</strong></div>
+        <div class="notice-body" style="padding: 16px; user-select: text; -webkit-user-select: text;">
+            <div class="g-info-cards" style="gap: 8px;">
+                <div class="g-info-card" style="padding: 12px; gap: 12px;">
+                    <div class="g-ic-icon" style="color:#60a5fa; font-size:1.4rem;">🎮</div>
+                    <div class="g-ic-body">
+                        <strong style="font-size:0.95rem;">인게임 귓말</strong>
+                        <span style="font-size:0.8rem;">회장</span>
+                    </div>
+                </div>
+                <div class="g-info-card" style="padding: 12px; gap: 12px;">
+                    <div class="g-ic-icon" style="color:#a855f7; font-size:1.4rem;">💬</div>
+                    <div class="g-ic-body">
+                        <strong style="font-size:0.95rem;">디스코드 멘션</strong>
+                        <span style="font-size:0.8rem;">@회장</span>
+                    </div>
+                </div>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-sub); margin-top: 15px; text-align: center;">여러분의 소중한 피드백이 더 나은 넥서스를 만듭니다!</p>
+            <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 16px; text-align: center; line-height: 1.5; word-break: keep-all;">개복디 넥서스를 이용해 주셔서 감사합니다.<br>여러분의 소중한 피드백이 더 나은 넥서스를 만듭니다!</p>
         </div>
     </div>
 </div>
 
 <div id="staticGuideModalOverlay" class="notice-modal-overlay" style="display:none; z-index: 25000;">
-    <div class="notice-modal" role="dialog" aria-modal="true" aria-labelledby="staticGuideTitle" style="max-width: 680px; height: 85vh; max-height: 700px; display:flex; flex-direction:column;">
-        <header class="notice-header" style="background:rgba(168,85,247,0.05); flex-shrink:0;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span class="ph-icon" aria-hidden="true" style="color:#a855f7; border-color:#a855f7;">💡</span>
-                <h2 id="staticGuideTitle" style="font-family:var(--font-display); font-size:1.1rem; color:#a855f7; text-shadow:0 0 10px rgba(168,85,247,0.5); margin:0; letter-spacing:1px;">시스템 이용 가이드</h2>
+    <div class="notice-modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="staticGuideTitle">
+        <header class="notice-header guide-modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="guide-hdr-icon">💡</span>
+                <div>
+                    <h2 id="staticGuideTitle" class="guide-hdr-title">이용 가이드</h2>
+                    <p class="guide-hdr-sub">개복디 넥서스 사용법을 단계별로 안내합니다</p>
+                </div>
             </div>
             <button class="notice-close" data-action="closeStaticGuide" aria-label="창 닫기">✖</button>
         </header>
 
         <nav class="guide-tabs" role="tablist">
-            <button class="guide-tab-btn active" data-action="selectGuideTab" data-gtid="g-search" role="tab" aria-selected="true">🔍 기초 검색</button>
-            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-codex" role="tab" aria-selected="false">🛒 도감 & 조작</button>
-            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-checklist" role="tab" aria-selected="false">🔮 체크리스트</button>
-            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-jewel" role="tab" aria-selected="false">💎 쥬얼 도감</button>
+            <button class="guide-tab-btn active" data-action="selectGuideTab" data-gtid="g-search" role="tab" aria-selected="true">① 시작하기</button>
+            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-codex" role="tab" aria-selected="false">② 도감 조작</button>
+            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-checklist" role="tab" aria-selected="false">③ 체크리스트</button>
+            <button class="guide-tab-btn" data-action="selectGuideTab" data-gtid="g-jewel" role="tab" aria-selected="false">④ 쥬얼 도감</button>
         </nav>
 
-        <div class="notice-body" style="padding:18px; overflow-y:auto; background:transparent; flex:1; position:relative;">
+        <div class="guide-body-scroll">
 
             <div id="g-panel-g-search" class="guide-panel active" role="tabpanel">
                 <div class="guide-section">
-                    <h3>🎯 유닛 검색 및 여러 개 동시 입력</h3>
-                    <p class="g-desc">상단 입력창을 활용해 목표 유닛을 빠르고 편하게 등록할 수 있습니다.</p>
 
-                    <div class="g-bullet-box">
-                        <h4>⚠️ 검색은 핵심 유닛만 가능해요</h4>
-                        <p>빠른 검색과 쾌적한 이용을 위해 <strong>[레전드], [히든], [슈퍼히든]</strong> 등급의 핵심 목표 유닛들만 검색할 수 있습니다.</p>
-                        <p class="g-alert">※ 주의: <code>전쟁광</code>, <code>저격수</code>, <code>망치경호대</code> 같은 매직~헬 등급의 하위 재료들은 검색되지 않으니 하단 도감이나 우측 체크리스트를 확인해 주세요.</p>
-                    </div>
-
-                    <div class="g-bullet-box">
-                        <h4>⚔️ 여러 유닛 한 번에 등록하기 (다중 입력)</h4>
-                        <p>검색창에 여러 유닛을 슬래시(<code>/</code>) 기호로 구분해서 적고, 뒤에 <code>*숫자</code>를 붙이면 한 번에 대량으로 등록됩니다.</p>
-                        <p><strong>입력 예시:</strong> <code>타이커스*8/아몬</code> (엔터를 누르면 타이커스 8마리와 아몬 1마리가 순식간에 등록됩니다.)</p>
-
-                        <div class="mock-ui-search">
-                            <span class="mock-search-icon">🔍</span>
-                            <div class="mock-search-text">타이커스*8/아몬</div>
+                    <div class="guide-flow-steps">
+                        <div class="gfs-step">
+                            <div class="gfs-num">1</div>
+                            <div class="gfs-content">
+                                <strong>종족 탭 선택</strong>
+                                <span>좌측 상단의 탭에서 내 유닛 종족을 고릅니다</span>
+                                <div class="gfs-tags">
+                                    <span class="gfs-tag t-coral">테바</span>
+                                    <span class="gfs-tag t-coral">테메</span>
+                                    <span class="gfs-tag t-aiur">토바</span>
+                                    <span class="gfs-tag t-aiur">토메</span>
+                                    <span class="gfs-tag t-zerus">저그</span>
+                                    <span class="gfs-tag t-neutral">중립</span>
+                                    <span class="gfs-tag t-hybrid">혼종</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gfs-arrow">▼</div>
+                        <div class="gfs-step">
+                            <div class="gfs-num">2</div>
+                            <div class="gfs-content">
+                                <strong>유닛 카드 클릭</strong>
+                                <span>원하는 유닛 카드를 클릭하면 코스트 대시보드에 재료가 자동 계산됩니다</span>
+                            </div>
+                        </div>
+                        <div class="gfs-arrow">▼</div>
+                        <div class="gfs-step">
+                            <div class="gfs-num">3</div>
+                            <div class="gfs-content">
+                                <strong>체크리스트 확인</strong>
+                                <span>우측 상단 <em class="g-em-btn">◧ 체크리스트 전환</em> 버튼을 눌러 조합 순서와 재료를 확인하세요</span>
+                            </div>
                         </div>
                     </div>
 
+                    <div class="g-divider"></div>
+
                     <div class="g-bullet-box">
-                        <h4>🚫 단일 제한 유닛 (1마리 고정)</h4>
-                        <p><strong>[슈퍼히든] 등급 전체와 아몬, 데하카, 유물 등 특정 유닛</strong>은 시스템 특성상 <code>*8</code>처럼 큰 숫자를 입력하더라도 무조건 <strong>최대 1마리만 등록</strong>되도록 안전하게 조절됩니다.</p>
+                        <h4>🔍 검색창 이용 방법</h4>
+                        <p><strong>[레전드] · [히든] · [슈퍼히든]</strong> 등급 유닛만 검색됩니다. 매직~헬 등급 하위 재료는 도감 탭에서 직접 클릭하세요.</p>
+                        <div class="g-cmd-demo">
+                            <div class="g-cmd-row">
+                                <span class="g-cmd-label">단일 입력</span>
+                                <code class="g-cmd-code">타이커스</code>
+                                <span class="g-cmd-arrow">→</span>
+                                <span class="g-cmd-result">타이커스핀들레이 1마리 등록</span>
+                            </div>
+                            <div class="g-cmd-row">
+                                <span class="g-cmd-label">수량 지정</span>
+                                <code class="g-cmd-code">타이커스*8</code>
+                                <span class="g-cmd-arrow">→</span>
+                                <span class="g-cmd-result">타이커스핀들레이 8마리 등록</span>
+                            </div>
+                            <div class="g-cmd-row">
+                                <span class="g-cmd-label">다중 입력</span>
+                                <code class="g-cmd-code">타이커스*8/아몬</code>
+                                <span class="g-cmd-arrow">→</span>
+                                <span class="g-cmd-result">두 유닛 동시 등록</span>
+                            </div>
+                        </div>
+                        <p class="g-alert">⚠ 슈퍼히든 전체 · 아몬 · 데하카 · 유물은 <code>*8</code>을 입력해도 최대 1마리로 고정됩니다.</p>
                     </div>
+
                 </div>
             </div>
 
             <div id="g-panel-g-codex" class="guide-panel" role="tabpanel">
                 <div class="guide-section">
-                    <h3>🛒 종족 도감 및 유닛 조작 방법</h3>
-                    <p class="g-desc">왼쪽 도감 패널의 탭과 버튼들을 사용해 목표를 쉽게 관리해 보세요.</p>
+
+                    <div class="g-info-cards">
+                        <div class="g-info-card">
+                            <div class="g-ic-icon" style="color:#10b981;">🛒</div>
+                            <div class="g-ic-body">
+                                <strong>장바구니 모드</strong>
+                                <span>내가 선택한 유닛들만 한 화면에 모아봅니다. 목표가 많을 때 유용해요.</span>
+                            </div>
+                        </div>
+                        <div class="g-info-card">
+                            <div class="g-ic-icon" style="color:var(--g);">✔</div>
+                            <div class="g-ic-body">
+                                <strong>탭 전체 선택</strong>
+                                <span>현재 탭의 모든 유닛을 한 번에 선택하거나 해제합니다. 장바구니 모드 중엔 비활성화.</span>
+                            </div>
+                        </div>
+                        <div class="g-info-card">
+                            <div class="g-ic-icon" style="color:#f87171;">⟲</div>
+                            <div class="g-ic-body">
+                                <strong>선택 초기화</strong>
+                                <span>등록된 모든 목표 유닛과 조립 완료 기록을 전부 지웁니다.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="g-divider"></div>
 
                     <div class="g-bullet-box">
-                        <h4>🎛️ 하단 3가지 핵심 조작 버튼</h4>
-                        <p>종족 탭 아래에 있는 버튼들로 다음과 같은 편리한 기능을 쓸 수 있습니다.</p>
-                        <ul>
-                            <li><strong>🛒 장바구니:</strong> 도감에서 클릭해 둔 목표 유닛들만 쏙쏙 골라서 한 화면에 모아보는 기능입니다.</li>
-                            <li><strong>✔ 탭 전체 선택/해제:</strong> 현재 열려있는 탭의 모든 유닛을 한 번에 가득 채우거나 비웁니다. <u>(단, 꼬이는 걸 막기 위해 장바구니 모드일 때는 이 버튼을 쓸 수 없습니다.)</u></li>
-                            <li><strong>⟲ 선택 초기화:</strong> 내가 지금까지 등록한 모든 목표 유닛과 조립 완료 기록을 한 방에 깨끗하게 지웁니다.</li>
-                        </ul>
-
-                        <div class="mock-ui-ctrl-row">
-                            <div class="mock-btn-item" style="color:#10b981; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.1);">🛒 장바구니 <span class="m-cnt" style="background:rgba(16,185,129,0.3);">3종</span></div>
-                            <div class="mock-btn-item neon-b">✔ 테바 전체 선택</div>
-                            <div class="mock-btn-item neon-r">⟲ 선택 초기화</div>
+                        <h4>⚡ 수량 빠르게 조절하기</h4>
+                        <p>유닛 카드의 <code>−</code> / <code>+</code> 버튼을 <strong>길게 누르고 있으면</strong> 숫자가 점점 빠르게 바뀝니다. 여러 번 누를 필요 없어요!</p>
+                        <div class="g-stepper-demo">
+                            <div class="gsd-btn">−</div>
+                            <div class="gsd-val">8</div>
+                            <div class="gsd-btn">+</div>
+                            <span class="gsd-hint">← 길게 누르세요</span>
                         </div>
                     </div>
 
                     <div class="g-bullet-box">
-                        <h4>⚡ 수량 연속 조절 (버튼 길게 누르기)</h4>
-                        <p>유닛 카드 오른쪽에 있는 <code>-</code> / <code>+</code> 버튼을 <strong>계속 꾹 누르고 있으면 숫자가 점점 더 빠르게 바뀝니다.</strong> 여러 번 클릭할 필요 없이 길게 터치해서 수량을 쉽게 맞춰보세요!</p>
-                        <div class="mock-ui-stepper">
-                            <button class="m-s-btn">-</button>
-                            <div class="m-s-val">8</div>
-                            <button class="m-s-btn">+</button>
-                        </div>
+                        <h4>📋 조합법 미리보기</h4>
+                        <p>유닛 카드의 재료 이름 부분을 클릭하면 <strong>팝업 툴팁</strong>으로 전체 조합법을 바로 볼 수 있습니다.</p>
                     </div>
+
                 </div>
             </div>
 
             <div id="g-panel-g-checklist" class="guide-panel" role="tabpanel">
                 <div class="guide-section">
-                    <h3>🔮 체크리스트 연산 및 경로 파악</h3>
-                    <p class="g-desc">우측 보드에서 재료 트리를 확인하고 완성된 유닛을 체크해 코스트를 차감하세요.</p>
+
+                    <p class="g-desc">우측 상단 <em class="g-em-btn">◧ 체크리스트 전환</em>을 눌러 재료 트리를 확인하고, 인게임에서 완료한 재료를 체크해 코스트를 차감하세요.</p>
+
+                    <div class="g-info-cards">
+                        <div class="g-info-card">
+                            <div class="g-ic-icon" style="color:#34d399;">✔</div>
+                            <div class="g-ic-body">
+                                <strong>전체완료</strong>
+                                <span>해당 재료를 한 번에 전부 완성 처리합니다. 코스트가 즉시 줄어듭니다.</span>
+                            </div>
+                        </div>
+                        <div class="g-info-card">
+                            <div class="g-ic-icon" style="color:#60a5fa;">＋</div>
+                            <div class="g-ic-body">
+                                <strong>부분 완료 (1개 / 5개)</strong>
+                                <span>자동포탑처럼 많이 필요한 재료는 나눠서 부분 완료를 누를 수 있어요.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="g-divider"></div>
 
                     <div class="g-bullet-box">
-                        <h4>🧮 부분 조립 및 전체 완료</h4>
-                        <p>인게임에서 재료를 만들었다면 완료 버튼을 눌러보세요. 대시보드의 코스트가 즉시 줄어듭니다!</p>
-                        <ul>
-                            <li><strong>✔ 전체완료:</strong> 해당 재료를 한 번에 전부 완성 처리합니다.</li>
-                            <li><strong>+ 1개 / + 5개 완료:</strong> 자동포탑처럼 많이 필요한 재료들은 나누어서 부분 완료를 누를 수 있습니다.</li>
-                        </ul>
-                        <div class="mock-ui-craft">
-                            <div class="m-p-ctrl">+ 5개 완료</div>
-                            <button class="m-c-btn">✔ 전체완료</button>
+                        <h4>✨ 연관 재료 역추적 (하이라이트)</h4>
+                        <p>체크리스트에서 유닛 카드 <strong>이름 부분을 클릭</strong>하면 그 재료와 연결된 카드들이 밝게 빛납니다. 어떤 유닛을 위한 재료인지 한눈에 파악할 수 있어요.</p>
+                        <div class="g-hl-demo">
+                            <div class="ghd-slot active">✨ <span style="color:#fbbf24;">[슈퍼히든]</span> 아몬</div>
+                            <div class="ghd-arrow">←</div>
+                            <div class="ghd-slot dim">유물</div>
+                            <div class="ghd-arrow">←</div>
+                            <div class="ghd-slot active">✨ <span style="color:#a855f7;">[레전드]</span> 테이스틀로프</div>
                         </div>
                     </div>
 
                     <div class="g-bullet-box">
-                        <h4>🌲 연관 재료 역추적 (하이라이트 기능)</h4>
-                        <p>우측 체크리스트 보드에서 유닛 카드의 <strong>이름</strong> 부분을 클릭하면, 그 재료가 <u>어떤 상위 유닛을 위해 쓰이는지 연결된 카드들만 밝게 빛나서</u> 한눈에 파악할 수 있습니다.</p>
-                        <div class="mock-ui-hl-box">
-                            <div class="mock-hl-slot active">✨ <span style="color:#fbbf24">[슈퍼히든]</span> 아몬</div>
-                            <div class="mock-hl-slot dim">유물</div>
-                            <div class="mock-hl-slot active">✨ <span style="color:#a855f7">[레전드]</span> 테이스틀로프</div>
-                        </div>
+                        <h4>⟲ 등급별 부분 초기화</h4>
+                        <p>그룹 제목 우측의 <em class="g-em-reset">⟲ 하위 통합 초기화</em>를 누르면, 목표 유닛은 그대로 두고 해당 등급의 완료 기록만 지울 수 있습니다.</p>
                     </div>
 
-                    <div class="g-bullet-box">
-                        <h4>⟲ 등급별 하위 재료 초기화</h4>
-                        <p>체크리스트의 등급별 그룹 제목 우측에 있는 <code>⟲ 하위 통합 초기화</code> 버튼을 누르면, 내 최종 목표 유닛들은 지우지 않고 <strong>해당 등급의 조립 기록(✔)만 부분 리셋</strong>할 수 있습니다.</p>
-                        <div class="mock-ui-grp">
-                            <div class="m-grp-title"><span style="color:#fbbf24">✨</span> 레어 - 레전드 재료 <span class="m-grp-reset">⟲ 하위 통합 초기화</span></div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
             <div id="g-panel-g-jewel" class="guide-panel" role="tabpanel">
                 <div class="guide-section">
-                    <h3>💎 쥬얼 도감 실시간 연동</h3>
-                    <p class="g-desc">우측 상단의 <code>✦ 쥬얼도감</code> 버튼을 누르면 화면 이동 없이 즉시 도감이 열립니다.</p>
 
-                    <div class="g-bullet-box">
-                        <h4>✨ 인게임 쥬얼 카드 정보 대조</h4>
-                        <p>게임 내 존재하는 모든 보석(쥬얼)의 아이콘과 고유 능력치(일반/전설 등급) 정보를 한눈에 대조해 볼 수 있습니다.</p>
+                    <p class="g-desc">상단 <em class="g-em-jewel">✦ 쥬얼도감</em> 버튼을 누르면 화면 이동 없이 즉시 쥬얼 도감이 열립니다.</p>
 
-                        <div style="display:flex; justify-content:center; padding: 10px;">
-                            <div class="mock-jwm-item">
-                                <div class="m-jwm-img-wrap"><span style="font-size: 2rem;">💎</span></div>
-                                <div class="m-jwm-name">사파이어</div>
-                                <div class="m-jwm-stat m-legend"><span>마나 재생 +10</span></div>
-                                <div class="m-jwm-stat m-mythic"><span>✦ 마나 재생 +15</span></div>
+                    <div class="g-jewel-explain">
+                        <div class="gje-card">
+                            <div class="gje-mock">
+                                <div class="gje-img">💎</div>
+                                <div class="gje-name" style="color:#00bfff;">사파이어</div>
+                                <div class="gje-stat gje-legend">마나 재생 +10</div>
+                                <div class="gje-stat gje-mythic">✦ 마나 재생 +15</div>
+                            </div>
+                            <div class="gje-labels">
+                                <div class="gje-label-row">
+                                    <span class="gje-arrow">←</span>
+                                    <span class="gje-label-text"><strong>쥬얼 이미지 & 이름</strong></span>
+                                </div>
+                                <div class="gje-label-row">
+                                    <span class="gje-arrow" style="color:#c084fc;">←</span>
+                                    <span class="gje-label-text"><strong style="color:#c084fc;">전설 등급</strong> 능력치</span>
+                                </div>
+                                <div class="gje-label-row">
+                                    <span class="gje-arrow" style="color:#fbbf24;">←</span>
+                                    <span class="gje-label-text"><strong style="color:#fbbf24;">✦ 신화 등급</strong> 능력치</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <div class="g-bullet-box">
+                        <h4>💡 쥬얼 도감 활용 팁</h4>
+                        <p>인게임에서 쥬얼 카드를 획득했을 때, 이 도감과 비교해 <strong>어떤 능력치가 붙는지 미리 확인</strong>하세요. 전설 등급과 신화 등급의 차이도 한눈에 볼 수 있습니다.</p>
+                    </div>
+
                 </div>
             </div>
 
         </div>
 
-        <footer style="padding:10px; background:rgba(0,0,0,0.4); border-top:1px solid var(--border); text-align:center; font-size:0.8rem; color:var(--text-muted); flex-shrink:0;">
-            가이드 창은 화면 빈 공간 클릭, 우측 상단 ✖ 버튼 또는 ESC 키로 닫을 수 있습니다.
+        <footer class="guide-modal-footer">
+            <span>빈 화면 클릭</span><span class="guide-footer-sep">·</span>
+            <span>우측 상단 ✖</span><span class="guide-footer-sep">·</span>
+            <span>ESC 키</span>
+            <span style="margin-left:4px;">로 닫을 수 있습니다</span>
         </footer>
     </div>
 </div>
@@ -301,5 +397,33 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 <script src="data.js"></script>
 <script src="app.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    // 1. 제목 사이클 — 제작자 정보 HTML을 새 클래스 기반으로 교체
+    // app.js의 startTitleCycle이 setInterval로 innerHTML을 갱신하므로
+    // MutationObserver로 삽입 직후 클래스 적용
+    var titleEl = document.getElementById('nexusCycleTitle');
+    if (titleEl) {
+        var CREATOR_MARKER = '제작자';
+        var NEW_CREATOR_HTML =
+            '<div class="nexus-creator-info">' +
+                '<span class="cr-role">제작자</span>' +
+                '<span class="cr-sep">|</span>' +
+                '<span class="cr-name">회장</span>' +
+                '<span class="cr-id">ID : 3-S2-1-2461127</span>' +
+            '</div>';
+
+        var titleObserver = new MutationObserver(function() {
+            if (titleEl.innerHTML.indexOf(CREATOR_MARKER) !== -1 &&
+                titleEl.innerHTML.indexOf('nexus-creator-info') === -1) {
+                titleEl.innerHTML = NEW_CREATOR_HTML;
+            }
+        });
+        titleObserver.observe(titleEl, { childList: true, subtree: true, characterData: true });
+    }
+})();
+</script>
 </body>
 </html>
