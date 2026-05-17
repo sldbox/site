@@ -270,7 +270,7 @@
         });
     }
 
-    let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _isCartMode = false;
+    let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _isCartMode = false, _hideCompleted = false;
 
     function triggerHaptic() { navigator.vibrate?.(15); }
     function resetCodex(silent = false) { activeUnits.clear(); completedUnits.clear(); toggleHighlight(null); debouncedUpdateAllPanels(); if(!silent) showToast("목표 유닛이 초기화되었습니다."); }
@@ -302,9 +302,10 @@
         debouncedUpdateAllPanels();
     }
 
+    // [개선 사항] 이질감을 줄이기 위해 ID 표기 공백 정돈 및 정렬 클래스 최적화 연동
     const _cycleTitles = [
         '개복디 넥서스',
-        '<div class="nexus-creator-info"><span class="cr-role">제작자</span><span class="cr-sep">|</span><span class="cr-name">회장</span><span class="cr-id">ID : 3-S2-1-2461127</span></div>'
+        '<div class="nexus-creator-info"><span class="cr-role">제작자</span><span class="cr-sep">|</span><span class="cr-name">회장</span><span class="cr-id">ID: 3-S2-1-2461127</span></div>'
     ];
     let _cycleTitleIdx = 0, _titleInterval = null, _jewelPanelOpen = false;
 
@@ -592,7 +593,6 @@
         return { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason };
     }
 
-    // [개선] 스킬류 자동 병합 프리패스 기능 추가
     function attemptAutoMerge() {
         let merged = false, loopCount = 0;
         do {
@@ -636,7 +636,6 @@
         } while (merged);
     }
 
-    // [개선] 스킬류 수동 완료 시 차감 방지 로직 적용
     function deleteCompletedRecipe(uid, multiplier) {
         const u = unitMap.get(uid); if (!u) return;
         u.parsedRecipe?.forEach(child => {
@@ -675,12 +674,6 @@
         setTimeout(() => _completeLock.delete(uid), 250);
     }
 
-    function renderActiveRoster() {
-        getEl('activeRoster').innerHTML = Array.from(activeUnits.entries()).map(([id, qty]) => {
-            const u = unitMap.get(id); return u ? `<div class="roster-tag" data-action="toggleUnit" data-uid="${id}" style="border-color:${SYSTEM_CONFIG.grades.colors[u.grade]}66;"><span style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}; font-weight:bold;">${u.name}</span><span class="roster-qty">×${qty}</span></div>` : '';
-        }).join('') || '<span style="color:var(--text-muted); font-size:0.85rem;">선택된 유닛 대기열 (검색 후 엔터)</span>';
-    }
-
     let updateTimer = null;
 
     function clampCompletedUnits() {
@@ -698,7 +691,7 @@
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
             clampCompletedUnits();
-            updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); renderActiveRoster(); saveNexusState();
+            updateMagicDashboard(); updateEssence(); updateTabsUI(); updateTabContentUI(); updateDeductionBoard(); saveNexusState();
         });
     }
 
@@ -723,7 +716,6 @@
         + getGrp('group-top', `레어 - 레전드 재료`, allUnits.filter(u => ["슈퍼히든", "레전드", "헬", "유니크", "에픽", "레어"].includes(u.grade) && !isSpecialRender(u.id)).sort((a,b)=>getGradeIndex(b.grade)-getGradeIndex(a.grade)), 'grid-top', 'grp-top', 1);
     }
 
-    // [개선] 스킬류 자동 완료 시각적 피드백 연동
     function updateDeductionBoard() {
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calculateDeductedRequirements();
         const directMaterials = new Set(), fragmentMap = new Map();
@@ -772,6 +764,11 @@
                     wrapEl.classList.remove('has-target'); wrapEl.classList.add('is-completed');
                     if (reqEl) reqEl.innerText = '0';
                     if (cWrap) cWrap.innerHTML = `<span style="font-size:0.85rem; color:var(--g-dim); font-weight:bold; padding-right:4px;">✨ 완료됨</span>`;
+                }
+
+                if (_hideCompleted && wrapEl.classList.contains('is-completed')) {
+                    wrapEl.style.display = 'none';
+                    wrapEl.classList.remove('is-visible');
                 }
 
                 let tParent = directMaterials.has(id) ? getEl('grid-special') : (getEl(wrapEl.dataset.origParent) || getEl('grid-hidden'));
@@ -1025,6 +1022,13 @@
                 e.stopPropagation();
                 showRecipeTooltip(uid, e, actionEl.dataset.isDeduction === 'true');
                 break;
+        }
+    });
+
+    document.addEventListener('change', e => {
+        if (e.target.id === 'chkHideCompleted') {
+            _hideCompleted = e.target.checked;
+            debouncedUpdateAllPanels();
         }
     });
 

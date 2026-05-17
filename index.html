@@ -50,8 +50,7 @@
             </nav>
             <div id="classicSearchContainer">
                 <div class="search-wrap" id="searchWrap">
-                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="유닛 검색 또는 다중 커맨드 (예: 타이커스*8/아몬)" autocomplete="off">
-                    <div id="activeRoster" class="active-roster"></div>
+                    <input type="text" class="search-input" id="unitSearchInput" aria-label="유닛 검색 및 다중 커맨드 입력창" placeholder="유닛 검색 또는 명령어 입력 (엔터 ↵)" autocomplete="off">
                 </div>
             </div>
             <nav class="codex-tabs-wrap" id="codexTabsWrap">
@@ -99,7 +98,10 @@
                 <span class="ph-icon" aria-hidden="true" style="color:var(--grade-unique); border-color:var(--grade-unique);">⊖</span>
                 <h2 class="ph-title" style="text-shadow:0 0 15px rgba(239,68,68,0.8), 0 0 5px rgba(239,68,68,0.5); margin:0;">체크리스트 보드</h2>
             </div>
-            <nav style="display: flex; align-items: stretch; gap: 8px;">
+            <nav style="display: flex; align-items: center; gap: 8px;">
+                <label style="display:flex; align-items:center; gap:4px; font-size:0.75rem; color:var(--text-sub); cursor:pointer; margin-right:4px;">
+                    <input type="checkbox" id="chkHideCompleted" data-action="toggleHideCompleted"> ✔ 완료 숨기기
+                </label>
                 <button class="btn-hdr-sm neon" data-action="resetCodex" aria-label="목표 초기화">⟲ 목표 초기화</button>
                 <button class="btn-hdr-sm neon" data-action="resetCompleted" aria-label="완료 초기화" style="color:#10b981; border-color:rgba(16,185,129,0.3);">✔ 완료 전체 초기화</button>
             </nav>

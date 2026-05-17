@@ -192,7 +192,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
     pointer-events:none;
 }
 
-/* [개선 사항] 메인 제목 크기 및 4단계 글로우 적용 */
 .codex-hdr-top .nexus-main-title{
     position:relative; z-index:2; text-align:center;
     font-size:1.35rem; letter-spacing:3.5px;
@@ -204,15 +203,25 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
         0 2px 4px rgba(0,0,0,0.98);
 }
 
-/* [개선 사항] 제작자 정보 시맨틱 마크업 스타일 */
+/* [개선] 제작자 정보 텍스트 정렬 및 폰트/효과 일체화 */
 .nexus-creator-info {
-    display: flex; justify-content: center; align-items: center; gap: 6px;
-    line-height: 1.2; padding-top: 2px;
+    display: flex; justify-content: center; align-items: baseline; gap: 6px;
+    line-height: 1.2; padding-top: 5px;
 }
-.nexus-creator-info .cr-role { font-size: 0.72rem; color: #dde4ef; opacity: 1; }
-.nexus-creator-info .cr-sep { font-weight: 400; opacity: 0.6; color: var(--text-sub); }
-.nexus-creator-info .cr-name { font-size: 1.1rem; color: #fff; text-shadow: 0 0 10px var(--g-glow); }
-.nexus-creator-info .cr-id { font-size: 0.72rem; color: #dde4ef; opacity: 1; font-family: var(--font-mono); font-weight: normal; margin-left: 4px; }
+.nexus-creator-info .cr-role { font-size: 0.72rem; color: #dde4ef; opacity: 0.7; font-weight: bold; }
+.nexus-creator-info .cr-sep { font-weight: 400; opacity: 0.4; color: var(--text-sub); }
+.nexus-creator-info .cr-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow:
+        0 0 25px rgba(0,229,255,0.9),
+        0 0 15px rgba(0,229,255,0.7),
+        0 0 8px rgba(0,229,255,0.5),
+        0 2px 4px rgba(0,0,0,0.98);
+}
+.nexus-creator-info .cr-id { font-size: 0.72rem; color: #dde4ef; opacity: 0.8; font-family: var(--font-mono); font-weight: normal; margin-left: 2px; }
 
 /* 2행: 버튼 3개 */
 .codex-hdr-nav{
@@ -424,7 +433,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .uc-recipe-col{ display:flex; align-items:center; justify-content:flex-start; flex:1; min-width:0; padding:0 3px; }
 .uc-grade{ display:flex; align-items:center; gap:7px; }
 
-/* [개선 사항] 유닛 카드 이름 색상 전환 (비활성 회색, 선택 시 흰색) */
 .uc-name-row{ font-size:1rem; font-weight:900; white-space:nowrap; line-height:1.2; text-shadow:0 1px 3px rgba(0,0,0,0.95); transition: color 0.2s; }
 .unit-card:not(.active) .uc-name-row { color: #8899b0 !important; }
 .unit-card.active .uc-name-row { color: #ffffff !important; text-shadow:0 0 9px var(--g-glow), 0 2px 4px rgba(0,0,0,0.95); }
@@ -450,13 +458,7 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .grade-헬 { border-color:rgba(236,72,153,0.36); color:var(--grade-hell); }
 .grade-레전드 { border-color:rgba(168,85,247,0.36); color:var(--grade-legend); }
 .grade-히든 { border-color:rgba(16,185,129,0.36); color:var(--grade-hidden); }
-
-/* [개선 사항] 슈퍼히든 등급 정체성 강화 (골드 글로우) */
-.grade-슈퍼히든 {
-    border-color:rgba(251,191,36,0.6); color:var(--grade-super);
-    text-shadow: 0 0 8px #fbbf24;
-    box-shadow:inset 0 0 8px rgba(251,191,36,0.3), 0 0 8px rgba(251,191,36,0.3);
-}
+.grade-슈퍼히든 { border-color:rgba(251,191,36,0.6); color:var(--grade-super); text-shadow: 0 0 8px #fbbf24; box-shadow:inset 0 0 8px rgba(251,191,36,0.3), 0 0 8px rgba(251,191,36,0.3); }
 
 .badge-sep{ margin:0 5px; opacity:0.32; font-weight:normal; color:var(--text-muted); }
 .recipe-badge{ border:none; border-radius:5px; padding:2px 7px; background:transparent; font-size:0.75rem; font-weight:800; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; transition:all 0.18s; }
@@ -500,7 +502,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 /* 대시보드 그리드 */
 .magic-grid{ display:grid; grid-template-columns:repeat(5,1fr); grid-auto-rows:minmax(0,1fr); gap:clamp(5px,1.2vh,10px); height:100%; flex:1; }
 
-/* [개선 사항] 코스트 대시보드 빈 슬롯 가시성 상향 */
 .cost-slot{
     background:#06090e; border:1px solid rgba(255,255,255,0.08); border-radius:11px;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -597,7 +598,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .empty-msg{ text-align:center; padding:36px 20px; color:var(--text-sub); font-weight:bold; width:100%; display:none; line-height:1.6; font-size:1rem; }
 .empty-icon-text{ font-size:1.9rem; margin-bottom:9px; color:var(--g-dim); }
 
-/* [개선 사항] 체크리스트 슬롯 테두리 시안(Cyan)으로 통일 */
 .deduct-slot{
     background:var(--slot-bg); border:1px solid rgba(0, 229, 255, 0.2);
     border-radius:10px; display:none; flex-direction:column; overflow:hidden; position:relative;
@@ -641,7 +641,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .req-label{ font-size:0.77rem; color:var(--text-sub); margin-left:4px; font-family:var(--font-body); }
 
 .craft-wrap{ display:flex; align-items:center; gap:5px; height: 34px; }
-/* [개선 사항] 조립 제어 버튼 높이 34px 통일 및 정렬 교정 */
 .partial-ctrl{ display:flex; align-items:center; background:rgba(0,0,0,0.58); border:1px solid rgba(255,255,255,0.08); border-radius:5px; overflow:hidden; height: 100%; }
 .pc-btn{ background:transparent; border:none; color:var(--text); padding:4px 9px; font-weight:bold; cursor:pointer; font-size:0.9rem; transition:0.17s; white-space:nowrap; height: 100%; }
 .pc-btn:hover:not(:disabled){ background:rgba(16,185,129,0.25); color:#34d399; }
@@ -660,7 +659,6 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
 .btn-complete.final-target{ background:linear-gradient(135deg, rgba(251,191,36,0.12), rgba(217,119,6,0.26)); border-color:rgba(251,191,36,0.42); color:#fbbf24; box-shadow:0 0 7px rgba(251,191,36,0.07); }
 .btn-complete.final-target:hover{ background:linear-gradient(135deg, rgba(251,191,36,0.26), rgba(217,119,6,0.45)); color:#fff; border-color:#fbbf24; box-shadow:0 3px 12px rgba(251,191,36,0.32); }
 
-/* [개선 사항] 완료 슬롯 상태 피드백 초록색 테마, 읽을 수 있는 명도 유지 */
 .deduct-slot.is-completed{
     border-color:#10b981;
     background:linear-gradient(180deg, rgba(16,185,129,0.15), rgba(0,0,0,0.8));
@@ -680,11 +678,12 @@ html, body, .panel-body, .codex-tabs, .recipe-tooltip, #deductionBoard { scrollb
     .cb-icon{ margin-right:0 !important; }
 }
 
-/* 모바일 & 태블릿 (899px 이하) - 세로 스크롤 이슈 해결 */
+/* 모바일 & 태블릿 (899px 이하) */
 @media(max-width:899px){
+    html, body { height:auto !important; overflow-y:auto !important; overflow-x:hidden !important; }
+
     body .main-layout{ display:flex; flex-direction:column; gap:12px; padding:10px; min-height:100vh; overflow:visible; width:100%; max-width:100%; padding-bottom:max(12px, env(safe-area-inset-bottom)); }
 
-    /* [오류 해결] 세로 모드 화면 마비 현상 방지를 위한 스크롤 권한 뷰포트 위임 */
     body .main-layout .panel-body,
     body .main-layout #tabContent {
         overflow: visible !important;
