@@ -6,7 +6,7 @@
     4.  메인 레이아웃          PC 가로 기본 그리드와 패널 배치
     5.  공통 버튼·패널         버튼, HUD 패널, 패널 헤더/본문
     6.  도감/검색/프리셋       검색창, 프리셋, 종족 탭, 유닛 카드
-    7.  통합 보드              코스트/정수 슬롯과 요약 보드
+    7.  통합 보드              정수/매직 슬롯과 요약 보드
     8.  장바구니               선택/완료 탭, 수량 조절, 복구 표시
     9.  체크리스트             그룹, 슬롯, 완료/강조/숨김 상태
     10. 툴팁·상태 표시         조합법 툴팁, 빈 화면 안내, 하이라이트
@@ -282,17 +282,17 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
 .unit-card.active .smart-stepper .ss-val{color:#fff;text-shadow:0 0 9px var(--g-glow),0 2px 4px var(--ts-deep);background:transparent;}
 .active-stepper{border-color:rgba(56,189,248,0.18);}
 
-/* ── 10. 코스트 대시보드 ── */
+/* ── 10. 통합 보드 ── */
 .magic-grid{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:clamp(4px,0.65vh,7px);flex:1;min-height:0;}
 .cost-slot{background:linear-gradient(180deg,rgba(10,10,10,0.98),#0a0a0a);border:1px solid rgba(255,255,255,0.1);border-top-color:rgba(255,255,255,0.14);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;width:100%;transition:all 0.32s;position:relative;overflow:hidden;box-shadow:inset 0 3px 18px var(--ts-deep),0 1px 0 rgba(255,255,255,0.08),inset 0 0 0 1px rgba(255,255,255,0.02);min-height:70px;}
 .cost-slot.active{will-change:transform,background,border-color;}
 .cost-slot::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--g),transparent);opacity:0;transition:opacity 0.32s;box-shadow:0 0 7px var(--g);}
 .cost-slot.active::before{opacity:0.72;}
 
-.cost-slot.total-cost{border-color:rgba(255,255,255,0.08);}
-.cost-slot.total-cost.active{background:linear-gradient(180deg,rgba(8,20,14,0.70),#0a0a0a);border-color:rgba(52,211,153,0.3);box-shadow:inset 0 0 25px rgba(52,211,153,0.08),0 0 15px rgba(52,211,153,0.1),inset 0 3px 18px rgba(0,0,0,0.95);transform:translateY(-1px);}
-.cost-slot.total-cost.active::before{background:linear-gradient(90deg,transparent,#34d399,transparent);box-shadow:0 0 7px #34d399;opacity:0.72;}
-.cost-slot.total-cost.active .cost-val{color:#34d399;text-shadow:0 0 16px rgba(52,211,153,0.6),0 2px 5px var(--ts-deep),0 0 7px #34d399;}
+.cost-slot.total-essence{border-color:rgba(255,255,255,0.08);}
+.cost-slot.total-essence.active{background:linear-gradient(180deg,rgba(8,20,14,0.70),#0a0a0a);border-color:rgba(52,211,153,0.3);box-shadow:inset 0 0 25px rgba(52,211,153,0.08),0 0 15px rgba(52,211,153,0.1),inset 0 3px 18px rgba(0,0,0,0.95);transform:translateY(-1px);}
+.cost-slot.total-essence.active::before{background:linear-gradient(90deg,transparent,#34d399,transparent);box-shadow:0 0 7px #34d399;opacity:0.72;}
+.cost-slot.total-essence.active .cost-val{color:#34d399;text-shadow:0 0 16px rgba(52,211,153,0.6),0 2px 5px var(--ts-deep),0 0 7px #34d399;}
 
 .cost-slot.active{background:linear-gradient(180deg,rgba(16,16,16,0.80),#0a0a0a);border-color:rgba(56,189,248,0.28);box-shadow:inset 0 0 25px rgba(56,189,248,0.08),0 0 15px rgba(56,189,248,0.10),inset 0 3px 18px rgba(0,0,0,0.95);transform:translateY(-1px);}
 .cost-slot.is-magic-slot.active{background:linear-gradient(180deg,rgba(6,18,28,0.75),#0a0a0a);border-color:rgba(96,165,250,0.32);box-shadow:inset 0 0 25px rgba(96,165,250,0.08),0 0 15px rgba(96,165,250,0.1),inset 0 3px 18px rgba(0,0,0,0.95);}
@@ -422,11 +422,10 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
 .deduct-slot.is-completed .d-name{cursor:default;pointer-events:none;opacity:0.6;}
 .deduct-slot.is-completed::after{content:"✓";position:absolute;top:50%;right:10px;transform:translateY(-50%);color:var(--grade-hidden);font-size:1rem;font-weight:900;opacity:0.60;pointer-events:none;z-index:3;}
 
-/* 코스트 슬롯 — 비활성 상태: 새로고침 중 블랙 패널처럼 보이지 않도록 슬롯 자체 투명도는 유지 */
+/* 통합 보드 슬롯 — 비활성 상태: 새로고침 중 블랙 패널처럼 보이지 않도록 슬롯 자체 투명도는 유지 */
 .cost-slot:not(.active)::before{display:none;}
 .cost-slot:not(.active) .cost-val{opacity:0;}
 .cost-slot:not(.active) .cost-name{opacity:0.22;color:var(--text-muted);}
-.cost-slot.total-cost:not(.active) .cost-name{opacity:0.22;}
 
 /* 통합 초기화 버튼 — pending 상태 */
 .reset-btn-pending{background:rgba(251,191,36,0.18);border-color:rgba(251,191,36,0.6);color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.4);animation:pendingPulse 0.6s ease-in-out infinite alternate;}

@@ -5,7 +5,7 @@
 //  3.  저장·검색·명령        localStorage, 검색 엔진, 프리셋/명령 처리
 //  4.  계산 엔진             재료 파싱, 정수 계산, BFS 필요 수량, 의존성 캐시
 //  5.  완료·복구             완료 처리, 그룹 복구, 통합 초기화
-//  6.  통합 보드             코스트·정수·매직 슬롯 렌더링과 빈 상태 유지
+//  6.  통합 보드             정수·매직 슬롯 렌더링과 빈 상태 유지
 //  7.  체크리스트            조합 트리, 그룹, 완료 숨김, 하이라이트
 //  8.  도감·탭·프리셋        종족 탭, 카드 렌더링, 프리셋 버튼
 //  9.  장바구니·툴팁         장바구니 탭/목록, 조합법 툴팁, 폰트 조절
@@ -329,27 +329,20 @@
 
             sanitizeRuntimeState();
         } catch(e) {
-            console.warn("[오류] 저장된 데이터 로드 실패 — 초기화합니다.", e);
             activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); _presetUsed.clear();
         }
     }
 
-    let _saveFailCount = 0;
     function saveNexusState() {
         try {
             sanitizeRuntimeState();
             localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify({ active: [...activeUnits], completed: [...completedUnits], completedTargets: [...completedTargets], cartTab: _cartTab, presetUsed: [..._presetUsed], hideCompleted: _hideCompleted }));
-            _saveFailCount = 0;
-        } catch(e) {
-            console.warn("[오류] 데이터 저장 실패", e);
-            _saveFailCount++;
-            if (_saveFailCount === 1) console.error("[경고] 브라우저 저장공간 부족으로 진행상황이 저장되지 않을 수 있습니다.");
-        }
+        } catch(e) {}
     }
 
     function saveFavorites() {
         try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([..._favorites].sort())); }
-        catch(e) { console.warn('[오류] 즐겨찾기 저장 실패', e); }
+        catch(e) {}
     }
 
     function pruneFavorites() {
@@ -432,7 +425,7 @@
         Object.values(SYSTEM_CONFIG.essence.mapping).forEach(v => counts[v] = 0);
         let visited = new Set();
         try { sourceMap.forEach((qty, uid) => uid && qty > 0 && calcEssenceRecursiveFast(uid, counts, visited)); }
-        catch(e) { console.warn('[정수계산 오류]', e); }
+        catch(e) {}
         Object.keys(counts).forEach(k => { if (isNaN(counts[k]) || counts[k] < 0) counts[k] = 0; });
         return counts;
     }
@@ -452,7 +445,7 @@
             const maxLoop = APP_INTERNAL.maxLoopQueue;
             
             while(queue.length > 0) {
-                if (++loopCount > maxLoop) { console.warn('[안전장치] BFS 루프 한계 도달'); break; }
+                if (++loopCount > maxLoop) break;
                 let uid = queue.shift(); inQueue.delete(uid);
                 let tNeed = map.get(uid) || 0;
                 if ((!unitMap.has(uid) && !virtualUnitIds.has(uid)) || tNeed <= 0) continue;
@@ -658,7 +651,6 @@
                 lockBtns.forEach(b => b.disabled = false);
             }
         } catch(e) {
-            console.warn('[오류] 완료 처리 실패', e);
             lockBtns.forEach(b => b.disabled = false);
         } finally {
             setTimeout(() => { _completeLock.delete(uid); }, APP_INTERNAL.completeLockDelay);
@@ -731,7 +723,7 @@
     function renderDashboardAtoms() {
         let db = getEl('magicDashboard'); if (!db) return;
         const comboKey = SYSTEM_CONFIG.policy.magicComboKey;
-        db.innerHTML = `<div class="cost-slot total-cost" id="slot-total-essence"><div class="cost-val" id="val-total-essence"></div><div class="cost-name">통합 정수</div></div>` +
+        db.innerHTML = `<div class="cost-slot total-essence" id="slot-total-essence"><div class="cost-val" id="val-total-essence"></div><div class="cost-name">통합 정수</div></div>` +
             SYSTEM_CONFIG.essence.display.map(d => `<div class="cost-slot is-magic-slot" id="slot-essence-${d.id}"><div class="cost-val" id="val-essence-${d.id}" style="color:${d.color};"></div><div class="cost-name">${d.name}</div></div>`).join('') +
             SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === comboKey ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('');
     }
@@ -1135,7 +1127,7 @@
         });
 
         document.querySelectorAll('.deduct-slot').forEach(el => {
-            const cleanId = el.id.replace('d-slot-wrap-', '').replace('d-slot-mirror-', '');
+            const cleanId = el.id.replace('d-slot-wrap-', '');
             el.classList.toggle('highlighted-tree', !!_currentHighlight && highlightDeps?.has(cleanId));
         });
     }
@@ -1810,7 +1802,6 @@
             }
             markNexusAppReady();
         } catch (err) {
-            console.error("[오류] 넥서스 초기화 중 에러 발생:", err);
             markNexusAppError("N1001", err);
         }
     }
