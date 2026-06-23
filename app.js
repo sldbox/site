@@ -51,7 +51,8 @@
             display: [
                 { id: "coral", color: "#FF6B6B", name: "코랄" },
                 { id: "aiur", color: "var(--grade-rare)", name: "아이어" },
-                { id: "zerus", color: "var(--grade-legend)", name: "제루스" }
+                { id: "zerus", color: "var(--grade-legend)", name: "제루스" },
+                { id: "hybrid", color: "var(--grade-hidden)", name: "혼종" }
             ]
         },
         sorting: { order: { "아몬": 100, "나루드": 97, "유물": 96 } },
@@ -108,8 +109,8 @@
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
-    const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
+    const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_HIDDEN_IDS = makeCleanSet(SYSTEM_CONFIG.search.hiddenIds || []);
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
     const CLEAN_SEARCH_ALLOW_IDS = new Set((SYSTEM_CONFIG.search.searchAllowIds || []).map(clean));
@@ -463,7 +464,8 @@
                 
                 getToolNeed(uid).forEach(tid => {
                     if (eNeed > 0) {
-                        const nv = (map.get(tid) || 0) + 1;
+                        let nv = (map.get(tid) || 0) + delta;
+                        if (isOneTime(unitMap.get(tid))) nv = Math.min(nv, 1);
                         map.set(tid, nv); if (!inQueue.has(tid)) { queue.push(tid); inQueue.add(tid); }
                     }
                 });
@@ -711,15 +713,14 @@
         let tE = getEssenceCount(activeUnits), cE = getEssenceCount(completedUnits), totalEssence = 0;
 
         const hybridKey = SYSTEM_CONFIG.essence.mapping["혼종"] || "혼종";
-        const hybridBase = Math.max(0, (tE[hybridKey] || 0) - (cE[hybridKey] || 0));
-        totalEssence += hybridBase * (SYSTEM_CONFIG.policy.hybridWeight || 3);
+        const hybridWeight = SYSTEM_CONFIG.policy.hybridWeight || 3;
 
         SYSTEM_CONFIG.essence.display.forEach(d => {
-            let base = Math.max(0, (tE[d.name] || 0) - (cE[d.name] || 0)) + hybridBase;
+            let base = Math.max(0, (tE[d.name] || 0) - (cE[d.name] || 0));
             let el = getEl(`val-essence-${d.id}`);
             if (el) { let v = base > 0 ? String(base) : ''; if (el.innerHTML !== v) el.innerHTML = v; }
             getEl(`slot-essence-${d.id}`)?.classList.toggle('active', base > 0);
-            totalEssence += base - hybridBase;
+            totalEssence += base * (d.name === hybridKey ? hybridWeight : 1);
         });
 
         const totalEssEl = getEl('val-total-essence');
@@ -730,8 +731,7 @@
     function renderDashboardAtoms() {
         let db = getEl('magicDashboard'); if (!db) return;
         const comboKey = SYSTEM_CONFIG.policy.magicComboKey;
-        db.innerHTML = `<div class="cost-slot total-cost" id="slot-total-cost"><div class="cost-val" id="val-total-cost"></div><div class="cost-name">통합 코스트</div></div>` +
-            `<div class="cost-slot total-cost" id="slot-total-essence"><div class="cost-val" id="val-total-essence"></div><div class="cost-name">통합 정수</div></div>` +
+        db.innerHTML = `<div class="cost-slot total-cost" id="slot-total-essence"><div class="cost-val" id="val-total-essence"></div><div class="cost-name">통합 정수</div></div>` +
             SYSTEM_CONFIG.essence.display.map(d => `<div class="cost-slot is-magic-slot" id="slot-essence-${d.id}"><div class="cost-val" id="val-essence-${d.id}" style="color:${d.color};"></div><div class="cost-name">${d.name}</div></div>`).join('') +
             SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === comboKey ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('');
     }
@@ -759,11 +759,11 @@
                             if (pcRaw !== comboKey) { if (SYSTEM_CONFIG.dashboardAtoms.includes(pcRaw)) map[pcRaw] = (map[pcRaw] || 0) + pc.qty * qty; else flattenUnitToAtoms(pc.key, pc.qty * qty, map, path); }
                         }
                     });
-                    getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, 1, map, path));
+                    getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, isOneTime(unitMap.get(toolId)) ? 1 : qty, map, path));
                 } else if (u.parsedRecipe?.length) {
                     u.parsedRecipe.forEach(child => {
                         if (!child.id) return;
-                        isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, 1, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path);
+                        isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, isOneTime(unitMap.get(child.id)) ? 1 : qty, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path);
                     });
                     u.parsedCost?.forEach(pc => specials.includes(pc.key) && (map[comboKey][pc.key] += pc.qty * qty));
                 }
@@ -776,7 +776,6 @@
         activeUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, tMap, activePath));
         completedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
 
-        let totalCost = 0;
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
             if (!container || !e || !nEl) return;
@@ -784,21 +783,16 @@
             if (a === comboKey) {
                 let hasValue = specials.some(k => Math.max(0, tMap[a][k] - cMap[a][k]) > 0);
                 if (hasValue) {
-                    specials.forEach(k => totalCost += Math.max(0, tMap[a][k] - cMap[a][k]));
                     let spHtml = specials.map(k => `<div class="sp-row"><span class="sp-val-num">${Math.max(0, tMap[a][k] - cMap[a][k])}</span></div>`).join('<div class="sp-divider"></div>');
                     if (e.innerHTML !== spHtml) e.innerHTML = spHtml;
                     nEl.style.display = 'block'; container.classList.add('active');
                 } else { if (e.innerHTML !== '') e.innerHTML = ''; nEl.style.display = 'block'; container.classList.remove('active'); }
             } else {
                 let fV = Math.max(0, tMap[a] - cMap[a]);
-                totalCost += fV;
                 if (fV > 0) { if (e.innerText !== String(fV)) e.innerText = String(fV); nEl.style.display = 'block'; container.classList.add('active'); }
                 else { if (e.innerHTML !== '') e.innerHTML = ''; nEl.style.display = 'block'; container.classList.remove('active'); }
             }
         });
-        const tcEl = getEl('val-total-cost');
-        if (tcEl) { let v = totalCost > 0 ? String(totalCost) : ''; if (tcEl.innerText !== v) tcEl.innerText = v; }
-        getEl('slot-total-cost')?.classList.toggle('active', totalCost > 0);
     }
 
     // [7] 체크리스트
