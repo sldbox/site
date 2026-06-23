@@ -451,13 +451,14 @@
                 if ((!unitMap.has(uid) && !virtualUnitIds.has(uid)) || tNeed <= 0) continue;
                 
                 let eNeed = tNeed - (isDeficit ? Math.min(mergedActive.has(uid) ? 0 : (completedUnits.get(uid) || 0), tNeed) : 0);
-                let delta = eNeed - (processed.get(uid) || 0);
+                const prevNeed = processed.get(uid) || 0;
+                let delta = eNeed - prevNeed;
                 if (delta <= 0) continue;
                 processed.set(uid, eNeed);
                 
                 getToolNeed(uid).forEach(tid => {
-                    if (eNeed > 0) {
-                        let nv = (map.get(tid) || 0) + delta;
+                    if (eNeed > 0 && prevNeed <= 0) {
+                        let nv = (map.get(tid) || 0) + 1;
                         if (isOneTime(unitMap.get(tid))) nv = Math.min(nv, 1);
                         map.set(tid, nv); if (!inQueue.has(tid)) { queue.push(tid); inQueue.add(tid); }
                     }
@@ -751,11 +752,11 @@
                             if (pcRaw !== comboKey) { if (SYSTEM_CONFIG.dashboardAtoms.includes(pcRaw)) map[pcRaw] = (map[pcRaw] || 0) + pc.qty * qty; else flattenUnitToAtoms(pc.key, pc.qty * qty, map, path); }
                         }
                     });
-                    getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, isOneTime(unitMap.get(toolId)) ? 1 : qty, map, path));
+                    getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, 1, map, path));
                 } else if (u.parsedRecipe?.length) {
                     u.parsedRecipe.forEach(child => {
                         if (!child.id) return;
-                        isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, isOneTime(unitMap.get(child.id)) ? 1 : qty, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path);
+                        isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, 1, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path);
                     });
                     u.parsedCost?.forEach(pc => specials.includes(pc.key) && (map[comboKey][pc.key] += pc.qty * qty));
                 }
@@ -1373,12 +1374,14 @@
                     condHtml = `<span class="badge-special-cond recipe-special-cond">특수조건</span>`;
                     if (!foundSpecialIds.includes(unitId)) foundSpecialIds.push(unitId);
                 } else if (m[2]) condHtml = `<span class="badge-cond">${m[2].replace(/,/g, ' ')}</span>`;
-                const qtyNum = (m[3] ? parseInt(m[3], 10) : 1) * multi;
+                const isTool = isToolRequirement(item.id, unitId);
+                const qtyNum = isTool ? 1 : (m[3] ? parseInt(m[3], 10) : 1) * multi;
                 const color = u ? SYSTEM_CONFIG.grades.colors[u.grade] : 'var(--text)';
+                const toolHtml = isTool ? `<span class="tool-badge">[도구]</span>` : '';
                 if (showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span><span class="badge-cond recipe-cond-offset">${m[2].replace(/,/g, ' ')}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${m[2].replace(/,/g, ' ')}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
                 }
-                return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span><span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
             }
             return `<div class="recipe-token-muted">${p}</div>`;
         }).join('');
