@@ -1778,12 +1778,18 @@
             const sArea = getEl('tabContent');
             if (sArea) {
                 let sX = 0, sY = 0, sPager = null;
-                const getHorizontalPager = target => target?.closest?.('.codex-category-grid, .codex-fav-grid') || null;
-                const canPagerMove = (pager, dX) => {
+                const getSwipePager = target => {
+                    const favPager = target?.closest?.('.codex-fav-grid');
+                    if (favPager) return { el: favPager, type: 'favorite' };
+                    const categoryPager = target?.closest?.('.codex-category-grid');
+                    return categoryPager ? { el: categoryPager, type: 'category' } : null;
+                };
+                const canPagerMove = (pagerState, dX) => {
+                    const pager = pagerState?.el;
                     if (!pager) return false;
                     const max = Math.max(0, pager.scrollWidth - pager.clientWidth);
                     if (max <= 2) return false;
-                    const start = Math.max(0, Math.min(sPager?.scrollLeft ?? pager.scrollLeft, max));
+                    const start = Math.max(0, Math.min(pagerState.scrollLeft, max));
                     if (dX < 0) return start < max - 2;
                     if (dX > 0) return start > 2;
                     return false;
@@ -1791,14 +1797,15 @@
                 sArea.addEventListener('touchstart', e => {
                     const touch = e.changedTouches[0];
                     sX = touch.screenX; sY = touch.screenY;
-                    const pager = getHorizontalPager(e.target);
-                    sPager = pager ? { el: pager, scrollLeft: pager.scrollLeft } : null;
+                    const pager = getSwipePager(e.target);
+                    sPager = pager ? { ...pager, scrollLeft: pager.el.scrollLeft } : null;
                 }, { passive: true });
                 sArea.addEventListener('touchend', e => {
                     if (_isSwiping) return;
                     let dX = e.changedTouches[0].screenX - sX, dY = e.changedTouches[0].screenY - sY;
                     if (Math.abs(dX) > 70 && Math.abs(dY) < 50) {
-                        if (canPagerMove(sPager?.el, dX)) { sPager = null; return; }
+                        if (sPager?.type === 'favorite') { sPager = null; return; }
+                        if (sPager?.type === 'category' && canPagerMove(sPager, dX)) { sPager = null; return; }
                         _isSwiping = true;
                         if (dX > 0 && _activeTabIdx > 0) selectTab(_activeTabIdx - 1);
                         else if (dX < 0 && _activeTabIdx < SYSTEM_CONFIG.tabs.length - 1) selectTab(_activeTabIdx + 1);
@@ -1808,16 +1815,22 @@
                     sPager = null;
                 }, { passive: true });
             }
-            // 체크리스트 패널 스와이프: 좌→도감, 우→체크리스트 뷰 전환
+            // 체크리스트 패널 스와이프: 카드 영역은 체크리스트 스크롤만 처리, 빈 영역은 좌→도감/우→체크리스트 전환
             const dBoard = getEl('colRightPanel');
             if (dBoard) {
-                let dX0 = 0, dY0 = 0;
-                dBoard.addEventListener('touchstart', e => { dX0 = e.changedTouches[0].screenX; dY0 = e.changedTouches[0].screenY; }, { passive: true });
+                let dX0 = 0, dY0 = 0, dPager = false;
+                dBoard.addEventListener('touchstart', e => {
+                    dX0 = e.changedTouches[0].screenX;
+                    dY0 = e.changedTouches[0].screenY;
+                    dPager = !!e.target?.closest?.('.deduct-grid');
+                }, { passive: true });
                 dBoard.addEventListener('touchend', e => {
                     const dx = e.changedTouches[0].screenX - dX0, dy = e.changedTouches[0].screenY - dY0;
                     if (Math.abs(dx) > 80 && Math.abs(dy) < 50) {
+                        if (dPager) { dPager = false; return; }
                         if (dx > 0) switchLayout('codex'); else switchLayout('deduct');
                     }
+                    dPager = false;
                 }, { passive: true });
             }
             markNexusAppReady();
