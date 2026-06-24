@@ -1777,18 +1777,35 @@
             });
             const sArea = getEl('tabContent');
             if (sArea) {
-                let sX = 0, sY = 0;
-                sArea.addEventListener('touchstart', e => { sX = e.changedTouches[0].screenX; sY = e.changedTouches[0].screenY; }, { passive: true });
+                let sX = 0, sY = 0, sPager = null;
+                const getHorizontalPager = target => target?.closest?.('.codex-category-grid, .codex-fav-grid') || null;
+                const canPagerMove = (pager, dX) => {
+                    if (!pager) return false;
+                    const max = Math.max(0, pager.scrollWidth - pager.clientWidth);
+                    if (max <= 2) return false;
+                    const start = Math.max(0, Math.min(sPager?.scrollLeft ?? pager.scrollLeft, max));
+                    if (dX < 0) return start < max - 2;
+                    if (dX > 0) return start > 2;
+                    return false;
+                };
+                sArea.addEventListener('touchstart', e => {
+                    const touch = e.changedTouches[0];
+                    sX = touch.screenX; sY = touch.screenY;
+                    const pager = getHorizontalPager(e.target);
+                    sPager = pager ? { el: pager, scrollLeft: pager.scrollLeft } : null;
+                }, { passive: true });
                 sArea.addEventListener('touchend', e => {
                     if (_isSwiping) return;
                     let dX = e.changedTouches[0].screenX - sX, dY = e.changedTouches[0].screenY - sY;
                     if (Math.abs(dX) > 70 && Math.abs(dY) < 50) {
+                        if (canPagerMove(sPager?.el, dX)) { sPager = null; return; }
                         _isSwiping = true;
                         if (dX > 0 && _activeTabIdx > 0) selectTab(_activeTabIdx - 1);
                         else if (dX < 0 && _activeTabIdx < SYSTEM_CONFIG.tabs.length - 1) selectTab(_activeTabIdx + 1);
                         if (_swipeTimer) clearTimeout(_swipeTimer);
                         _swipeTimer = setTimeout(() => _isSwiping = false, 300);
                     }
+                    sPager = null;
                 }, { passive: true });
             }
             // 체크리스트 패널 스와이프: 좌→도감, 우→체크리스트 뷰 전환
