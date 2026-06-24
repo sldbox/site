@@ -805,6 +805,25 @@
         boardEl.dataset.excludeGridIds = JSON.stringify([..._exIds]);
     }
 
+    function wrapDeductGridPages(grid, pageSize) {
+        if (!grid) return;
+        const items = Array.from(grid.children).filter(el =>
+            el.classList.contains('deduct-slot') ||
+            el.classList.contains('deduct-slot-ghost') ||
+            el.classList.contains('top-row-blank')
+        );
+        if (items.length === 0) return;
+        const size = Math.max(1, pageSize || items.length);
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < items.length; i += size) {
+            const page = document.createElement('div');
+            page.className = 'deduct-page';
+            items.slice(i, i + size).forEach(el => page.appendChild(el));
+            frag.appendChild(page);
+        }
+        grid.appendChild(frag);
+    }
+
     function updateDeductionBoard(calcResult) {
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
         const mergedSlots = new Set();
@@ -875,6 +894,7 @@
         });
         document.querySelectorAll('.top-row-blank').forEach(el => el.remove());
         document.querySelectorAll('.deduct-slot-ghost').forEach(el => el.remove());
+        document.querySelectorAll('.deduct-page').forEach(el => el.remove());
 
         const topFixedRows = SYSTEM_CONFIG.topFixedOrder.map(row => row.map(clean));
         const topFixedSet = new Set(topFixedRows.flat());
@@ -1103,6 +1123,8 @@
             children.forEach(el => grid.appendChild(el));
         });
 
+        Object.values(grids).forEach(g => wrapDeductGridPages(g, 9));
+
         Object.values(grids).forEach(g => {
             if (!g) return;
             const grp = g.closest('.deduct-group'), icon = grp?.querySelector('.grp-toggle-icon');
@@ -1229,6 +1251,16 @@
     function buildUnitCard(item, idx) { return buildCard(item, idx, '', true); }
     function buildFavCard(item, idx, categoryKey) { return buildCard(item, idx, `fav-${categoryKey}-`, true); }
 
+    function buildPagerPages(htmlItems, pageSize, pageClass) {
+        if (!Array.isArray(htmlItems) || htmlItems.length === 0) return '';
+        const size = Math.max(1, pageSize || htmlItems.length);
+        let html = '';
+        for (let i = 0; i < htmlItems.length; i += size) {
+            html += `<div class="${pageClass}">${htmlItems.slice(i, i + size).join('')}</div>`;
+        }
+        return html;
+    }
+
     function getCodexSort(a, b) {
         return (SYSTEM_CONFIG.sorting.order[b.name] || 0) - (SYSTEM_CONFIG.sorting.order[a.name] || 0) ||
             (isOneTime(a) ? -1 : isOneTime(b) ? 1 : 0) ||
@@ -1253,7 +1285,7 @@
         if (favItems.length > 0) {
             return `<div class="codex-fav-section">` +
                 `<div class="codex-fav-header"><span class="codex-fav-title">⭐ 즐겨찾기</span></div>` +
-                `<div class="codex-fav-grid">${favItems.map((item, idx) => buildFavCard(item, idx, categoryKey)).join('')}</div>` +
+                `<div class="codex-fav-grid">${buildPagerPages(favItems.map((item, idx) => buildFavCard(item, idx, categoryKey)), 3, 'codex-page codex-fav-page')}</div>` +
                 `<div class="codex-fav-divider"></div>` +
                 `</div>`;
         }
@@ -1276,7 +1308,7 @@
             ).sort(getCodexSort);
             const bodyHtml = !items.length
                 ? `<div class="codex-empty-msg">즐겨찾기를 제외하고 표시할 유닛이 없습니다.</div>`
-                : items.map((item, idx) => buildUnitCard(item, idx)).join('');
+                : buildPagerPages(items.map((item, idx) => buildUnitCard(item, idx)), 9, 'codex-page codex-category-page');
             return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel">${buildFavoriteSection(cat.key)}<div class="codex-category-grid">${bodyHtml}</div></div>`;
         }).join('');
         _isTabContentInitialized = true;
