@@ -70,11 +70,8 @@ button,a,input,.tab-btn,.unit-card,.btn-complete,.smart-stepper button,.d-name,.
 
 html{height:100%;}
 body{background:var(--void);color:var(--text);font-family:var(--font-body);min-height:100%;user-select:none;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-size:calc(14px * var(--fs-scale));}
-html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-width:thin;scrollbar-color:rgba(50,65,85,0.9) rgba(0,0,0,0.65);}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:rgba(0,0,0,0.65)}
-::-webkit-scrollbar-thumb{background:rgba(50,65,85,0.9);border-radius:4px;}
-@media(hover:hover) and (pointer:fine){::-webkit-scrollbar-thumb:hover{background:var(--g);}}
+html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fav-grid,.deduct-grid,.recipe-tooltip,#deductionBoard{scrollbar-width:none;-ms-overflow-style:none;}
+*::-webkit-scrollbar{width:0;height:0;display:none;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
@@ -157,7 +154,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
 .checklist-ph-btns{position:absolute;right:12px;top:50%;transform:translateY(-50%);gap:8px;}
 .ph-title{font-family:var(--font-display);font-size:calc(var(--gh-h) * 0.28);font-weight:700;color:var(--text-sub);letter-spacing:0.8px;white-space:nowrap;}
 .ph-right{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;}
-.panel-body{flex:1;overflow-y:auto;min-height:0;padding:10px;scrollbar-width:thin;}
+.panel-body{flex:1;overflow-y:auto;min-height:0;padding:10px;scrollbar-width:none;-ms-overflow-style:none;}
 .panel-section{flex-shrink:0;}
 .cost-section{padding:7px 8px;display:flex;flex-direction:column;min-height:0;}
 
@@ -585,7 +582,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
         scroll-padding-top:8px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        scrollbar-width:none;
     }
     .codex-fav-grid{
         display:grid;
@@ -602,7 +599,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
         scroll-padding-top:8px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        scrollbar-width:none;
     }
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
@@ -654,7 +651,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
         scroll-padding-top:8px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        scrollbar-width:none;
     }
     .codex-fav-grid{
         display:grid;
@@ -671,7 +668,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
         scroll-padding-top:8px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        scrollbar-width:none;
     }
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
@@ -708,7 +705,7 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
         scroll-padding-top:8px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        scrollbar-width:none;
     }
     .codex-page,.deduct-page{
         display:grid;
