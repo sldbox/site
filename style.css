@@ -131,13 +131,6 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
 /* ── 04. 공통 버튼 및 토글 ── */
 .btn-text-link{background:none;border:none;color:var(--text-sub);font-size:0.78rem;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:4px;transition:color 0.2s;white-space:nowrap;}
 .btn-text-link:hover{color:var(--g);}
-.deduct-slot-ghost{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;margin:0;border-radius:10px;background:linear-gradient(180deg,rgba(10,20,28,0.88),rgba(8,12,18,0.96));border:1px dashed rgba(56,189,248,0.42);color:var(--g);font-size:calc(0.78rem * var(--fs-scale));font-weight:800;opacity:0.90;pointer-events:none;user-select:none;letter-spacing:0.2px;width:100%;min-height:120px;box-sizing:border-box;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
-.deduct-slot-ghost::before{content:"↑";font-size:calc(0.95rem * var(--fs-scale));color:var(--g);flex-shrink:0;text-shadow:0 0 8px var(--g-glow);}
-.deduct-slot-ghost .ghost-name{color:var(--text);font-weight:900;font-size:calc(0.86rem * var(--fs-scale));}
-.deduct-slot-ghost .ghost-label{color:var(--text-sub);font-size:calc(0.74rem * var(--fs-scale));font-weight:700;}
-.grp-restore-btn{font-size:calc(0.82rem * var(--fs-scale));font-weight:900;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all 0.17s;white-space:nowrap;text-decoration:none;flex-shrink:0;}
-.grp-restore-btn:hover{background:rgba(16,185,129,0.25);border-color:rgba(16,185,129,0.65);color:#fff;box-shadow:0 0 10px rgba(16,185,129,0.25);}
-.grp-count-badge{font-size:calc(0.82rem * var(--fs-scale));font-weight:800;color:var(--grade-hidden);font-family:var(--font-mono);letter-spacing:0;pointer-events:none;}
 .btn-tab-action{padding:5px 12px;background:linear-gradient(to bottom,rgba(255,255,255,0.055),rgba(0,0,0,0.80));border:1px solid rgba(255,255,255,0.1);border-top-color:rgba(255,255,255,0.18);box-shadow:0 2px 7px rgba(0,0,0,0.90),inset 0 1px 0 rgba(255,255,255,0.09);color:var(--text-sub);font-size:calc(0.76rem * var(--fs-scale));font-weight:800;cursor:pointer;border-radius:7px;transition:all 0.18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 .btn-tab-action:hover:not(:disabled){background:linear-gradient(to bottom,rgba(56,189,248,0.12),rgba(18,30,48,0.96));border-color:rgba(56,189,248,0.55);border-top-color:rgba(125,211,252,0.6);color:#fff;box-shadow:0 4px 12px rgba(56,189,248,0.12),inset 0 1px 0 rgba(56,189,248,0.20);transform:translateY(-1px);}
 .btn-tab-action:disabled{opacity:0.38;cursor:not-allowed;}
@@ -361,6 +354,13 @@ html,body,.panel-body,.codex-tabs,.recipe-tooltip,#deductionBoard{scrollbar-widt
 .cart-item-done:hover .cart-done-restore-hint{opacity:1;background:rgba(16,185,129,0.22);}
 
 /* ── 11. 체크리스트 보드 ── */
+.deduct-slot-ghost{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;margin:0;border-radius:10px;background:linear-gradient(180deg,rgba(10,20,28,0.88),rgba(8,12,18,0.96));border:1px dashed rgba(56,189,248,0.42);color:var(--g);font-size:calc(0.78rem * var(--fs-scale));font-weight:800;opacity:0.90;pointer-events:none;user-select:none;letter-spacing:0.2px;width:100%;min-height:120px;box-sizing:border-box;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
+.deduct-slot-ghost::before{content:"↑";font-size:calc(0.95rem * var(--fs-scale));color:var(--g);flex-shrink:0;text-shadow:0 0 8px var(--g-glow);}
+.deduct-slot-ghost .ghost-name{color:var(--text);font-weight:900;font-size:calc(0.86rem * var(--fs-scale));}
+.deduct-slot-ghost .ghost-label{color:var(--text-sub);font-size:calc(0.74rem * var(--fs-scale));font-weight:700;}
+.grp-restore-btn{font-size:calc(0.82rem * var(--fs-scale));font-weight:900;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all 0.17s;white-space:nowrap;text-decoration:none;flex-shrink:0;}
+.grp-restore-btn:hover{background:rgba(16,185,129,0.25);border-color:rgba(16,185,129,0.65);color:#fff;box-shadow:0 0 10px rgba(16,185,129,0.25);}
+.grp-count-badge{font-size:calc(0.82rem * var(--fs-scale));font-weight:800;color:var(--grade-hidden);font-family:var(--font-mono);letter-spacing:0;pointer-events:none;}
 .deduct-group{background:rgba(10,10,10,0.97);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:14px 14px 12px;margin-bottom:8px;}
 #group-target{border-color:rgba(239,68,68,0.45);border-left:3px solid rgba(239,68,68,0.75);background:rgba(14,4,4,0.98);}
 #group-special{border-color:rgba(251,191,36,0.40);border-left:3px solid rgba(251,191,36,0.70);background:rgba(14,11,2,0.98);}

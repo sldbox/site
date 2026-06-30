@@ -2,16 +2,17 @@
 // [ 넥서스 앱 실행 파일 (app.js) ]
 //  00. 내부 설정/정책 병합     기본 정책, 등급, 탭, 저장 키, 사용자 config 병합
 //  01. 런타임 상수/상태       정규화 캐시, 완료/선택 상태, 터치·폰트 상태
-//  02. 공통 유틸/캐시         DOM 헬퍼, 검색 피드백, 상태 정리, 조합식 파싱
+//  02. 공통 유틸/캐시         DOM 헬퍼, 상태 정리, 조합식 파싱, 공용 레시피 렌더
 //  03. 저장·검색·명령        localStorage, 즐겨찾기, 검색 엔진, 프리셋 명령
-//  04. 계산 엔진              정수/재료 파싱, BFS 필요 수량, 의존성 캐시
-//  05. 완료·복구              완료 처리, 그룹 복구, 통합 초기화
+//  04. 계산 엔진              정수/재료 파싱, BFS 필요 수량, 의존성 캐시, 전체 갱신
+//  05. 완료·복구·초기화      완료 처리, 그룹 복구, 통합 초기화, 선택 초기화
 //  06. 통합 보드              정수/매직 현황과 중앙 대시보드 갱신
-//  07. 체크리스트             조합 트리, 그룹, 완료 숨김, 슬롯 하이라이트
-//  08. 도감·탭·프리셋        종족 탭, 카드 렌더링, 프리셋 버튼
-//  09. 장바구니·툴팁·폰트    장바구니 목록, 조합법/제외 툴팁, 글자 크기
-//  10. 이벤트 바인딩          클릭·포인터·키보드·리사이즈 이벤트 위임
-//  11. Boot 연동 초기화       DOM 준비/동적 로드 대응, 성공·실패 상태 전달
+//  07. 체크리스트             보드 지연 생성, 조합 트리, 그룹, 완료 숨김, 하이라이트
+//  08. 도감·탭·프리셋        종족 탭, 카드 렌더링, 즐겨찾기, 프리셋, 선택 제어
+//  09. 장바구니               선택/완료 장바구니 표시와 접힘 상태
+//  10. 화면·입력·툴팁·폰트   화면 전환, 반복 입력, 툴팁, 글자 크기
+//  11. 이벤트 바인딩          클릭·포인터·키보드·리사이즈 이벤트 위임
+//  12. Boot 연동 초기화       DOM 준비/동적 로드 대응, 성공·실패 상태 전달
 // ==========================================================================
 
 (() => {
@@ -129,6 +130,7 @@
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
     const unitMap = new Map(), activeUnits = new Map(), completedUnits = new Map(), depCache = new Map();
     const completedTargets = new Map(), _unitNativeLevels = new Map();
+    const _depVisiting = new Set();
     const PRESET_COLOR_MAP = {
         '빨강':'red', '주황':'orange', '노랑':'yellow', '연두':'lime',
         '초록':'green', '하늘':'sky', '파랑':'blue', '남색':'navy',
@@ -187,12 +189,14 @@
     // [01-4] 런타임 선택/완료/화면 상태
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
-    let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false;
+    let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isDeductionBoardRendered = false;
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
+    let _restoreAllPendingTimer = null;
     let _lastCalcResult = null;
     let _fontRepeatTimer = null, _fontRepeatDelayTimer = null, _swipeTimer = null, _titleVersionTimer = null;
     let _presetTab = '일반 프리셋';
+    let _fontScale = 1.0;
 
     // [02-1] DOM / 등급 / 검색 판정 공통 헬퍼
     const getEl = (id) => document.getElementById(id);
@@ -239,6 +243,7 @@
             input.classList.remove('search-input-error');
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
+    // [02] 공통 유틸 / 데이터 캐시
     // 선택/완료 Map에 남은 0 이하 값과 잘못된 ID를 제거한다.
     function sanitizeRuntimeState() {
         const normalizeMap = (map, allowCombo = false) => {
@@ -260,8 +265,6 @@
         _cartCollapsed = false;
     }
 
-
-    // [02-2] 상태 정리 / 조합식 파싱 / 데이터 캐시
     // "유닛[수량]+유닛[수량]" 조합식을 정규화된 재료 배열로 변환한다.
     function splitRecipe(recipeStr) {
         let parts = [], current = '', depth = 0;
@@ -274,6 +277,34 @@
         if (current.trim()) parts.push(current.trim());
         if (depth > 0 && parts.length === 1 && recipeStr.includes('+')) return recipeStr.split('+').map(s => s.trim()).filter(Boolean);
         return parts;
+    }
+
+    function formatRecipe(item, multi = 1, showSep = false) {
+        if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
+        let foundSpecialIds = [];
+        // [02-3] 조합식 재료 행과 특수 조건 문구 생성
+        let partsHtml = splitRecipe(item.recipe).map(p => {
+            const m = p.match(/^([^([ ]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
+            if (m) {
+                const unitId = getUnitId(m[1].trim()), u = unitMap.get(unitId);
+                let condHtml = '';
+                if (CLEAN_SPECIAL_CONDITIONS[unitId]) {
+                    condHtml = `<span class="badge-special-cond recipe-special-cond">특수조건</span>`;
+                    if (!foundSpecialIds.includes(unitId)) foundSpecialIds.push(unitId);
+                } else if (m[2]) condHtml = `<span class="badge-cond">${m[2].replace(/,/g, ' ')}</span>`;
+                const isTool = isToolRequirement(item.id, unitId);
+                const qtyNum = isTool ? 1 : (m[3] ? parseInt(m[3], 10) : 1) * multi;
+                const color = u ? SYSTEM_CONFIG.grades.colors[u.grade] : 'var(--text)';
+                const toolHtml = isTool ? `<span class="tool-badge">[도구]</span>` : '';
+                if (showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
+                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${m[2].replace(/,/g, ' ')}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                }
+                return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+            }
+            return `<div class="recipe-token-muted">${p}</div>`;
+        }).join('');
+        let specialCondInlineHtml = (!showSep && foundSpecialIds.length > 0) ? `<div class="tsc-wrap tsc-wrap-inline">${foundSpecialIds.map(uid => `<div class="tsc-item tsc-item-inline">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
+        return `<div class="${showSep ? 'recipe-flex-wrap' : 'recipe-vertical'}">${partsHtml}</div>${specialCondInlineHtml}`;
     }
 
     // UNIT_DATABASE를 앱 전역 Map과 재료 의존성 캐시에 적재한다.
@@ -303,6 +334,7 @@
             }
         });
     }
+
 
     // [03] 저장·검색·명령
     // localStorage에서 선택/완료/즐겨찾기 상태를 복원한다.
@@ -418,7 +450,8 @@
         }
     }
 
-    // [04] 계산 엔진
+
+    // [04] 계산 엔진 / 전체 갱신
     function calcEssenceRecursiveFast(uid, counts, visited) {
         if (visited.has(uid)) return;
         visited.add(uid);
@@ -564,7 +597,6 @@
         return { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason };
     }
 
-    const _depVisiting = new Set();
     function getDependencies(uid) {
         if (depCache.has(uid)) return depCache.get(uid);
         if (_depVisiting.has(uid)) return new Set([uid]);
@@ -583,7 +615,52 @@
         return deps;
     }
 
-    // [05] 완료·복구
+    // 현재 계산 결과보다 과하게 기록된 완료 수량을 상한에 맞춘다.
+    function clampCompletedUnits(calcResult) {
+        const { baseMap, baseSpecialReq } = calcResult || calculateDeductedRequirements();
+        let changed = false;
+        for (let [uid, rawQty] of [...completedUnits.entries()]) {
+            const compQty = parseInt(rawQty, 10);
+            if (!Number.isFinite(compQty) || compQty <= 0 || (!unitMap.has(uid) && !COMBO_SLOT_SET.has(uid))) {
+                completedUnits.delete(uid);
+                changed = true;
+                continue;
+            }
+            if (activeUnits.has(uid)) {
+                let maxAllow = baseMap.get(uid) || activeUnits.get(uid) || 1;
+                if (compQty > maxAllow) { completedUnits.set(uid, maxAllow); changed = true; }
+                continue;
+            }
+            let maxAllow = COMBO_SLOT_SET.has(uid) ? (baseSpecialReq[uid] || 0) : (baseMap.get(uid) || 0);
+            if (compQty > maxAllow) {
+                if (maxAllow <= 0) completedUnits.delete(uid);
+                else completedUnits.set(uid, maxAllow);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    // 연속 입력 중 전체 패널 갱신을 짧게 지연해 중복 렌더링을 줄인다.
+    function debouncedUpdateAllPanels() {
+        if (updateTimer) cancelAnimationFrame(updateTimer);
+        updateTimer = requestAnimationFrame(() => {
+            let calcResult = calculateDeductedRequirements();
+            if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
+            _lastCalcResult = calcResult;
+            updateMagicDashboard();
+            updateEssence();
+            updateTabsUI();
+            updateTabContentUI();
+            updateDeductionBoard(calcResult);
+            updateCartUI();
+            updateEmptyMsg();
+            saveNexusState();
+        });
+    }
+
+
+    // [05] 완료·복구·초기화
     // 완료 유닛의 하위 재료 완료 기록을 목표 수량만큼 되돌린다.
     function deleteCompletedRecipe(uid, multiplier) {
         const u = unitMap.get(uid); if (!u) return;
@@ -684,7 +761,6 @@
         triggerHaptic(); debouncedUpdateAllPanels();
     }
 
-    let _restoreAllPendingTimer = null;
     // 모든 완료/차감 상태를 초기화하고 전체 패널을 재계산한다.
     function restoreAllCompleted() {
         if (_restoreAllCooldown) return;
@@ -715,6 +791,39 @@
             setTimeout(() => { label.textContent = cfg.labelDefault; btn.classList.remove(cfg.classDone); btn.disabled = false; _restoreAllCooldown = false; }, APP_INTERNAL.restoreAllResetDelay);
         }, APP_INTERNAL.restoreAllPendingDelay);
     }
+
+    // 체크리스트 그룹 단위로 완료 기록을 복구한다.
+    function resetGroupCompleted(level) {
+        if (level >= 5) {
+            completedTargets.forEach((qty, uid) => {
+                deleteCompletedRecipe(uid, qty);
+                completedUnits.delete(uid);
+                activeUnits.set(uid, qty);
+            });
+            completedTargets.clear();
+            _cartTab = 'active';
+            _presetUsed.clear(); updatePresetBtns();
+        } else {
+            const uidsToReset = [];
+            completedUnits.forEach((_, uid) => {
+                if (activeUnits.has(uid)) return;
+                let nativeLvl = _unitNativeLevels.get(uid) || 1;
+                if (nativeLvl <= level) {
+                    uidsToReset.push(uid);
+                }
+            });
+            
+            uidsToReset.forEach(uid => completedUnits.delete(uid));
+        }
+        toggleHighlight(null); debouncedUpdateAllPanels();
+    }
+
+    function resetCodex() {
+        activeUnits.clear(); completedUnits.clear(); completedTargets.clear();
+        toggleHighlight(null); _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility();
+        _presetUsed.clear(); updatePresetBtns(); debouncedUpdateAllPanels();
+    }
+
 
     // [06] 통합 보드 / 대시보드
     // 선택 목표와 완료 상태의 정수 필요/보유 현황을 갱신한다.
@@ -805,9 +914,13 @@
         });
     }
 
+
     // [07] 체크리스트 보드
     // 체크리스트 보드의 고정 DOM 골격을 1회 생성한다.
     function renderDeductionBoard() {
+        if (_isDeductionBoardRendered) return;
+        const boardEl = getEl('deductionBoard');
+        if (!boardEl) return;
         // [07-1] 슬롯/그룹 HTML 템플릿
         const renderSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `<div class="deduct-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}><div class="deduct-group-title" data-action="toggleGroup" data-grid-id="${pid}"><div style="display:flex;align-items:center;gap:7px;pointer-events:none;"><span class="grp-toggle-icon" style="display:inline-block;transition:transform 0.2s;transform:${isCol?'rotate(-90deg)':'rotate(0deg)'};font-size:0.75rem;">▼</span><span class="grp-title-text">${title}</span>${resetLevel > 0 ? `<span class="grp-count-badge" id="grp-count-${pid}" style="margin-left:2px;"></span>` : ''}</div>${resetLevel > 0 ? `<button type="button" class="btn-text-link grp-restore-btn" data-action="resetGroup" data-level="${resetLevel}" style="pointer-events:auto;">${resetLabel}</button>` : ''}</div><div class="deduct-grid" id="${pid}" ${isCol?'style="display:none;"':''}></div></div>`;
@@ -820,9 +933,18 @@
 
         const _exIds = new Set((SYSTEM_CONFIG.policy.hideCompletedExcludeGroups || []).map(t => titleToGridId[t]).filter(Boolean));
 
-        const boardEl = getEl('deductionBoard');
         boardEl.innerHTML = `<div id="deduct-empty-msg" class="empty-msg" style="display:none;"></div><div id="deduct-slot-pool" style="display:none;">${specialSlots}${unitSlots}${autoSlots}</div>` + GROUP_DEFS.map(g => getGrp(g.id, g.pid, g.title, g.resetLevel, g.isCol, g.alwaysShow, g.alwaysOpen, g.resetLabel)).join('');
         boardEl.dataset.excludeGridIds = JSON.stringify([..._exIds]);
+        _isDeductionBoardRendered = true;
+    }
+
+    // 체크리스트 화면이 처음 열릴 때 보드 DOM을 1회 생성하고 최신 계산값을 반영한다.
+    function ensureDeductionBoardRendered(calcResult) {
+        if (!_isDeductionBoardRendered) renderDeductionBoard();
+        if (!_isDeductionBoardRendered) return false;
+        updateDeductionBoard(calcResult || _lastCalcResult || calculateDeductedRequirements());
+        updateEmptyMsg();
+        return true;
     }
 
     // 체크리스트 그룹 안의 슬롯을 반응형 페이지 묶음으로 재배치한다.
@@ -847,6 +969,7 @@
 
     // 계산 결과를 기준으로 체크리스트 슬롯, 그룹, 카운터, 페이지를 갱신한다.
     function updateDeductionBoard(calcResult) {
+        if (!_isDeductionBoardRendered) return;
         // [07-3] 계산 결과와 하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
         const mergedSlots = new Set();
@@ -1182,51 +1305,42 @@
         });
     }
 
-    // 현재 계산 결과보다 과하게 기록된 완료 수량을 상한에 맞춘다.
-    function clampCompletedUnits(calcResult) {
-        const { baseMap, baseSpecialReq } = calcResult || calculateDeductedRequirements();
-        let changed = false;
-        for (let [uid, rawQty] of [...completedUnits.entries()]) {
-            const compQty = parseInt(rawQty, 10);
-            if (!Number.isFinite(compQty) || compQty <= 0 || (!unitMap.has(uid) && !COMBO_SLOT_SET.has(uid))) {
-                completedUnits.delete(uid);
-                changed = true;
-                continue;
-            }
-            if (activeUnits.has(uid)) {
-                let maxAllow = baseMap.get(uid) || activeUnits.get(uid) || 1;
-                if (compQty > maxAllow) { completedUnits.set(uid, maxAllow); changed = true; }
-                continue;
-            }
-            let maxAllow = COMBO_SLOT_SET.has(uid) ? (baseSpecialReq[uid] || 0) : (baseMap.get(uid) || 0);
-            if (compQty > maxAllow) {
-                if (maxAllow <= 0) completedUnits.delete(uid);
-                else completedUnits.set(uid, maxAllow);
-                changed = true;
-            }
+    function updateEmptyMsg() {
+        const msg = getEl('deduct-empty-msg');
+        if (!msg) return;
+        const isEmpty = activeUnits.size === 0 && completedTargets.size === 0;
+        if (isEmpty) {
+            msg.style.display = 'block';
+            msg.innerHTML = `<div class="empty-msg-enhanced"><div class="empty-arrow">↑</div><div class="empty-main">유닛도감에서 목표 유닛을 선택해 보세요</div><div class="empty-sub">상단 <b class="empty-emphasis">유닛도감</b> 탭 → 종족 선택 → 카드 클릭<br>프리셋 버튼으로 빠르게 시작할 수도 있습니다</div></div>`;
+        } else {
+            msg.style.display = 'none';
         }
-        return changed;
     }
 
-    // 연속 입력 중 전체 패널 갱신을 짧게 지연해 중복 렌더링을 줄인다.
-    function debouncedUpdateAllPanels() {
-        if (updateTimer) cancelAnimationFrame(updateTimer);
-        updateTimer = requestAnimationFrame(() => {
-            let calcResult = calculateDeductedRequirements();
-            if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
-            _lastCalcResult = calcResult;
-            updateMagicDashboard();
-            updateEssence();
-            updateTabsUI();
-            updateTabContentUI();
-            updateDeductionBoard(calcResult);
-            updateCartUI();
-            updateEmptyMsg();
-            saveNexusState();
-        });
+    function updateHideCompletedBtn() {
+        const btn = getEl('btnHideCompleted'), label = getEl('btnHideCompletedLabel');
+        if (!btn || !label) return;
+        label.textContent = _hideCompleted ? '숨기는 중' : '완료 숨기기';
+        btn.classList.toggle('hide-completed-active', _hideCompleted);
     }
 
-    // [08] 도감·탭·프리셋
+    function toggleHighlight(uid, event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        const board = getEl('deductionBoard'); if (!board) return;
+
+        if (!uid || _currentHighlight === uid) {
+            _currentHighlight = null;
+            board.classList.remove('highlight-mode');
+        } else {
+            _currentHighlight = uid;
+            board.classList.add('highlight-mode');
+        }
+        
+        debouncedUpdateAllPanels();
+    }
+
+
+    // [08] 도감·탭·즐겨찾기·프리셋
     // 좌측 종족 탭 버튼을 생성한다.
     function renderTabs() {
         const t = getEl('codexTabs');
@@ -1281,6 +1395,7 @@
     }
 
     function buildUnitCard(item, idx) { return buildCard(item, idx, '', true); }
+
     function buildFavCard(item, idx, categoryKey) { return buildCard(item, idx, `fav-${categoryKey}-`, true); }
 
     function buildPagerPages(htmlItems, pageSize, pageClass) {
@@ -1390,98 +1505,6 @@
         updateTabsUI();
     }
 
-    // [09] 장바구니·툴팁·폰트
-    function toggleCartCollapse() {
-        _cartCollapsed = !_cartCollapsed;
-        syncCartVisibility();
-    }
-
-    function syncCartVisibility() {
-        const btn = getEl('cartCollapseBtn');
-        if (btn) btn.textContent = _cartCollapsed ? '▶' : '▼';
-        [getEl('cartTabBar'), getEl('cartListArea')].forEach(el => {
-            if (el) el.style.display = _cartCollapsed ? 'none' : '';
-        });
-    }
-
-
-    function updateCartUI() {
-        const cartListArea = getEl('cartListArea'); if (!cartListArea) return;
-        const tabBar = getEl('cartTabBar');
-        if (tabBar) {
-            tabBar.innerHTML = `<button type="button" class="cart-tab-btn ${_cartTab === 'active' ? 'active' : ''}" data-action="switchCartTab" data-tab="active">선택 <span class="cart-tab-cnt">${activeUnits.size}</span></button><button type="button" class="cart-tab-btn ${_cartTab === 'done' ? 'active' : ''}" data-action="switchCartTab" data-tab="done">완료 <span class="cart-tab-cnt done">${completedTargets.size}</span></button>`;
-            tabBar.style.display = _cartCollapsed ? 'none' : '';
-        }
-        cartListArea.style.display = _cartCollapsed ? 'none' : '';
-        if (_cartCollapsed) return;
-
-        if (_cartTab === 'active') {
-            if (activeUnits.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
-            // [09-1] 장바구니 탭별 표시 대상 수집
-        const items = getUnitsFromMap(activeUnits);
-            const existingIds = Array.from(cartListArea.querySelectorAll('.cart-item')).map(el => el.id.replace('ci-', '')), newIds = items.map(i => i.id);
-            if (existingIds.length !== newIds.length || existingIds.some((id, i) => id !== newIds[i])) {
-                cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="ci-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="ci-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del" data-action="removeCartItem" data-uid="${item.id}" title="삭제">✕</button></div>`).join('');
-            } else items.forEach(item => { const valEl = getEl(`ci-val-${item.id}`); if (valEl) { const qty = activeUnits.get(item.id) || 1; if (valEl.innerText !== String(qty)) valEl.innerText = qty; } });
-        } else {
-            if (completedTargets.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">체크리스트에서 전체완료 시 이곳으로 이동됩니다.</span></div>`;
-            cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="cid-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
-        }
-    }
-
-    function formatRecipe(item, multi = 1, showSep = false) {
-        if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
-        let foundSpecialIds = [];
-        // [09-2] 조합식 재료 행과 특수 조건 문구 생성
-        let partsHtml = splitRecipe(item.recipe).map(p => {
-            const m = p.match(/^([^([ ]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
-            if (m) {
-                const unitId = getUnitId(m[1].trim()), u = unitMap.get(unitId);
-                let condHtml = '';
-                if (CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    condHtml = `<span class="badge-special-cond recipe-special-cond">특수조건</span>`;
-                    if (!foundSpecialIds.includes(unitId)) foundSpecialIds.push(unitId);
-                } else if (m[2]) condHtml = `<span class="badge-cond">${m[2].replace(/,/g, ' ')}</span>`;
-                const isTool = isToolRequirement(item.id, unitId);
-                const qtyNum = isTool ? 1 : (m[3] ? parseInt(m[3], 10) : 1) * multi;
-                const color = u ? SYSTEM_CONFIG.grades.colors[u.grade] : 'var(--text)';
-                const toolHtml = isTool ? `<span class="tool-badge">[도구]</span>` : '';
-                if (showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${m[2].replace(/,/g, ' ')}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
-                }
-                return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
-            }
-            return `<div class="recipe-token-muted">${p}</div>`;
-        }).join('');
-        let specialCondInlineHtml = (!showSep && foundSpecialIds.length > 0) ? `<div class="tsc-wrap tsc-wrap-inline">${foundSpecialIds.map(uid => `<div class="tsc-item tsc-item-inline">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
-        return `<div class="${showSep ? 'recipe-flex-wrap' : 'recipe-vertical'}">${partsHtml}</div>${specialCondInlineHtml}`;
-    }
-
-    function updateEmptyMsg() {
-        const msg = getEl('deduct-empty-msg');
-        if (!msg) return;
-        const isEmpty = activeUnits.size === 0 && completedTargets.size === 0;
-        if (isEmpty) {
-            msg.style.display = 'block';
-            msg.innerHTML = `<div class="empty-msg-enhanced"><div class="empty-arrow">↑</div><div class="empty-main">유닛도감에서 목표 유닛을 선택해 보세요</div><div class="empty-sub">상단 <b class="empty-emphasis">유닛도감</b> 탭 → 종족 선택 → 카드 클릭<br>프리셋 버튼으로 빠르게 시작할 수도 있습니다</div></div>`;
-        } else {
-            msg.style.display = 'none';
-        }
-    }
-
-    function updateHideCompletedBtn() {
-        const btn = getEl('btnHideCompleted'), label = getEl('btnHideCompletedLabel');
-        if (!btn || !label) return;
-        label.textContent = _hideCompleted ? '숨기는 중' : '완료 숨기기';
-        btn.classList.toggle('hide-completed-active', _hideCompleted);
-    }
-
-    function resetCodex() {
-        activeUnits.clear(); completedUnits.clear(); completedTargets.clear();
-        toggleHighlight(null); _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility();
-        _presetUsed.clear(); updatePresetBtns(); debouncedUpdateAllPanels();
-    }
-
     // config.js 프리셋 정의를 버튼 그룹으로 렌더링한다.
     function renderPresetButtons() {
         const tabBar = getEl('presetInlineTabBar'), btnList = getEl('presetInlineBtnList'), wrap = getEl('presetInlineWrap');
@@ -1518,32 +1541,81 @@
         });
     }
 
-    // 체크리스트 그룹 단위로 완료 기록을 복구한다.
-    function resetGroupCompleted(level) {
-        if (level >= 5) {
-            completedTargets.forEach((qty, uid) => {
-                deleteCompletedRecipe(uid, qty);
-                completedUnits.delete(uid);
-                activeUnits.set(uid, qty);
-            });
-            completedTargets.clear();
-            _cartTab = 'active';
-            _presetUsed.clear(); updatePresetBtns();
-        } else {
-            const uidsToReset = [];
-            completedUnits.forEach((_, uid) => {
-                if (activeUnits.has(uid)) return;
-                let nativeLvl = _unitNativeLevels.get(uid) || 1;
-                if (nativeLvl <= level) {
-                    uidsToReset.push(uid);
-                }
-            });
-            
-            uidsToReset.forEach(uid => completedUnits.delete(uid));
-        }
-        toggleHighlight(null); debouncedUpdateAllPanels();
+    // 유닛 선택 여부를 토글하고 수량 상태를 동기화한다.
+    function toggleUnitSelection(id, forceQty) {
+        if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id)) return;
+        if (activeUnits.has(id)) activeUnits.delete(id);
+        else activeUnits.set(id, normalizeUnitQty(id, forceQty || 1));
+        debouncedUpdateAllPanels();
     }
 
+    // 유닛 수량을 지정하고 관련 패널을 재계산한다.
+    function setUnitQty(id, val) {
+        if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id) || isOneTime(unitMap.get(id))) return;
+        const q = normalizeUnitQty(id, val);
+        if (q <= 0) return;
+        activeUnits.set(id, q);
+        debouncedUpdateAllPanels();
+    }
+
+    function toggleSelectAllTab() {
+        const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx]; if (!currentTab) return;
+        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
+        const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && (getGradeIndex(u.grade) >= minGradeIdx || isSearchAllowed(u.id)) && !isHiddenUnit(u.id) && !isRestrictedUnit(u.id));
+        if (!catItems.length) return;
+        if (catItems.every(item => activeUnits.has(item.id))) catItems.forEach(item => activeUnits.delete(item.id));
+        else catItems.forEach(item => !activeUnits.has(item.id) && activeUnits.set(item.id, normalizeUnitQty(item.id, 1)));
+        triggerHaptic(); debouncedUpdateAllPanels();
+    }
+
+    function selectTab(idx) {
+        hideRecipeTooltip();
+        _activeTabIdx = Math.max(0, Math.min(parseInt(idx, 10) || 0, SYSTEM_CONFIG.tabs.length - 1));
+        updateTabsUI();
+        renderCurrentTabContent();
+    }
+
+
+    // [09] 장바구니
+    function toggleCartCollapse() {
+        _cartCollapsed = !_cartCollapsed;
+        syncCartVisibility();
+    }
+
+    function syncCartVisibility() {
+        const btn = getEl('cartCollapseBtn');
+        if (btn) btn.textContent = _cartCollapsed ? '▶' : '▼';
+        [getEl('cartTabBar'), getEl('cartListArea')].forEach(el => {
+            if (el) el.style.display = _cartCollapsed ? 'none' : '';
+        });
+    }
+
+    function updateCartUI() {
+        const cartListArea = getEl('cartListArea'); if (!cartListArea) return;
+        const tabBar = getEl('cartTabBar');
+        if (tabBar) {
+            tabBar.innerHTML = `<button type="button" class="cart-tab-btn ${_cartTab === 'active' ? 'active' : ''}" data-action="switchCartTab" data-tab="active">선택 <span class="cart-tab-cnt">${activeUnits.size}</span></button><button type="button" class="cart-tab-btn ${_cartTab === 'done' ? 'active' : ''}" data-action="switchCartTab" data-tab="done">완료 <span class="cart-tab-cnt done">${completedTargets.size}</span></button>`;
+            tabBar.style.display = _cartCollapsed ? 'none' : '';
+        }
+        cartListArea.style.display = _cartCollapsed ? 'none' : '';
+        if (_cartCollapsed) return;
+
+        if (_cartTab === 'active') {
+            if (activeUnits.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
+            // [09-1] 장바구니 탭별 표시 대상 수집
+        const items = getUnitsFromMap(activeUnits);
+            const existingIds = Array.from(cartListArea.querySelectorAll('.cart-item')).map(el => el.id.replace('ci-', '')), newIds = items.map(i => i.id);
+            if (existingIds.length !== newIds.length || existingIds.some((id, i) => id !== newIds[i])) {
+                cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="ci-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="ci-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del" data-action="removeCartItem" data-uid="${item.id}" title="삭제">✕</button></div>`).join('');
+            } else items.forEach(item => { const valEl = getEl(`ci-val-${item.id}`); if (valEl) { const qty = activeUnits.get(item.id) || 1; if (valEl.innerText !== String(qty)) valEl.innerText = qty; } });
+        } else {
+            if (completedTargets.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">체크리스트에서 전체완료 시 이곳으로 이동됩니다.</span></div>`;
+            cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="cid-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
+        }
+    }
+
+
+    // [10] 화면·입력·툴팁·폰트
     function setupInitialView() { switchLayout('codex'); }
 
     // 상단 탭에 따라 도감 보기와 체크리스트 보기를 전환한다.
@@ -1552,10 +1624,14 @@
         const layout = getEl('mainLayout'); if (!layout) return;
         _currentViewMode = mode; layout.classList.remove('view-codex', 'view-deduct');
         const btnCodex = getEl('btnViewCodex'), btnDeduct = getEl('btnViewDeduct');
-        if (mode === 'deduct') { layout.classList.add('view-deduct'); btnCodex?.classList.remove('active'); btnDeduct?.classList.add('active'); }
+        if (mode === 'deduct') {
+            layout.classList.add('view-deduct');
+            btnCodex?.classList.remove('active');
+            btnDeduct?.classList.add('active');
+            ensureDeductionBoardRendered(_lastCalcResult);
+        }
         else { layout.classList.add('view-codex'); btnCodex?.classList.add('active'); btnDeduct?.classList.remove('active'); }
     }
-
 
     // +/− 버튼 길게 누르기 가속 입력을 시작한다.
     function startSmartChange(id, delta, event) {
@@ -1569,6 +1645,7 @@
         const loop = () => { triggerHaptic(); action(); _currentAccelInterval = Math.max(APP_INTERNAL.accelMinInterval, _currentAccelInterval - (APP_INTERNAL.accelDecreaseStep)); repeatTimer = setTimeout(loop, _currentAccelInterval); };
         repeatDelayTimer = setTimeout(loop, APP_INTERNAL.holdStartDelay);
     }
+
     function stopSmartChange() {
         clearTimeout(repeatDelayTimer);
         clearTimeout(repeatTimer);
@@ -1586,11 +1663,32 @@
             loop();
         }, APP_INTERNAL.fontHoldStartDelay);
     }
+
     function stopFontHold() {
         clearTimeout(_fontRepeatDelayTimer);
         clearTimeout(_fontRepeatTimer);
         _fontRepeatDelayTimer = null;
         _fontRepeatTimer = null;
+    }
+
+    // 글자 크기 배율을 CSS 변수와 저장소에 반영한다.
+    function setFontScale(scale) {
+        if (window.innerWidth < (APP_INTERNAL.mobileBreakpoint)) return;
+        _fontScale = Math.max(APP_INTERNAL.fontScaleMin, Math.min(APP_INTERNAL.fontScaleMax, scale));
+        document.documentElement.style.setProperty('--fs-scale', _fontScale);
+        const label = getEl('fontSizeLabel');
+        if (label) label.innerText = `${Math.round(_fontScale * 100)}%`;
+        try { localStorage.setItem(SYSTEM_CONFIG.storageKeys.fontScale, String(_fontScale)); } catch(e) {}
+    }
+
+    // 저장된 글자 크기 배율을 화면 조건에 맞춰 복원한다.
+    function loadFontScale() {
+        const ctrl = document.querySelector('.gh-fontsize-ctrl');
+        const minWidth = APP_INTERNAL.mobileBreakpoint;
+        const tabletMax = APP_INTERNAL.tabletPortraitMax;
+        const isTabletPortrait = window.innerWidth >= minWidth && window.innerWidth <= tabletMax && window.innerHeight > window.innerWidth;
+        if (window.innerWidth < minWidth || isTabletPortrait) { if (ctrl) ctrl.style.display = 'none'; return; }
+        try { const saved = localStorage.getItem(SYSTEM_CONFIG.storageKeys.fontScale); if (saved) setFontScale(parseFloat(saved)); } catch(e) {}
     }
 
     // 포인터 위치를 기준으로 툴팁을 화면 안쪽에 배치한다.
@@ -1670,81 +1768,15 @@
         tt.innerHTML = `<div class="tooltip-header" style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}"><div>${u.name} 조합법 ${multi > 1 ? `<span class="tooltip-multi-count">(${multi}개 기준)</span>` : ''}</div></div><div class="tooltip-body">${formatRecipe(u, multi, true)}${foundSpecialConds.size > 0 ? `<div class="tsc-wrap">${Array.from(foundSpecialConds).map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : ''}</div>${CLEAN_UNIT_CONDITIONS[u.id] ? `<div class="tsc-wrap tsc-wrap-unit"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[u.id]}</div></div>` : ''}<div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
         showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
     }
+
     
     function hideRecipeTooltip() {
         getEl('recipeTooltip')?.classList.remove('active');
     }
 
-    // 유닛 선택 여부를 토글하고 수량 상태를 동기화한다.
-    function toggleUnitSelection(id, forceQty) {
-        if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id)) return;
-        if (activeUnits.has(id)) activeUnits.delete(id);
-        else activeUnits.set(id, normalizeUnitQty(id, forceQty || 1));
-        debouncedUpdateAllPanels();
-    }
-    // 유닛 수량을 지정하고 관련 패널을 재계산한다.
-    function setUnitQty(id, val) {
-        if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id) || isOneTime(unitMap.get(id))) return;
-        const q = normalizeUnitQty(id, val);
-        if (q <= 0) return;
-        activeUnits.set(id, q);
-        debouncedUpdateAllPanels();
-    }
 
-    function toggleHighlight(uid, event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        const board = getEl('deductionBoard'); if (!board) return;
-
-        if (!uid || _currentHighlight === uid) {
-            _currentHighlight = null;
-            board.classList.remove('highlight-mode');
-        } else {
-            _currentHighlight = uid;
-            board.classList.add('highlight-mode');
-        }
-        
-        debouncedUpdateAllPanels();
-    }
-
-    function toggleSelectAllTab() {
-        const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx]; if (!currentTab) return;
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
-        const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && (getGradeIndex(u.grade) >= minGradeIdx || isSearchAllowed(u.id)) && !isHiddenUnit(u.id) && !isRestrictedUnit(u.id));
-        if (!catItems.length) return;
-        if (catItems.every(item => activeUnits.has(item.id))) catItems.forEach(item => activeUnits.delete(item.id));
-        else catItems.forEach(item => !activeUnits.has(item.id) && activeUnits.set(item.id, normalizeUnitQty(item.id, 1)));
-        triggerHaptic(); debouncedUpdateAllPanels();
-    }
-
-    function selectTab(idx) {
-        hideRecipeTooltip();
-        _activeTabIdx = Math.max(0, Math.min(parseInt(idx, 10) || 0, SYSTEM_CONFIG.tabs.length - 1));
-        updateTabsUI();
-        renderCurrentTabContent();
-    }
-
-    let _fontScale = 1.0;
-    // 글자 크기 배율을 CSS 변수와 저장소에 반영한다.
-    function setFontScale(scale) {
-        if (window.innerWidth < (APP_INTERNAL.mobileBreakpoint)) return;
-        _fontScale = Math.max(APP_INTERNAL.fontScaleMin, Math.min(APP_INTERNAL.fontScaleMax, scale));
-        document.documentElement.style.setProperty('--fs-scale', _fontScale);
-        const label = getEl('fontSizeLabel');
-        if (label) label.innerText = `${Math.round(_fontScale * 100)}%`;
-        try { localStorage.setItem(SYSTEM_CONFIG.storageKeys.fontScale, String(_fontScale)); } catch(e) {}
-    }
-    // 저장된 글자 크기 배율을 화면 조건에 맞춰 복원한다.
-    function loadFontScale() {
-        const ctrl = document.querySelector('.gh-fontsize-ctrl');
-        const minWidth = APP_INTERNAL.mobileBreakpoint;
-        const tabletMax = APP_INTERNAL.tabletPortraitMax;
-        const isTabletPortrait = window.innerWidth >= minWidth && window.innerWidth <= tabletMax && window.innerHeight > window.innerWidth;
-        if (window.innerWidth < minWidth || isTabletPortrait) { if (ctrl) ctrl.style.display = 'none'; return; }
-        try { const saved = localStorage.getItem(SYSTEM_CONFIG.storageKeys.fontScale); if (saved) setFontScale(parseFloat(saved)); } catch(e) {}
-    }
-
-    // [10] 이벤트 바인딩
-    // [10-1] 길게 누르기/폰트 반복 입력 종료 이벤트
+    // [11] 이벤트 바인딩
+    // [11-1] 길게 누르기/폰트 반복 입력 종료 이벤트
     ['pointerup','pointercancel','touchend','touchcancel','mouseup','contextmenu'].forEach(evt => { document.addEventListener(evt, stopSmartChange); document.addEventListener(evt, stopFontHold); });
     
     document.addEventListener('visibilitychange', () => {
@@ -1754,7 +1786,7 @@
         }
     });
 
-    // [10-2] 클릭 이벤트 위임
+    // [11-2] 클릭 이벤트 위임
     document.addEventListener('click', e => {
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
@@ -1817,14 +1849,14 @@
         }
     });
 
-    // [10-3] 포인터 입력: 수량 조절, 폰트 조절, 툴팁 종료
+    // [11-3] 포인터 입력: 수량 조절, 폰트 조절, 툴팁 종료
     document.addEventListener('pointerdown', e => {
         const actionEl = e.target.closest('[data-action="smartChange"]');
         if (actionEl) { e.stopPropagation(); startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e); return; }
         if (e.target.closest('[data-action="increaseFont"]')) { e.preventDefault(); startFontHold(APP_INTERNAL.fontScaleStep); return; }
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
-    // [10-4] 키보드 접근성 / 검색 단축 처리
+    // [11-4] 키보드 접근성 / 검색 단축 처리
     document.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('[data-action="showAppVersion"]')) {
             e.preventDefault();
@@ -1840,9 +1872,9 @@
     });
     window.addEventListener('orientationchange', hideRecipeTooltip);
     window.addEventListener('resize', hideRecipeTooltip);
-
-    // [11] Boot 연동 초기화
+    // [12] Boot 연동 초기화
     let _isSwiping = false;
+
     // DOM 준비 후 데이터 적재, 초기 렌더링, 이벤트 위임을 실행한다.
     function startNexusApp(){
         try {
@@ -1851,7 +1883,7 @@
             UNIT_DATABASE.forEach(kArr => unitMap.set(clean(kArr[0]), { id: clean(kArr[0]), name: kArr[0], grade: kArr[1] || SYSTEM_CONFIG.grades.order[0], category: kArr[2] || SYSTEM_CONFIG.tabs[0].key, recipe: kArr[3], cost: kArr[4] }));
             pruneFavorites();
 
-            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); renderDeductionBoard(); renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
+            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
             updateHideCompletedBtn();
             _cartCollapsed = false;
             syncCartVisibility();
@@ -1921,6 +1953,7 @@
             markNexusAppError("N1001", err);
         }
     }
+
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startNexusApp, { once: true });
     else startNexusApp();
 })();
