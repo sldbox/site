@@ -2,9 +2,9 @@
 // [ 넥서스 앱 실행 파일 (app.js) ]
 //  00. 내부 설정/정책 병합     기본 정책, 등급, 탭, 저장 키, 사용자 config 병합
 //  01. 런타임 상수/상태       정규화 캐시, 완료/선택 상태, 터치·폰트 상태
-//  02. 공통 유틸/캐시         DOM 헬퍼, 상태 정리, 조합식 파싱, 공용 레시피 렌더
+//  02. 공통 유틸/데이터 캐시  DOM 헬퍼, 상태 정리, 조합식 파싱, 데이터 캐시
 //  03. 저장·검색·명령        localStorage, 즐겨찾기, 검색 엔진, 프리셋 명령
-//  04. 계산 엔진              정수/재료 파싱, BFS 필요 수량, 의존성 캐시, 전체 갱신
+//  04. 계산 엔진              정수/재료 파싱, BFS 필요 수량, 의존성 캐시, 전체 패널 갱신
 //  05. 완료·복구·초기화      완료 처리, 그룹 복구, 통합 초기화, 선택 초기화
 //  06. 통합 보드              정수/매직 현황과 중앙 대시보드 갱신
 //  07. 체크리스트             보드 지연 생성, 조합 트리, 그룹, 완료 숨김, 하이라이트
@@ -243,7 +243,7 @@
             input.classList.remove('search-input-error');
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
-    // [02] 공통 유틸 / 데이터 캐시
+    // [02-2] 상태 정리 / 조합식 파싱 / 데이터 캐시
     // 선택/완료 Map에 남은 0 이하 값과 잘못된 ID를 제거한다.
     function sanitizeRuntimeState() {
         const normalizeMap = (map, allowCombo = false) => {
@@ -451,7 +451,7 @@
     }
 
 
-    // [04] 계산 엔진 / 전체 갱신
+    // [04] 계산 엔진 / 전체 패널 갱신
     function calcEssenceRecursiveFast(uid, counts, visited) {
         if (visited.has(uid)) return;
         visited.add(uid);
