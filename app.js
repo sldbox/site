@@ -566,32 +566,10 @@
             });
         });
 
-        const shouldKeepReason = (info, slotId) => {
-            if (info.parentUid === undefined) return true;
-            const slotCompleted = completedUnits.get(slotId) || 0;
-            if (activeUnits.has(info.parentUid)) {
-                return slotCompleted < (info.reqQty || 1) * (activeUnits.get(info.parentUid) || 1);
-            }
-            if ((reqMap.get(info.parentUid) || 0) <= 0) return false;
-            const parentTotalNeeded = baseMap.get(info.parentUid) || 0;
-            return !(parentTotalNeeded > 0 && slotCompleted >= (info.reqQty || 1) * parentTotalNeeded);
-        };
-
         rootTracking.forEach((rMap, cId) => {
-            let finalMap = new Map();
-            rMap.forEach((info, key) => {
-                if (shouldKeepReason(info, cId)) finalMap.set(key, info);
-            });
+            const finalMap = new Map(rMap);
             if (activeUnits.has(cId)) finalMap.set('TARGET_' + cId, { text: GROUP_DEFS.find(g => g.pid === 'grid-target')?.title || '', cond: '', depth: 0 });
             reasonMap.set(cId, finalMap);
-        });
-
-        COMBO_SLOT_RAWS.forEach(k => {
-            const filtered = new Map();
-            specialReason[k].forEach((info, key) => {
-                if (shouldKeepReason(info, k)) filtered.set(key, info);
-            });
-            specialReason[k] = filtered;
         });
 
         return { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason };
@@ -973,6 +951,40 @@
         // [07-3] 계산 결과와 하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
         const mergedSlots = new Set();
+
+        const getReasonParentNeed = (info) => {
+            if (!info?.parentUid) return 0;
+            return Math.max(0, reqMap.get(info.parentUid) || 0);
+        };
+        const getReasonBaseQty = (rId, info) => {
+            if (!info || info.depth === 0 || !info.reqQty) return 0;
+            const parentNeed = getReasonParentNeed(info);
+            if (parentNeed <= 0) return 0;
+            return rId.startsWith('TOOL_') ? 1 : (info.reqQty || 1) * parentNeed;
+        };
+        const getReasonDisplayEntries = (slotId, rMap) => {
+            if (!rMap) return [];
+            const entries = [...rMap.entries()].map(([rId, info], index) => ({
+                rId,
+                info,
+                index,
+                baseQty: getReasonBaseQty(rId, info),
+                displayQty: info?.depth === 0 ? 0 : getReasonBaseQty(rId, info)
+            }));
+            let remainingCompleted = Math.max(0, completedUnits.get(slotId) || 0);
+            entries
+                .filter(entry => entry.baseQty > 0)
+                .sort((a, b) => a.baseQty - b.baseQty || a.index - b.index)
+                .forEach(entry => {
+                    if (remainingCompleted <= 0) return;
+                    const consumed = Math.min(entry.displayQty, remainingCompleted);
+                    entry.displayQty -= consumed;
+                    remainingCompleted -= consumed;
+                });
+            return entries
+                .filter(entry => entry.info?.depth === 0 || entry.displayQty > 0)
+                .map(entry => [entry.rId, { ...entry.info, displayQty: entry.displayQty, _reasonOrder: entry.index }]);
+        };
         
         const targetHighlight = _currentHighlight || null;
         const highlightDeps = targetHighlight ? getDependencies(targetHighlight) : null;
@@ -1085,7 +1097,7 @@
             if (rCon) {
                 let rMap = isSpecialCost ? specialReason[id] : reasonMap.get(id);
                 if (!isInactive && rMap && rMap.size > 0 && needed > 0) {
-                    let allEntries = [...rMap.entries()];
+                    let allEntries = getReasonDisplayEntries(id, rMap);
                     if (isTarget && !isSpecialCost && !isMergedSlot) allEntries = allEntries.filter(([, i]) => i.depth === 0);
                     // 하이라이트 중이면 선택한 태그(targetHighlight) 소속만 표시
                     if (_currentHighlight) {
@@ -1096,19 +1108,21 @@
                         );
                         if (filtered.length > 0) allEntries = filtered;
                     }
-                    let sorted = allEntries.sort((a,b)=>(a[1].depth||0)-(b[1].depth||0));
-                    rCon.style.display = 'flex';
-                    rCon.style.justifyContent = sorted.length === 1 ? 'center' : 'flex-start';
-                    rCon.innerHTML = sorted.map(([rId,i]) => {
-                        let qtyText = '';
-                        // 도구(TOOL_) 태그는 수량 표시 안 함 (항상 1개 고정)
-                        if (i.depth !== 0 && i.reqQty) {
-                            const parentQty = i.parentUid ? (baseMap.get(i.parentUid) || activeUnits.get(i.parentUid) || 1) : 1;
-                            const displayQty = rId.startsWith('TOOL_') ? 1 : i.reqQty * parentQty;
-                            qtyText = ` <span class="d-reason-qty">· ${displayQty}개</span>`;
-                        }
-                        return `<span class="d-reason-tag ${i.depth===0?'tag-target':i.depth===1?'tag-mat':''}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|SPEC_)/,'')}">${i.text}${qtyText}</span>`;
-                    }).join('');
+                    if (allEntries.length > 0) {
+                        let sorted = allEntries.sort((a,b)=>(a[1].depth||0)-(b[1].depth||0) || (a[1]._reasonOrder||0)-(b[1]._reasonOrder||0));
+                        rCon.style.display = 'flex';
+                        rCon.style.justifyContent = sorted.length === 1 ? 'center' : 'flex-start';
+                        rCon.innerHTML = sorted.map(([rId,i]) => {
+                            let qtyText = '';
+                            if (i.depth !== 0 && i.displayQty > 0) {
+                                qtyText = ` <span class="d-reason-qty">· ${i.displayQty}개</span>`;
+                            }
+                            return `<span class="d-reason-tag ${i.depth===0?'tag-target':i.depth===1?'tag-mat':''}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|SPEC_)/,'')}">${i.text}${qtyText}</span>`;
+                        }).join('');
+                    } else {
+                        rCon.style.display = 'none';
+                        rCon.innerHTML = '';
+                    }
                 } else { rCon.style.display='none'; rCon.innerHTML=''; }
             }
 
@@ -1118,8 +1132,8 @@
                 let condMap = new Map();
 
                 if (rMap) {
-                    rMap.forEach((info) => {
-                        if (!info.cond) return;
+                    getReasonDisplayEntries(id, rMap).forEach(([, info]) => {
+                        if (!info.cond || info.displayQty <= 0) return;
                         // 하이라이트 중이면 선택한 태그 소속 조건만 표시, 나머지 숨김
                         if (_currentHighlight) {
                             const pUid = info.parentUid;
@@ -1127,12 +1141,7 @@
                         }
                         let cleanCond = info.cond.replace(/,/g, ' ').trim();
                         if (!cleanCond) return;
-                        let parentTotal = 1;
-                        if (info.parentUid) {
-                            parentTotal = baseMap.get(info.parentUid) || activeUnits.get(info.parentUid) || 1;
-                        }
-                        let totalCondQty = (info.reqQty || 1) * parentTotal;
-                        condMap.set(cleanCond, (condMap.get(cleanCond) || 0) + totalCondQty);
+                        condMap.set(cleanCond, (condMap.get(cleanCond) || 0) + info.displayQty);
                     });
                 }
 
