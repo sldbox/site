@@ -78,12 +78,17 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 /* ── 02. 글로벌 헤더 (Header) ── */
 .global-header{position:fixed;top:0;left:0;right:0;z-index:9000;height:var(--gh-h);display:flex;align-items:center;padding:0 12px;gap:8px;background:var(--header-bg);border-bottom:1px solid rgba(255,255,255,0.14);box-shadow:0 2px 16px rgba(0,0,0,0.95);}
-.gh-left{display:flex;align-items:center;flex-shrink:0;cursor:default;padding:0 8px;border-radius:10px;min-width:176px;height:100%;background:transparent;}
+.gh-left{display:flex;align-items:center;flex-shrink:0;cursor:default;padding:0 8px;border-radius:10px;min-width:226px;height:100%;background:transparent;}
 .gh-left:hover{background:rgba(255,255,255,0.03);}
 .gh-logo-wrap{display:flex;align-items:center;width:100%;height:100%;}
-.gh-logo-text{display:flex;flex-direction:column;justify-content:center;height:100%;width:100%;overflow:hidden;position:relative;cursor:pointer;border-radius:8px;outline:none;}
+.gh-logo-text{display:flex;align-items:center;justify-content:flex-start;gap:9px;height:100%;width:100%;min-width:0;overflow:hidden;position:relative;cursor:pointer;border-radius:8px;outline:none;}
 .gh-logo-text:focus-visible{outline:2px solid rgba(56,189,248,0.80);outline-offset:3px;}
-.gh-title{font-family:var(--font-display);font-size:clamp(1rem,1.5vw,1.25rem);font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 0 18px rgba(56,189,248,0.7),0 0 40px rgba(56,189,248,0.25);white-space:nowrap;line-height:1;display:block;cursor:pointer;}
+.gh-brand-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:50px;height:32px;border-radius:9px;position:relative;isolation:isolate;background-color:#020617;background-image:radial-gradient(circle at 76% 18%,rgba(34,211,238,0.42),transparent 34%),radial-gradient(circle at 18% 82%,rgba(124,58,237,0.36),transparent 38%),linear-gradient(145deg,#020617 0%,#071426 46%,#101827 100%);border:1px solid rgba(34,211,238,0.54);box-shadow:0 0 0 1px rgba(124,58,237,0.22),0 9px 18px rgba(0,0,0,0.46),0 0 18px rgba(34,211,238,0.16),inset 0 1px 0 rgba(255,255,255,0.13),inset 0 -10px 18px rgba(15,23,42,0.75);color:#e6fdff;font-family:var(--font-display),Consolas,var(--font-mono);font-size:0.72rem;font-weight:900;letter-spacing:1.1px;line-height:1;text-shadow:0 0 8px rgba(34,211,238,0.82),0 0 18px rgba(124,58,237,0.38);overflow:hidden;}
+.gh-title-wrap{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;}
+.gh-title{font-family:var(--font-display);font-size:clamp(1rem,1.5vw,1.25rem);font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 0 18px rgba(56,189,248,0.7),0 0 40px rgba(56,189,248,0.25);white-space:nowrap;line-height:1;display:block;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.gh-creator-line{display:flex;align-items:center;gap:6px;min-width:0;color:#93a4b9;font-size:0.68rem;font-weight:900;line-height:1;white-space:nowrap;}
+.gh-creator-line b{color:#cfe0ff;margin-left:2px;}
+.gh-creator-line span:last-child{font-family:Consolas,var(--font-mono);color:#7f8ea3;}
 
 .gh-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;justify-content:center;}
 .gh-nav-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--text-muted);font-size:0.92rem;font-weight:800;cursor:pointer;transition:all 0.18s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;position:relative;text-decoration:none;}
@@ -541,6 +546,12 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 /* [14-3] 태블릿 기본: 도감 3열, 체크리스트 3열 */
 @media (max-width:1024px) and (min-width:768px) {
+    .gh-left{min-width:210px;padding:0 5px;}
+    .gh-logo-text{gap:7px;}
+    .gh-brand-icon{width:46px;height:30px;font-size:0.66rem;letter-spacing:0.9px;}
+    .gh-title{font-size:0.94rem;letter-spacing:1.2px;}
+    .gh-creator-line{gap:4px;font-size:0.56rem;}
+    .gh-nav-btn{padding:6px 10px;}
     .codex-category-grid,.codex-fav-grid,.deduct-grid,#grid-top.deduct-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
     .magic-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;height:auto;flex:none;}
     .cost-slot{aspect-ratio:unset;min-height:58px;}
@@ -552,9 +563,14 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .global-header{position:fixed;top:0;left:0;right:0;z-index:9000;height:auto;flex-direction:row;flex-wrap:wrap;padding:8px;gap:5px;background:var(--header-bg);border-bottom:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 12px rgba(0,0,0,0.90);}
     .gh-fontsize-ctrl,.gh-divider{display:none;}
     .gh-left{width:100%;justify-content:center;background:transparent;min-width:auto;padding:0;height:auto;order:1;}
-    .gh-logo-wrap,.gh-title{justify-content:center;}
-    .gh-logo-text{align-items:center;}
-    .gh-title{font-size:1.1rem;width:auto;}
+    .gh-logo-wrap{justify-content:center;}
+    .gh-logo-text{justify-content:center;align-items:center;width:auto;max-width:100%;gap:8px;}
+    .gh-brand-icon{width:48px;height:30px;font-size:0.68rem;letter-spacing:0.9px;}
+    .gh-title-wrap{align-items:flex-start;gap:3px;max-width:calc(100vw - 96px);}
+    .gh-title{font-size:1.02rem;width:auto;max-width:100%;letter-spacing:1.4px;}
+    .gh-creator-line{gap:4px;max-width:100%;overflow:hidden;font-size:0.58rem;}
+    .gh-creator-line span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .gh-creator-line span:last-child{max-width:92px;}
     .gh-center{position:static;transform:none;width:100%;flex:none;display:flex;gap:4px;flex-wrap:nowrap;justify-content:center;order:2;}
     .gh-nav-btn#btnViewCodex,.gh-nav-btn#btnViewDeduct{flex:1 1 0;padding:8px 4px;font-size:0.92rem;justify-content:center;text-align:center;}
     .gh-trait-link-mobile{display:flex;flex:0 0 74px;padding:8px 4px;font-size:0.82rem;justify-content:center;text-align:center;color:#9fb6d8;}
