@@ -1,23 +1,17 @@
-// ==========================================================================
-// [ 넥서스 앱 실행 파일 (app.js) ]
-//  00. 내부 설정/정책 병합     기본 정책, 등급, 탭, 저장 키, 사용자 config 병합
-//  01. 런타임 상수/상태       정규화 캐시, 완료/선택 상태, 터치·폰트 상태
-//  02. 공통 유틸/데이터 캐시  DOM 헬퍼, 상태 정리, 조합식 파싱, 데이터 캐시
-//  03. 저장·검색·명령        localStorage, 즐겨찾기, 검색 엔진, 프리셋 명령
-//  04. 계산 엔진              정수/재료 파싱, BFS 필요 수량, 의존성 캐시, 전체 패널 갱신
-//  05. 완료·복구·초기화      완료 처리, 그룹 복구, 통합 초기화, 선택 초기화
-//  06. 통합 보드              정수/매직 현황과 중앙 대시보드 갱신
-//  07. 체크리스트             보드 지연 생성, 조합 트리, 그룹, 완료 숨김, 하이라이트
-//  08. 도감·탭·프리셋        종족 탭, 카드 렌더링, 즐겨찾기, 프리셋, 선택 제어
-//  09. 장바구니               선택/완료 장바구니 표시와 접힘 상태
-//  10. 화면·입력·툴팁·폰트   화면 전환, 반복 입력, 툴팁, 글자 크기
-//  11. 이벤트 바인딩          클릭·포인터·키보드·리사이즈 이벤트 위임
-//  12. Boot 연동 초기화       DOM 준비/동적 로드 대응, 성공·실패 상태 전달
-// ==========================================================================
+// ============================================================================
+// 넥서스 앱 실행 (app.js)
+// 00. 설정·정책 병합        01. 런타임 상수·상태
+// 02. 공통 유틸·데이터      03. 저장·검색·명령
+// 04. 계산 엔진             05. 완료·복구·초기화
+// 06. 통합 보드             07. 체크리스트
+// 08. 도감·탭·프리셋       09. 장바구니
+// 10. 화면·입력·툴팁       11. 이벤트 바인딩
+// 12. 앱 초기화
+// ============================================================================
 
 (() => {
 
-    // [00] 내부 설정/정책 병합
+    // ── 00. 설정 및 정책 병합 ────────────────────────────────────────────────
     const USER_CONFIG = window.NEXUS_USER_CONFIG || {};
     const APP_DEFAULT_CONFIG = {
         policy: {
@@ -100,6 +94,7 @@
         oneTimeIds: USER_CONFIG.oneTimeIds || [],
         specialConditions: USER_CONFIG.specialConditions || {},
         unitConditions: USER_CONFIG.unitConditions || {},
+        primaryUnitGroups: USER_CONFIG.primaryUnitGroups || {},
         presets: USER_CONFIG.presets || [],
         search: {
             ...APP_DEFAULT_CONFIG.search,
@@ -107,7 +102,7 @@
         }
     };
 
-    // [01-1] 정규화 상수 / 검색·렌더링 기준값
+    // ── 01-1. 정규화·검색·렌더링 상수 ───────────────────────────────────────
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
@@ -121,6 +116,7 @@
     const COMBO_SLOT_SET = new Set(Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => clean(id)));
     const COMBO_SLOT_RAWS = Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => id);
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
+    const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(SYSTEM_CONFIG.primaryUnitGroups || {}).flat());
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
     const CLEAN_CRAFT_BATCH = Object.fromEntries(SPECIAL_RENDER_LIST.map(e => [e.id, e.batch]));
     const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => e.id);
@@ -139,7 +135,7 @@
     };
     const isBrightColor = (name) => ['노랑','연두','하늘','흰색','금색'].includes(name);
     const FAVORITES_KEY = SYSTEM_CONFIG.storageKeys?.favorites || 'nexusFavorites';
-    // [01-2] 변경 빈도가 낮은 내부 안전장치·조작 정책
+    // ── 01-2. 내부 안전장치·조작 정책 ───────────────────────────────────────
     const APP_INTERNAL = {
         maxLoopQueue: 1000,
         hapticDuration: 15,
@@ -169,7 +165,7 @@
         restoreAllPendingDelay: 2000
     };
 
-    // [01-3] Boot 화면 상태 전달 헬퍼
+    // ── 01-3. 부팅 상태 전달 ────────────────────────────────────────────────
     const markNexusAppReady = () => {
         if (typeof window.nexusMarkAppReady === 'function') {
             window.nexusMarkAppReady();
@@ -186,7 +182,7 @@
         try { alert("초기화 중 치명적인 오류가 발생했습니다.\n\n" + (error?.stack || error)); } catch(e) {}
     };
 
-    // [01-4] 런타임 선택/완료/화면 상태
+    // ── 01-4. 선택·완료·화면 상태 ──────────────────────────────────────────
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
     let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isDeductionBoardRendered = false;
@@ -198,7 +194,7 @@
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
 
-    // [02-1] DOM / 등급 / 검색 판정 공통 헬퍼
+    // ── 02-1. DOM·등급·검색 공통 유틸 ──────────────────────────────────────
     const getEl = (id) => document.getElementById(id);
     const triggerHaptic = () => navigator.vibrate?.(APP_INTERNAL.hapticDuration);
     const virtualUnitIds = new Set(AUTO_COMPLETE_IDS);
@@ -243,8 +239,7 @@
             input.classList.remove('search-input-error');
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
-    // [02-2] 상태 정리 / 조합식 파싱 / 데이터 캐시
-    // 선택/완료 Map에 남은 0 이하 값과 잘못된 ID를 제거한다.
+    // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
     function sanitizeRuntimeState() {
         const normalizeMap = (map, allowCombo = false) => {
             for (const [rawUid, rawQty] of [...map.entries()]) {
@@ -265,7 +260,6 @@
         _cartCollapsed = false;
     }
 
-    // "유닛[수량]+유닛[수량]" 조합식을 정규화된 재료 배열로 변환한다.
     function splitRecipe(recipeStr) {
         let parts = [], current = '', depth = 0;
         for (let char of recipeStr) {
@@ -279,10 +273,10 @@
         return parts;
     }
 
+    // ── 02-3. 조합식 표시 생성 ─────────────────────────────────────────────
     function formatRecipe(item, multi = 1, showSep = false) {
         if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
         let foundSpecialIds = [];
-        // [02-3] 조합식 재료 행과 특수 조건 문구 생성
         let partsHtml = splitRecipe(item.recipe).map(p => {
             const m = p.match(/^([^([ ]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?/);
             if (m) {
@@ -307,7 +301,6 @@
         return `<div class="${showSep ? 'recipe-flex-wrap' : 'recipe-vertical'}">${partsHtml}</div>${specialCondInlineHtml}`;
     }
 
-    // UNIT_DATABASE를 앱 전역 Map과 재료 의존성 캐시에 적재한다.
     function initializeCacheEngine() {
         depCache.clear();
         unitMap.forEach(u => {
@@ -336,8 +329,7 @@
     }
 
 
-    // [03] 저장·검색·명령
-    // localStorage에서 선택/완료/즐겨찾기 상태를 복원한다.
+    // ── 03. 저장·검색·명령 ─────────────────────────────────────────────────
     function loadNexusState() {
         try {
             const data = localStorage.getItem(SYSTEM_CONFIG.storageKeys.saveData);
@@ -373,7 +365,6 @@
         }
     }
 
-    // 현재 선택/완료 상태를 localStorage에 저장한다.
     function saveNexusState() {
         try {
             sanitizeRuntimeState();
@@ -397,7 +388,6 @@
         if (changed) saveFavorites();
     }
 
-    // 검색 입력 자동완성과 명령 실행 진입점을 연결한다.
     function setupSearchEngine() {
         const inp = getEl('unitSearchInput');
         if (!inp) return;
@@ -423,8 +413,7 @@
         return best;
     }
 
-    // 검색창/프리셋 명령 문자열을 유닛 선택 상태로 반영한다.
-    function processCommand(val, fromPreset = false) {
+    function processCommand(val, fromPreset = false, preventStack = false) {
         if (!val.trim()) return;
         let successCount = 0, restrictedCount = 0;
         val.split('/').filter(c => c.trim()).forEach(cmd => {
@@ -435,7 +424,7 @@
             const match = findUnitFlexible(targetName);
             if (match) {
                 if (isRestrictedUnit(match.id) || isHiddenUnit(match.id)) { restrictedCount++; return; }
-                if (fromPreset && CLEAN_PRESET_NOSTACK.has(match.id) && activeUnits.has(match.id)) { successCount++; return; }
+                if (fromPreset && (preventStack || CLEAN_PRESET_NOSTACK.has(match.id)) && activeUnits.has(match.id)) { successCount++; return; }
                 activeUnits.set(match.id, isOneTime(match) ? 1 : Math.min((activeUnits.get(match.id) || 0) + qty, SYSTEM_CONFIG.policy.maxUnitCapacity));
                 successCount++;
             }
@@ -451,7 +440,7 @@
     }
 
 
-    // [04] 계산 엔진 / 전체 패널 갱신
+    // ── 04. 계산 엔진 및 패널 갱신 ─────────────────────────────────────────
     function calcEssenceRecursiveFast(uid, counts, visited) {
         if (visited.has(uid)) return;
         visited.add(uid);
@@ -474,7 +463,6 @@
         return counts;
     }
 
-    // 선택 목표와 완료 상태를 비교해 체크리스트 필요 수량을 계산한다.
     function calculateDeductedRequirements() {
         let reqMap = new Map(), baseMap = new Map(), reasonMap = new Map();
         let specialReq = {}, baseSpecialReq = {}, specialReason = {};
@@ -593,7 +581,6 @@
         return deps;
     }
 
-    // 현재 계산 결과보다 과하게 기록된 완료 수량을 상한에 맞춘다.
     function clampCompletedUnits(calcResult) {
         const { baseMap, baseSpecialReq } = calcResult || calculateDeductedRequirements();
         let changed = false;
@@ -619,7 +606,6 @@
         return changed;
     }
 
-    // 연속 입력 중 전체 패널 갱신을 짧게 지연해 중복 렌더링을 줄인다.
     function debouncedUpdateAllPanels() {
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
@@ -638,8 +624,7 @@
     }
 
 
-    // [05] 완료·복구·초기화
-    // 완료 유닛의 하위 재료 완료 기록을 목표 수량만큼 되돌린다.
+    // ── 05. 완료·복구·초기화 ───────────────────────────────────────────────
     function deleteCompletedRecipe(uid, multiplier) {
         const u = unitMap.get(uid); if (!u) return;
         u.parsedRecipe?.forEach(child => {
@@ -665,7 +650,6 @@
         });
     }
 
-    // 체크리스트 슬롯 완료 처리와 자동 하위 재료 차감을 수행한다.
     function completeUnit(uid, amount) {
         if (_completeLock.has(uid)) return;
         _completeLock.add(uid);
@@ -731,7 +715,7 @@
         if (!completedTargets.has(uid)) return;
         const qty = completedTargets.get(uid) || 1;
         completedTargets.delete(uid);
-        // 하위 재료 completedUnits도 역산 정리
+        // 완료 취소 시 하위 재료 기록도 함께 역산한다.
         deleteCompletedRecipe(uid, qty);
         completedUnits.delete(uid);
         if (!activeUnits.has(uid)) activeUnits.set(uid, qty);
@@ -739,13 +723,12 @@
         triggerHaptic(); debouncedUpdateAllPanels();
     }
 
-    // 모든 완료/차감 상태를 초기화하고 전체 패널을 재계산한다.
     function restoreAllCompleted() {
         if (_restoreAllCooldown) return;
         const cfg = SYSTEM_CONFIG.policy.restoreAllBtn;
         const btn = getEl(cfg.idBtn), label = getEl(cfg.idLabel);
 
-        // 이미 pending 상태면 즉시 취소
+        // 확인 대기 중 재클릭하면 초기화를 취소한다.
         if (_restoreAllPendingTimer) {
             clearTimeout(_restoreAllPendingTimer);
             _restoreAllPendingTimer = null;
@@ -754,7 +737,7 @@
             return;
         }
 
-        // 첫 클릭: 2초 유예 — 한 번 더 누르면 취소, 유예 종료 시 실행
+        // 첫 클릭 후 확인 대기를 거쳐 초기화를 실행한다.
         if (label) label.textContent = '취소하려면 다시 클릭';
         if (btn) { btn.classList.add('reset-btn-pending'); }
 
@@ -770,7 +753,6 @@
         }, APP_INTERNAL.restoreAllPendingDelay);
     }
 
-    // 체크리스트 그룹 단위로 완료 기록을 복구한다.
     function resetGroupCompleted(level) {
         if (level >= 5) {
             completedTargets.forEach((qty, uid) => {
@@ -803,8 +785,7 @@
     }
 
 
-    // [06] 통합 보드 / 대시보드
-    // 선택 목표와 완료 상태의 정수 필요/보유 현황을 갱신한다.
+    // ── 06. 통합 보드 및 대시보드 ─────────────────────────────────────────
     function updateEssence() {
         let tE = getEssenceCount(activeUnits), cE = getEssenceCount(completedUnits), totalEssence = 0;
 
@@ -832,7 +813,6 @@
             SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === comboKey ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('');
     }
 
-    // 중앙 통합 보드의 매직/특수 재료 잔여 수량을 렌더링한다.
     function updateMagicDashboard() {
         const tMap = {}, cMap = {}, comboKey = SYSTEM_CONFIG.policy.magicComboKey, specials = COMBO_SLOT_RAWS;
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
@@ -893,18 +873,17 @@
     }
 
 
-    // [07] 체크리스트 보드
-    // 체크리스트 보드의 고정 DOM 골격을 1회 생성한다.
+    // ── 07. 체크리스트 보드 ────────────────────────────────────────────────
     function renderDeductionBoard() {
         if (_isDeductionBoardRendered) return;
         const boardEl = getEl('deductionBoard');
         if (!boardEl) return;
-        // [07-1] 슬롯/그룹 HTML 템플릿
+        // 07-1. 슬롯·그룹 템플릿
         const renderSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `<div class="deduct-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}><div class="deduct-group-title" data-action="toggleGroup" data-grid-id="${pid}"><div style="display:flex;align-items:center;gap:7px;pointer-events:none;"><span class="grp-toggle-icon" style="display:inline-block;transition:transform 0.2s;transform:${isCol?'rotate(-90deg)':'rotate(0deg)'};font-size:0.75rem;">▼</span><span class="grp-title-text">${title}</span>${resetLevel > 0 ? `<span class="grp-count-badge" id="grp-count-${pid}" style="margin-left:2px;"></span>` : ''}</div>${resetLevel > 0 ? `<button type="button" class="btn-text-link grp-restore-btn" data-action="resetGroup" data-level="${resetLevel}" style="pointer-events:auto;">${resetLabel}</button>` : ''}</div><div class="deduct-grid" id="${pid}" ${isCol?'style="display:none;"':''}></div></div>`;
 
         const allUnits = Array.from(unitMap.values());
-        // [07-2] 특수/일반/자동 완료 슬롯 HTML 생성
+        // 07-2. 슬롯 유형별 HTML 생성
         const specialSlots = COMBO_SLOT_RAWS.map(k => renderSlot(k, k, '코스트')).join('');
         const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForChecklist) && !COMBO_SLOT_SET.has(u.id)).map(u => renderSlot(u.id, u.name, u.grade)).join('');
         const autoSlots = SPECIAL_RENDER_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => renderSlot(e.id, e.raw, '코스트')).join('');
@@ -916,7 +895,6 @@
         _isDeductionBoardRendered = true;
     }
 
-    // 체크리스트 화면이 처음 열릴 때 보드 DOM을 1회 생성하고 최신 계산값을 반영한다.
     function ensureDeductionBoardRendered(calcResult) {
         if (!_isDeductionBoardRendered) renderDeductionBoard();
         if (!_isDeductionBoardRendered) return false;
@@ -925,7 +903,6 @@
         return true;
     }
 
-    // 체크리스트 그룹 안의 슬롯을 반응형 페이지 묶음으로 재배치한다.
     function wrapDeductGridPages(grid, pageSize) {
         if (!grid) return;
         const items = Array.from(grid.children).filter(el =>
@@ -945,10 +922,9 @@
         grid.appendChild(frag);
     }
 
-    // 계산 결과를 기준으로 체크리스트 슬롯, 그룹, 카운터, 페이지를 갱신한다.
     function updateDeductionBoard(calcResult) {
         if (!_isDeductionBoardRendered) return;
-        // [07-3] 계산 결과와 하이라이트 기준 수집
+        // 07-3. 계산 결과·하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
         const mergedSlots = new Set();
 
@@ -1046,7 +1022,7 @@
             queue = nextQueue;
         }
 
-        // [07-4] 기존 슬롯 배치 초기화
+        // 07-4. 슬롯 배치 초기화
         document.querySelectorAll('.deduct-slot[data-uid]').forEach(el => {
             el.style.display = 'none'; el.classList.remove('is-visible','has-target','is-completed','is-inactive');
             if (pool && el.parentElement !== pool) pool.appendChild(el);
@@ -1055,12 +1031,12 @@
         document.querySelectorAll('.deduct-slot-ghost').forEach(el => el.remove());
         document.querySelectorAll('.deduct-page').forEach(el => el.remove());
 
-        // [07-5] 상단 고정 행과 일반 슬롯 배치 기준 준비
+        // 07-5. 고정 행·일반 슬롯 배치 준비
         const topFixedRows = SYSTEM_CONFIG.topFixedOrder.map(row => row.map(clean));
         const topFixedSet = new Set(topFixedRows.flat());
         const ROW_SIZE = Math.max(...topFixedRows.map(r => r.length));
 
-        // [07-6] 슬롯별 필요 수량/완료 상태/하이라이트 상태 반영
+        // 07-6. 슬롯 수량·완료·강조 상태 반영
         const processSlot = (id, isTopFixedCall = false) => {
             const slotEl = getEl(`d-slot-wrap-${id}`); if (!slotEl) return null;
             
@@ -1099,7 +1075,6 @@
                 if (!isInactive && rMap && rMap.size > 0 && needed > 0) {
                     let allEntries = getReasonDisplayEntries(id, rMap);
                     if (isTarget && !isSpecialCost && !isMergedSlot) allEntries = allEntries.filter(([, i]) => i.depth === 0);
-                    // 하이라이트 중이면 선택한 태그(targetHighlight) 소속만 표시
                     if (_currentHighlight) {
                         const filtered = allEntries.filter(([, i]) =>
                             i.parentUid === targetHighlight ||
@@ -1134,7 +1109,6 @@
                 if (rMap) {
                     getReasonDisplayEntries(id, rMap).forEach(([, info]) => {
                         if (!info.cond || info.displayQty <= 0) return;
-                        // 하이라이트 중이면 선택한 태그 소속 조건만 표시, 나머지 숨김
                         if (_currentHighlight) {
                             const pUid = info.parentUid;
                             if (pUid !== targetHighlight && (!highlightDeps || !highlightDeps.has(pUid))) return;
@@ -1281,7 +1255,7 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        // [07-7] 그룹별 페이지 래핑과 표시 상태 갱신
+        // 07-7. 그룹 페이지·표시 상태 갱신
         Object.values(grids).forEach(g => wrapDeductGridPages(g, 9));
 
         Object.values(grids).forEach(g => {
@@ -1349,14 +1323,12 @@
     }
 
 
-    // [08] 도감·탭·즐겨찾기·프리셋
-    // 좌측 종족 탭 버튼을 생성한다.
+    // ── 08. 도감·탭·즐겨찾기·프리셋 ───────────────────────────────────────
     function renderTabs() {
         const t = getEl('codexTabs');
         if (t) { t.innerHTML = SYSTEM_CONFIG.tabs.map((c, i) => `<button type="button" id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join(''); updateTabsUI(); }
     }
 
-    // 현재 탭/즐겨찾기/선택 상태에 맞춰 도감 탭 UI를 갱신한다.
     function updateTabsUI() {
         let aCats = new Set([...activeUnits.keys()].map(id => unitMap.get(id)?.category).filter(Boolean));
         const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
@@ -1386,14 +1358,14 @@
         return `<div class="uc-ctrl-area uc-ctrl-area-reserved" aria-hidden="true"><div class="smart-stepper smart-stepper-placeholder"><button type="button" disabled>-</button><div class="ss-val">-</div><button type="button" disabled>+</button></div></div>`;
     }
 
-    // 유닛 도감/즐겨찾기 공용 카드 HTML을 생성한다.
     function buildCard(item, idx, prefix, showRecipe) {
         const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item), isFav = _favorites.has(item.id);
+        const isPrimaryUnit = CLEAN_PRIMARY_UNIT_IDS.has(item.id);
         return `<div id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}${isFav ? ' is-fav-card' : ''}${showRecipe ? '' : ' no-recipe'}" data-grade="${item.grade}" style="${idx >= 0 ? `animation-delay:${idx*0.02}s;` : ''}${isRestricted ? 'pointer-events:auto;cursor:not-allowed;' : ''}" data-action="toggleUnit" data-uid="${item.id}">` +
             `<div class="uc-card-inner">` +
             `${starBtnHtml(item.id)}` +
             `<div class="uc-head${showRecipe ? '' : ' uc-head-slim'}">` +
-            `<span class="gtag grade-${item.grade}">${item.grade}</span>` +
+            `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isPrimaryUnit ? '<span class="badge-primary-unit">주력</span>' : ''}</div>` +
             `<div class="uc-name-row" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</div>` +
             `${isRestricted ? `<span class="badge-excluded" data-action="showExcludedTooltip" data-uid="${item.id}">선택제한</span>` : ''}` +
             `</div>` +
@@ -1451,7 +1423,6 @@
             `</div>`;
     }
 
-    // 모든 종족 탭과 즐겨찾기 탭의 카드 DOM을 초기 생성한다.
     function initAllTabContents() {
         const tc = getEl('tabContent'); if (!tc) return;
         const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
@@ -1471,7 +1442,6 @@
         _isTabContentInitialized = true;
     }
 
-    // 현재 종족 탭의 카드 그리드를 화면에 표시한다.
     function renderCurrentTabContent() {
         if (!_isTabContentInitialized) initAllTabContents();
         SYSTEM_CONFIG.tabs.forEach((c, i) => getEl(`cat-group-${c.key}`)?.classList.toggle('is-visible', i === _activeTabIdx));
@@ -1514,7 +1484,6 @@
         updateTabsUI();
     }
 
-    // config.js 프리셋 정의를 버튼 그룹으로 렌더링한다.
     function renderPresetButtons() {
         const tabBar = getEl('presetInlineTabBar'), btnList = getEl('presetInlineBtnList'), wrap = getEl('presetInlineWrap');
         if (!tabBar || !btnList || !wrap) return;
@@ -1550,7 +1519,6 @@
         });
     }
 
-    // 유닛 선택 여부를 토글하고 수량 상태를 동기화한다.
     function toggleUnitSelection(id, forceQty) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id)) return;
         if (activeUnits.has(id)) activeUnits.delete(id);
@@ -1558,7 +1526,6 @@
         debouncedUpdateAllPanels();
     }
 
-    // 유닛 수량을 지정하고 관련 패널을 재계산한다.
     function setUnitQty(id, val) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id) || isOneTime(unitMap.get(id))) return;
         const q = normalizeUnitQty(id, val);
@@ -1585,7 +1552,7 @@
     }
 
 
-    // [09] 장바구니
+    // ── 09. 장바구니 ──────────────────────────────────────────────────────
     function toggleCartCollapse() {
         _cartCollapsed = !_cartCollapsed;
         syncCartVisibility();
@@ -1611,7 +1578,7 @@
 
         if (_cartTab === 'active') {
             if (activeUnits.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
-            // [09-1] 장바구니 탭별 표시 대상 수집
+            // 09-1. 탭별 표시 대상 수집
         const items = getUnitsFromMap(activeUnits);
             const existingIds = Array.from(cartListArea.querySelectorAll('.cart-item')).map(el => el.id.replace('ci-', '')), newIds = items.map(i => i.id);
             if (existingIds.length !== newIds.length || existingIds.some((id, i) => id !== newIds[i])) {
@@ -1624,10 +1591,9 @@
     }
 
 
-    // [10] 화면·입력·툴팁·폰트
+    // ── 10. 화면·입력·툴팁·폰트 ───────────────────────────────────────────
     function setupInitialView() { switchLayout('codex'); }
 
-    // 상단 탭에 따라 도감 보기와 체크리스트 보기를 전환한다.
     function switchLayout(mode) {
         hideRecipeTooltip();
         const layout = getEl('mainLayout'); if (!layout) return;
@@ -1642,7 +1608,6 @@
         else { layout.classList.add('view-codex'); btnCodex?.classList.add('active'); btnDeduct?.classList.remove('active'); }
     }
 
-    // +/− 버튼 길게 누르기 가속 입력을 시작한다.
     function startSmartChange(id, delta, event) {
         if (event) {
             if (event.type === 'touchstart' || event.type === 'pointerdown') _lastInteractionTime = Date.now();
@@ -1680,7 +1645,6 @@
         _fontRepeatTimer = null;
     }
 
-    // 글자 크기 배율을 CSS 변수와 저장소에 반영한다.
     function setFontScale(scale) {
         if (window.innerWidth < (APP_INTERNAL.mobileBreakpoint)) return;
         _fontScale = Math.max(APP_INTERNAL.fontScaleMin, Math.min(APP_INTERNAL.fontScaleMax, scale));
@@ -1690,7 +1654,6 @@
         try { localStorage.setItem(SYSTEM_CONFIG.storageKeys.fontScale, String(_fontScale)); } catch(e) {}
     }
 
-    // 저장된 글자 크기 배율을 화면 조건에 맞춰 복원한다.
     function loadFontScale() {
         const ctrl = document.querySelector('.gh-fontsize-ctrl');
         const minWidth = APP_INTERNAL.mobileBreakpoint;
@@ -1700,7 +1663,6 @@
         try { const saved = localStorage.getItem(SYSTEM_CONFIG.storageKeys.fontScale); if (saved) setFontScale(parseFloat(saved)); } catch(e) {}
     }
 
-    // 포인터 위치를 기준으로 툴팁을 화면 안쪽에 배치한다.
     function showTooltipOverlay(tt, event, widthOffset = APP_INTERNAL.tooltipOffset, heightOffset = APP_INTERNAL.tooltipOffset, forceInsideClick = false) {
         let viewWidth = document.documentElement.clientWidth;
         tt.style.maxWidth = `${viewWidth - (APP_INTERNAL.tooltipMaxWidthPad)}px`;
@@ -1754,7 +1716,6 @@
         showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
     }
 
-    // 도감/체크리스트 유닛 조합법 툴팁을 표시한다.
     function showRecipeTooltip(id, event, isDeduction = false) {
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
         
@@ -1784,8 +1745,8 @@
     }
 
 
-    // [11] 이벤트 바인딩
-    // [11-1] 길게 누르기/폰트 반복 입력 종료 이벤트
+    // ── 11. 이벤트 바인딩 ─────────────────────────────────────────────────
+    // 11-1. 반복 입력 종료
     ['pointerup','pointercancel','touchend','touchcancel','mouseup','contextmenu'].forEach(evt => { document.addEventListener(evt, stopSmartChange); document.addEventListener(evt, stopFontHold); });
     
     document.addEventListener('visibilitychange', () => {
@@ -1795,7 +1756,7 @@
         }
     });
 
-    // [11-2] 클릭 이벤트 위임
+    // 11-2. 클릭 이벤트 위임
     document.addEventListener('click', e => {
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
@@ -1809,7 +1770,7 @@
             case 'switchMainView': switchLayout(actionEl.dataset.view); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
-                if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
+                if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true, preset.preventStack === true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
                 break;
             case 'showAppVersion': {
                 const titleRoot = actionEl.closest('.gh-logo-text') || actionEl;
@@ -1858,14 +1819,14 @@
         }
     });
 
-    // [11-3] 포인터 입력: 수량 조절, 폰트 조절, 툴팁 종료
+    // 11-3. 포인터 입력
     document.addEventListener('pointerdown', e => {
         const actionEl = e.target.closest('[data-action="smartChange"]');
         if (actionEl) { e.stopPropagation(); startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e); return; }
         if (e.target.closest('[data-action="increaseFont"]')) { e.preventDefault(); startFontHold(APP_INTERNAL.fontScaleStep); return; }
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
-    // [11-4] 키보드 접근성 / 검색 단축 처리
+    // 11-4. 키보드 접근성·단축 처리
     document.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('[data-action="showAppVersion"]')) {
             e.preventDefault();
@@ -1881,10 +1842,9 @@
     });
     window.addEventListener('orientationchange', hideRecipeTooltip);
     window.addEventListener('resize', hideRecipeTooltip);
-    // [12] Boot 연동 초기화
+    // ── 12. 앱 초기화 ──────────────────────────────────────────────────────
     let _isSwiping = false;
 
-    // DOM 준비 후 데이터 적재, 초기 렌더링, 이벤트 위임을 실행한다.
     function startNexusApp(){
         try {
             document.documentElement.lang = 'ko';
@@ -1939,7 +1899,7 @@
                     sPager = null;
                 }, { passive: true });
             }
-            // 체크리스트 패널 스와이프: 카드 영역은 체크리스트 스크롤만 처리, 빈 영역은 좌→도감/우→체크리스트 전환
+            // 체크리스트 카드 내부 스와이프는 페이지 이동을 우선한다.
             const dBoard = getEl('colRightPanel');
             if (dBoard) {
                 let dX0 = 0, dY0 = 0, dPager = false;

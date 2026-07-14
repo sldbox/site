@@ -1,28 +1,16 @@
-/* ==========================================================================
-   [ 넥서스 앱 디자인 파일 (style.css) ]
-   00. 기본 색상 팔레트       색상·폰트·크기·z-index 공통 변수
-   01. 전체 초기화            브라우저 초기화와 전역 스크롤 정책
-   02. 글로벌 헤더            상단 로고·뷰 전환·폰트 조절
-   03. 메인 레이아웃          기본 레이아웃 프레임과 패널 배치
-   04. 공통 버튼 및 토글      버튼, 토글, 터치 피드백
-   05. HUD 패널 공통          패널 프레임, 헤더, 본문 밀도
-   06. 패널 내부 / 프리셋     검색창, 프리셋 버튼, 안내 영역
-   07. 종족 탭                도감 탭과 페이지 버튼
-   08. 도감 카드 UI           유닛 카드, 수량 컨트롤, 즐겨찾기
-   09. 통합 보드              정수/매직 슬롯과 요약 보드
-   10. 장바구니 영역          선택/완료 탭, 목록, 복구 표시
-   11. 체크리스트 보드        그룹, 슬롯, 완료/강조/숨김 상태
-   12. 레시피 툴팁            조합법/제외 조건 툴팁
-   13. 안전화 공통 표시       숨김/하이라이트/상태 공통 클래스
-   14. 반응형 레이아웃        PC 가로·세로형·태블릿·모바일 밀도 조정
-   15. 기타 UI                빈 화면 안내 등 보조 화면
+/* ============================================================================
+   넥서스 앱 디자인 (style.css)
+   00. 색상 변수          01. 전역 초기화       02. 글로벌 헤더
+   03. 메인 레이아웃      04. 공통 버튼         05. HUD 패널
+   06. 패널·프리셋       07. 종족 탭           08. 도감 카드
+   09. 통합 보드         10. 장바구니           11. 체크리스트
+   12. 툴팁              13. 공통 상태 클래스   14. 반응형 레이아웃
+   15. 기타 UI
+   ============================================================================ */
 
-   ※ 강제 우선순위와 시각 흐림 효과 없이, 공통 기준을 먼저 두고 화면별 차이만 분리한다.
-   ========================================================================== */
-
-/* ── 00. 기본 색상 팔레트 (:root) ── */
+/* ── 00. 색상·크기 공통 변수 ───────────────────────────────────────────── */
 :root {
-    /* 프리셋 버튼 색상 */
+    /* 프리셋 색상 */
     --preset-color-red:    220,38,38;
     --preset-color-orange: 249,115,22;
     --preset-color-yellow: 234,179,8;
@@ -41,10 +29,10 @@
     
     --void:#000000;
     
-    /* 메인 테마 색상 및 그림자 */
+    /* 메인 테마 */
     --g:#38bdf8; --g-dim:#0ea5e9; --g-faint:rgba(56,189,248,0.10); --g-border:rgba(56,189,248,0.40); --g-glow:rgba(56,189,248,0.50);
     
-    /* 등급별 색상 */
+    /* 등급 색상 */
     --grade-magic:#93c5fd; --grade-rare:#fcd34d; --grade-epic:#fb923c; --grade-unique:#f87171;
     --grade-hell:#f472b6; --grade-legend:#c084fc; --grade-hidden:#34d399; --grade-super:#fcd34d;
     
@@ -63,7 +51,7 @@
     --ts-drop:rgba(0,0,0,0.85); --ts-deep:rgba(0,0,0,0.96);
 }
 
-/* ── 01. 전체 초기화 (Base) ── */
+/* ── 01. 전역 초기화 ──────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 button,input,textarea{font-family:inherit;}
 button,a,input,.tab-btn,.unit-card,.btn-complete,.smart-stepper button,.d-name,.d-reason-tag,.pc-btn,.ctrl-btn{touch-action:manipulation;}
@@ -76,7 +64,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 
-/* ── 02. 글로벌 헤더 (Header) ── */
+/* ── 02. 글로벌 헤더 ──────────────────────────────────────────────────── */
 .global-header{position:fixed;top:0;left:0;right:0;z-index:9000;height:var(--gh-h);display:flex;align-items:center;padding:0 12px;gap:8px;background:var(--header-bg);border-bottom:1px solid rgba(255,255,255,0.14);box-shadow:0 2px 16px rgba(0,0,0,0.95);}
 .gh-left{display:flex;align-items:center;flex-shrink:0;cursor:default;padding:0 8px;border-radius:10px;min-width:226px;height:100%;background:transparent;}
 .gh-left:hover{background:rgba(255,255,255,0.03);}
@@ -110,10 +98,10 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .gh-fontsize-ctrl .gh-icon-btn{height:24px;min-width:32px;padding:0 7px;flex-direction:row;background:transparent;border-color:transparent;}
 .gh-fontsize-ctrl .gh-icon-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.14);}
 
-/* ── 03. 메인 레이아웃 (Layout) ── */
+/* ── 03. 메인 레이아웃 ────────────────────────────────────────────────── */
 .main-layout{display:grid;padding-top:calc(var(--gh-h) + 10px);height:100dvh;min-height:0;overflow:hidden;}
 
-/* ── 04. 공통 버튼 및 토글 ── */
+/* ── 04. 공통 버튼·토글 ───────────────────────────────────────────────── */
 .btn-text-link{background:none;border:none;color:var(--text-sub);font-size:0.78rem;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:4px;transition:color 0.2s;white-space:nowrap;}
 .btn-text-link:hover{color:var(--g);}
 .btn-tab-action{padding:5px 12px;background:linear-gradient(to bottom,rgba(255,255,255,0.055),rgba(0,0,0,0.80));border:1px solid rgba(255,255,255,0.1);border-top-color:rgba(255,255,255,0.18);box-shadow:0 2px 7px rgba(0,0,0,0.90),inset 0 1px 0 rgba(255,255,255,0.09);color:var(--text-sub);font-size:calc(0.76rem * var(--fs-scale));font-weight:800;cursor:pointer;border-radius:7px;transition:all 0.18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
@@ -132,7 +120,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .hide-completed-btn.hide-completed-active{background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.6);color:#fbbf24;}
 .hide-completed-btn.hide-completed-active:hover{background:rgba(251,191,36,0.2);border-color:rgba(251,191,36,0.85);color:#fff;}
 
-/* ── 05. HUD 패널 공통 ── */
+/* ── 05. HUD 패널 ─────────────────────────────────────────────────────── */
 .hud-panel{background:rgba(10,10,10,0.99);border:1px solid rgba(255,255,255,0.14);border-top-color:rgba(255,255,255,0.22);border-radius:var(--radius-lg);display:flex;flex-direction:column;position:relative;box-shadow:0 4px 32px rgba(0,0,0,0.95),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;}
 .panel-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 7px;flex-shrink:0;position:relative;background:rgba(0,0,0,0.55);border-bottom:1px solid rgba(255,255,255,0.10);}
 .ph-compact{padding:7px 10px 6px;}
@@ -146,7 +134,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .panel-section{flex-shrink:0;}
 .cost-section{padding:7px 8px;display:flex;flex-direction:column;min-height:0;}
 
-/* ── 06. 패널 내부 / 프리셋 ── */
+/* ── 06. 패널 내부·프리셋 ─────────────────────────────────────────────── */
 .panel-left{gap:0;}
 .left-search-wrap{padding:10px 12px 8px;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.92);background:rgba(0,0,0,0.65);}
 .preset-inline-wrap{flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.92);background:rgba(0,0,0,0.72);}
@@ -175,7 +163,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .search-input::placeholder{color:var(--text-muted);font-weight:400;}
 .search-input:focus{border-color:rgba(56,189,248,0.42);box-shadow:0 0 0 3px rgba(125,211,252,0.07),inset 0 2px 12px rgba(22,24,36,0.78);background:rgba(5,5,5,1);color:#fff;}
 
-/* ── 07. 종족 탭 (Tabs) ── */
+/* ── 07. 종족 탭 ──────────────────────────────────────────────────────── */
 .codex-tabs{display:flex;gap:3px;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;scrollbar-width:none;background:rgba(0,0,0,0.90);padding:4px;border-radius:9px;border:1px solid rgba(255,255,255,0.022);box-shadow:inset 0 2px 10px rgba(0,0,0,0.95);scroll-snap-type:x mandatory;}
 .codex-tabs::-webkit-scrollbar{display:none;}
 .tab-btn{background:linear-gradient(to bottom,rgba(255,255,255,0.038),rgba(0,0,0,0.6));border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);font-size:calc(0.76rem * var(--fs-scale));font-weight:800;padding:5px 8px;cursor:pointer;transition:all 0.18s;border-radius:6px;flex:1 1 0;min-width:0;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:4px;scroll-snap-align:start;position:relative;box-shadow:0 1px 3px rgba(22,24,36,0.55),inset 0 1px 0 rgba(255,255,255,0.035);}
@@ -185,7 +173,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .tab-btn.has-active{color:#10b981;border-color:rgba(16,185,129,0.32);background:linear-gradient(to bottom,rgba(16,185,129,0.09),rgba(0,0,0,0.65));box-shadow:0 0 7px rgba(16,185,129,0.1),inset 0 1px 0 rgba(255,255,255,0.035);text-shadow:0 0 7px rgba(16,185,129,0.32);}
 .tab-btn.has-active:hover{color:#fff;}
 
-/* ── 08. 도감 카드 UI (Unit Card) ── */
+/* ── 08. 도감 카드 ────────────────────────────────────────────────────── */
 .cat-group{display:none;flex-direction:column;gap:0;}
 .cat-group.is-visible{display:flex;flex-direction:column;gap:0;padding:4px 2px;}
 .codex-category-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
@@ -194,9 +182,12 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .unit-card:hover{background:var(--card-hover);transform:translateY(-2px) scale(1.006);box-shadow:0 9px 28px rgba(22,24,36,0.82),0 0 0 1px rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.11);z-index:10;}
 .unit-card.active{background:linear-gradient(145deg,rgba(10,18,28,0.85),rgba(5,5,5,1));border-color:rgba(56,189,248,0.48);box-shadow:0 8px 30px rgba(22,24,36,0.82),inset 0 0 50px rgba(56,189,248,0.20),0 0 12px rgba(56,189,248,0.38),inset 0 1px 0 rgba(255,255,255,0.1);transform:translateY(-2px);}
 
+/* 08-1. 카드 헤더·등급·주력 태그 */
 .uc-card-inner{display:flex;flex-direction:column;width:100%;padding:6px 7px 5px;position:relative;z-index:2;gap:0;height:100%;}
 .uc-head{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.14);text-align:center;}
 .uc-head.uc-head-slim{border-bottom:none;margin-bottom:0;padding-bottom:4px;}
+.uc-meta-row{display:flex;align-items:center;justify-content:center;gap:4px;min-height:18px;}
+.badge-primary-unit{display:inline-flex;align-items:center;justify-content:center;padding:1px 6px;border:1.5px solid rgba(56,189,248,0.92);border-radius:3px;background:rgba(56,189,248,0.13);color:#7dd3fc;font-size:calc(0.62rem * var(--fs-scale));font-weight:900;letter-spacing:0.2px;line-height:1.2;white-space:nowrap;text-shadow:0 0 7px rgba(56,189,248,0.3);}
 .unit-card.is-fav-card{border-color:rgba(251,191,36,0.24);box-shadow:0 3px 11px rgba(0,0,0,0.88),0 0 6px rgba(251,191,36,0.08),inset 0 1px 0 rgba(255,255,255,0.022);}
 .unit-card.is-fav-card::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,rgba(251,191,36,0.18),rgba(251,191,36,0.92),rgba(251,191,36,0.18));z-index:3;pointer-events:none;}
 .unit-card.is-fav-card.active{border-color:rgba(56,189,248,0.50);box-shadow:0 8px 30px rgba(22,24,36,0.82),inset 0 0 50px rgba(56,189,248,0.20),0 0 12px rgba(56,189,248,0.34),0 0 8px rgba(251,191,36,0.16),inset 0 1px 0 rgba(255,255,255,0.1);}
@@ -266,7 +257,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .unit-card.active .smart-stepper .ss-val{color:#fff;text-shadow:0 0 9px var(--g-glow),0 2px 4px var(--ts-deep);background:transparent;}
 .active-stepper{border-color:rgba(56,189,248,0.18);}
 
-/* ── 09. 통합 보드 ── */
+/* ── 09. 통합 보드 ────────────────────────────────────────────────────── */
 .magic-grid{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:clamp(4px,0.65vh,7px);flex:1;min-height:0;}
 .cost-slot{background:linear-gradient(180deg,rgba(10,10,10,0.98),#0a0a0a);border:1px solid rgba(255,255,255,0.1);border-top-color:rgba(255,255,255,0.14);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;width:100%;transition:all 0.32s;position:relative;overflow:hidden;box-shadow:inset 0 3px 18px var(--ts-deep),0 1px 0 rgba(255,255,255,0.08),inset 0 0 0 1px rgba(255,255,255,0.02);min-height:70px;}
 .cost-slot.active{will-change:transform,background,border-color;}
@@ -300,7 +291,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 #slot-essence-aiur.active .cost-val{color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,0.6);}
 #slot-essence-zerus.active .cost-val{color:#f97316;text-shadow:0 0 12px rgba(249,115,22,0.6);}
 
-/* ── 10. 장바구니 영역 (Cart) ── */
+/* ── 10. 장바구니 ─────────────────────────────────────────────────────── */
 .cart-section{background:rgba(0,0,0,0.6);padding:0;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 .cart-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;flex-shrink:0;position:relative;cursor:pointer;transition:background 0.17s;}
 .cart-header:hover{background:rgba(255,255,255,0.04);}
@@ -338,7 +329,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .cart-done-restore-hint.always-show{opacity:1;}
 .cart-item-done:hover .cart-done-restore-hint{opacity:1;background:rgba(16,185,129,0.22);}
 
-/* ── 11. 체크리스트 보드 ── */
+/* ── 11. 체크리스트 보드 ──────────────────────────────────────────────── */
 .deduct-slot-ghost{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;margin:0;border-radius:10px;background:linear-gradient(180deg,rgba(10,20,28,0.88),rgba(8,12,18,0.96));border:1px dashed rgba(56,189,248,0.42);color:var(--g);font-size:calc(0.78rem * var(--fs-scale));font-weight:800;opacity:0.90;pointer-events:none;user-select:none;letter-spacing:0.2px;width:100%;min-height:120px;box-sizing:border-box;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
 .deduct-slot-ghost::before{content:"↑";font-size:calc(0.95rem * var(--fs-scale));color:var(--g);flex-shrink:0;text-shadow:0 0 8px var(--g-glow);}
 .deduct-slot-ghost .ghost-name{color:var(--text);font-weight:900;font-size:calc(0.86rem * var(--fs-scale));}
@@ -378,9 +369,9 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-slot{background:rgba(16,16,18,0.98);border:1px solid rgba(255,255,255,0.12);border-top-color:rgba(255,255,255,0.18);border-radius:10px;display:none;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 10px rgba(0,0,0,0.70),inset 0 1px 0 rgba(255,255,255,0.04);width:100%;min-height:120px;transition:all 0.28s cubic-bezier(0.4,0,0.2,1);cursor:default;}
 .deduct-slot.is-visible{display:flex;}
 
-/* [11-1] 하이라이트 모드 — 비강조 슬롯 밝기 제어 */
+/* 11-1. 하이라이트 상태 */
 #deductionBoard.highlight-mode .deduct-slot{opacity:0.25;transition:all 0.28s ease;}
-/* [11-2] 비활성 슬롯은 하이라이트 투명도(0.25)보다 낮게 강제 억제 */
+/* 11-2. 비활성 슬롯 상태 */
 #deductionBoard.highlight-mode .deduct-slot.is-inactive:not(.highlighted-tree) { opacity: 0.1; filter: grayscale(1); }
 
 #deductionBoard.highlight-mode .deduct-slot.highlighted-tree{opacity:1;filter:none;border-color:rgba(56,189,248,0.55);box-shadow:0 5px 20px rgba(56,189,248,0.18),inset 0 0 11px var(--g-faint);transform:translateY(-2px) scale(1.01);z-index:10;}
@@ -392,7 +383,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .d-reason-tag{font-size:calc(0.63rem * var(--fs-scale));font-weight:800;color:var(--text-sub);background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:5px;letter-spacing:-0.2px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);cursor:pointer;transition:all 0.17s;}
 .d-reason-tag:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:var(--g-border);box-shadow:0 0 8px var(--g-glow);transform:translateY(-1px);}
 
-/* [11-3] 태그 뱃지 — 타겟·재료 */
+/* 11-3. 타겟·재료 태그 */
 .tag-target{background:linear-gradient(135deg,rgba(239,68,68,0.28),rgba(220,38,38,0.12));border-color:rgba(239,68,68,0.55);color:#fca5a5;font-weight:900;box-shadow:0 0 8px rgba(239,68,68,0.18),inset 0 1px 0 rgba(255,255,255,0.08);text-shadow:0 1px 3px var(--ts-drop);}
 .tag-target:hover{background:linear-gradient(135deg,rgba(239,68,68,0.38),rgba(220,38,38,0.22));border-color:rgba(239,68,68,0.85);color:#fff;box-shadow:0 0 14px rgba(239,68,68,0.45),inset 0 1px 0 rgba(255,255,255,0.2);}
 .tag-mat{background:rgba(251,191,36,0.16);border-color:rgba(251,191,36,0.50);color:#fde068;font-weight:800;}
@@ -413,12 +404,12 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-slot.is-completed .d-name{cursor:default;pointer-events:none;opacity:0.6;}
 .deduct-slot.is-completed::after{content:"✓";position:absolute;top:50%;right:10px;transform:translateY(-50%);color:var(--grade-hidden);font-size:1rem;font-weight:900;opacity:0.60;pointer-events:none;z-index:3;}
 
-/* [11-4] 통합 보드 슬롯 — 비활성 상태에서도 슬롯 자체 투명도는 유지 */
+/* 11-4. 통합 보드 슬롯 상태 */
 .cost-slot:not(.active)::before{display:none;}
 .cost-slot:not(.active) .cost-val{opacity:0;}
 .cost-slot:not(.active) .cost-name{opacity:0.22;color:var(--text-muted);}
 
-/* [11-5] 통합 초기화 버튼 — pending 상태 */
+/* 11-5. 통합 초기화 확인 상태 */
 .reset-btn-pending{background:rgba(251,191,36,0.18);border-color:rgba(251,191,36,0.6);color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.4);animation:pendingPulse 0.6s ease-in-out infinite alternate;}
 @keyframes pendingPulse{from{opacity:0.7}to{opacity:1}}
 
@@ -433,7 +424,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .btn-complete{background:linear-gradient(135deg,rgba(16,185,129,0.22),rgba(4,120,87,0.48));border:1px solid rgba(16,185,129,0.50);border-top-color:rgba(16,185,129,0.70);color:#34d399;font-weight:900;padding:6px 14px;border-radius:6px;font-size:calc(0.78rem * var(--fs-scale));cursor:pointer;transition:all 0.17s;white-space:nowrap;box-shadow:0 2px 8px rgba(16,185,129,0.18),inset 0 1px 0 rgba(255,255,255,0.10);}
 .btn-complete:hover{background:linear-gradient(135deg,rgba(16,185,129,0.32),rgba(4,120,87,0.62));border-color:rgba(16,185,129,0.75);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,0.28);}
 
-/* ── 12. 레시피 툴팁 (Tooltip) ── */
+/* ── 12. 레시피 툴팁 ──────────────────────────────────────────────────── */
 .recipe-tooltip{position:absolute;z-index:var(--z-tooltip);background:linear-gradient(160deg,rgba(5,5,5,1),rgba(8,8,8,1));border:1px solid rgba(56,189,248,0.38);border-radius:12px;padding:12px;box-shadow:0 18px 55px rgba(0,0,0,1),0 0 20px rgba(56,189,248,0.08),inset 0 1px 0 rgba(255,255,255,0.10);opacity:0;transition:opacity 0.17s;width:290px;pointer-events:none;max-height:80vh;overflow-y:auto;}
 .recipe-tooltip.active{opacity:1;pointer-events:auto;}
 .tooltip-header{font-weight:900;font-size:calc(0.95rem * var(--fs-scale));border-bottom:1px solid rgba(255,255,255,0.075);padding-bottom:7px;margin-bottom:8px;text-shadow:0 1px 2px var(--ts-deep);}
@@ -476,7 +467,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .badge-excluded:hover{background:rgba(254,240,138,0.10);}
 
 
-/* ── 13. 안전화 공통 표시 클래스 ── */
+/* ── 13. 공통 표시 상태 ───────────────────────────────────────────────── */
 .search-input-error{border-color:rgba(239,68,68,0.7);transition:border-color 0.15s;}
 .d-reason-qty{opacity:0.75;font-weight:700;}
 .d-cond-qty{color:var(--text-muted);font-weight:800;font-size:0.9em;margin-left:1px;}
@@ -498,9 +489,9 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 @media(min-width:2560px){:root{--fs-scale:1.18;--gh-h:62px;}.magic-grid{gap:clamp(6px,1.4vh,14px);}.cost-val{font-size:clamp(1.6rem,4.5vh,4rem);}.cost-name{font-size:clamp(0.85rem,1.6vh,1.1rem);}}
 @media(min-width:3840px){:root{--fs-scale:1.45;--gh-h:76px;}.cost-val{font-size:clamp(2rem,5.5vh,5rem);}.cost-name{font-size:clamp(1rem,2vh,1.4rem);}}
 
-/* ── 14. 반응형 레이아웃 ── */
+/* ── 14. 반응형 레이아웃 ──────────────────────────────────────────────── */
 
-/* [14-1] PC 가로 기본 레이아웃: 좌측 보드 + 도감/체크리스트 전환 */
+/* 14-1. PC 가로 */
 @media(min-width:1025px) and (min-aspect-ratio:11/10){
     html,body{overflow:hidden;height:100%;margin:0;padding:0;}
     .main-layout{display:grid;gap:10px;padding:calc(var(--gh-h) + 10px) 14px 14px;width:100%;max-width:100%;margin:0 auto;grid-template-rows:60fr 40fr;transition:grid-template-columns 0.45s cubic-bezier(0.4,0,0.2,1);}
@@ -519,7 +510,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .main-layout.view-deduct .panel-right{opacity:1;transform:translateX(0);pointer-events:auto;visibility:visible;}
 }
 
-/* [14-2] 세로형/터치 공통 레이아웃: 패널은 자연 높이로 정렬 */
+/* 14-2. 세로형·터치 공통 */
 @media (max-width:1024px),
        (min-width:1025px) and (max-aspect-ratio:11/10),
        (hover:none) and (pointer:coarse) and (min-width:768px) and (max-width:1366px) and (min-height:600px) {
@@ -538,7 +529,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .main-layout.view-codex .panel-right,.main-layout.view-deduct .panel-left{display:none;}
 }
 
-/* [14-3] PC 세로/피벗: 도감 5열, 체크리스트는 폭에 맞춰 자동 증가 */
+/* 14-3. PC 세로·피벗 */
 @media (min-width:1025px) and (max-aspect-ratio:11/10) {
     .codex-category-grid,.codex-fav-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
     .deduct-grid,#grid-top.deduct-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
@@ -546,7 +537,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .cost-slot{aspect-ratio:unset;min-height:62px;}
 }
 
-/* [14-4] 태블릿 기본: 도감 3열, 체크리스트 3열 */
+/* 14-4. 태블릿 기본 */
 @media (max-width:1024px) and (min-width:768px) {
     .gh-left{min-width:210px;padding:0 5px;}
     .gh-logo-text{gap:7px;}
@@ -560,7 +551,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 }
 
 
-/* [14-5] 모바일 스와이프 그리드 공통: 세로/가로 중복 규칙 통합 */
+/* 14-5. 모바일 스와이프 공통 */
 @media (max-width: 767px),
        (max-width:950px) and (max-height:520px) and (orientation:landscape) {
     .codex-category-grid,.deduct-grid,#grid-top.deduct-grid{
@@ -615,7 +606,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .deduct-grid .deduct-slot.is-visible{display:flex;}
 }
 
-/* [14-6] 모바일 세로 레이아웃 */
+/* 14-6. 모바일 세로 */
 @media (max-width: 767px) {
     .main-layout{padding:104px 8px 24px;}
     .global-header{position:fixed;top:0;left:0;right:0;z-index:9000;height:auto;flex-direction:row;flex-wrap:wrap;padding:8px;gap:5px;background:var(--header-bg);border-bottom:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 12px rgba(0,0,0,0.90);}
@@ -657,12 +648,12 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .reset-btn{height:32px;margin:0;}
 }
 
-/* [14-7] 모바일 가로 — 종족/체크 1×3, 즐겨찾기 1×1 스와이프 */
+/* 14-7. 모바일 가로 */
 @media (max-width:950px) and (max-height:520px) and (orientation:landscape) {
     .main-layout{padding-top:96px;}
 }
 
-/* [14-8] 터치 태블릿 가로/세로 — 종족/체크 3×3, 즐겨찾기 3×1 스와이프 */
+/* 14-8. 터치 태블릿 */
 @media (hover:none) and (pointer:coarse) and (min-width:768px) and (max-width:1366px) and (min-height:600px) {
     .codex-category-grid,.deduct-grid,#grid-top.deduct-grid,.codex-fav-grid{
         display:grid;
@@ -703,9 +694,9 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .cost-slot{aspect-ratio:unset;min-height:58px;}
 }
 
-/* ── 15. 기타 UI ── */
+/* ── 15. 기타 UI ──────────────────────────────────────────────────────── */
 
-/* [15-1] 빈 화면 — 도감 유도 */
+/* 15-1. 빈 화면 안내 */
 .empty-msg-enhanced{text-align:center;padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;}
 .empty-arrow{font-size:1.8rem;animation:emptyBounce 1.2s ease-in-out infinite;color:var(--g);}
 .empty-main{font-size:1rem;font-weight:900;color:var(--text);}
