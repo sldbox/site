@@ -13,13 +13,13 @@
     <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
         // [00] 빌드/캐시 버전과 파일별 자산 버전
-        window.NEXUS_BUILD_VERSION = "2607140002";
-        window.APP_VERSION = "2607140002";
+        window.NEXUS_BUILD_VERSION = "2607190000";
+        window.APP_VERSION = "2607190000";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "2607140002",
-            "config.js": "2607140002",
-            "style.css": "2607140002",
-            "data.js": "2607140002"
+            "app.js": "2607190000",
+            "config.js": "2607190000",
+            "style.css": "2607190000",
+            "data.js": "2607190000"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -161,12 +161,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=2607140002" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2607140002">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2607140002">
+    <link rel="icon" href="./icon.png?v=2607190000" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2607190000">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2607190000">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2607140002">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2607190000">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="히든조합표, 체크리스트, 정수계산, 을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -209,20 +209,20 @@
             <button type="button" id="btnViewDeduct" class="gh-nav-btn" data-action="switchMainView" data-view="deduct">
                 <span class="gh-nav-label">체크리스트</span>
             </button>
-            <a class="gh-nav-btn btn-trait-icon gh-trait-link gh-trait-link-mobile" href="https://sldbox.github.io/dps/" title="개복디 특성 계산기" aria-label="개복디 특성 계산기">
-                <span class="gh-nav-label">DPS ↗</span>
-            </a>
+            <button type="button" id="btnViewDeductList" class="gh-nav-btn" data-action="switchMainView" data-view="deductlist">
+                <span class="gh-nav-label">차감리스트</span>
+            </button>
         </nav>
         <div class="gh-right">
-            <a class="gh-nav-btn btn-trait-icon gh-trait-link gh-trait-link-desktop" href="https://sldbox.github.io/dps/" title="개복디 특성 계산기" aria-label="개복디 특성 계산기">
-                <span class="gh-nav-label">특성DPS ↗</span>
-            </a>
-            <div class="gh-divider"></div>
             <div class="gh-fontsize-ctrl" title="글씨 크기 조절">
                 <button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소" title="글씨 축소">A-</button>
                 <span class="gh-fontsize-val" id="fontSizeLabel">100%</span>
                 <button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대" title="글씨 확대">A+</button>
             </div>
+            <div class="gh-divider"></div>
+            <a class="gh-nav-btn btn-trait-icon gh-trait-link" href="https://sldbox.github.io/dps/" title="DPS웹" aria-label="DPS웹">
+                <span class="gh-nav-label">DPS웹</span>
+            </a>
         </div>
     </header>
     <!-- [03] 메인 레이아웃: 도감 / 통합 보드 / 장바구니 / 체크리스트 -->
@@ -294,6 +294,57 @@
                 </div>
             </div>
             <div id="deductionBoard" class="panel-body"></div>
+        </aside>
+    </div>
+    <div id="deductListLayout" class="deduct-list-layout" hidden>
+        <section class="deduct-unit-board-panel hud-panel" id="deductUnitBoardPanel">
+            <div class="panel-header ph-compact deduct-list-panel-header">
+                <div class="ph-title ph-title-accent">유닛 보드</div>
+            </div>
+            <div class="panel-section cost-section pc-cost-body">
+                <div id="deductUnitBoardDashboard" class="magic-grid deduct-unit-board-grid"></div>
+            </div>
+        </section>
+        <section class="deduct-owned-panel hud-panel" id="deductOwnedPanel">
+            <div class="panel-header ph-compact deduct-list-panel-header panel-header-with-actions">
+                <div class="ph-title ph-title-accent">차감 보드</div>
+                <div class="owned-header-actions">
+                    <div class="owned-mode-toggle" role="group" aria-label="차감 보드 입력 방식">
+                        <button type="button" id="btnOwnedModeAuto" class="owned-mode-btn active" data-action="switchOwnedInputMode" data-mode="auto" aria-pressed="true">자동 입력</button>
+                        <button type="button" id="btnOwnedModeManual" class="owned-mode-btn" data-action="switchOwnedInputMode" data-mode="manual" aria-pressed="false">수동 입력</button>
+                    </div>
+                    <button type="button" id="btnOwnedReset" class="owned-reset-btn" data-action="resetDeductOwned">초기화</button>
+                </div>
+            </div>
+            <div class="panel-section cost-section pc-cost-body">
+                <div id="deductOwnedDashboard" class="magic-grid deduct-owned-grid"></div>
+            </div>
+        </section>
+        <aside class="deduct-cart-panel hud-panel" id="deductCartPanel">
+            <section class="deduct-grade-section" id="deductGradeSection" aria-label="등급 완료">
+                <div class="panel-header ph-compact deduct-list-panel-header deduct-grade-header">
+                    <div class="ph-title ph-title-accent">등급 완료</div>
+                </div>
+                <div class="deduct-grade-actions" id="deductGradeActions">
+                    <button type="button" class="deduct-grade-btn grade-all" data-action="completeOwnedGroup" data-grade-group="all">전체 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-cost" data-action="completeOwnedGroup" data-grade-group="cost">코스트 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-magic" data-action="completeOwnedGroup" data-grade-group="매직">매직 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-rare" data-action="completeOwnedGroup" data-grade-group="레어">레어 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-epic" data-action="completeOwnedGroup" data-grade-group="에픽">에픽 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-unique" data-action="completeOwnedGroup" data-grade-group="유니크">유니크 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-hell" data-action="completeOwnedGroup" data-grade-group="헬">헬 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-legend" data-action="completeOwnedGroup" data-grade-group="레전드">레전드 완료</button>
+                    <button type="button" class="deduct-grade-btn grade-hidden" data-action="completeOwnedGroup" data-grade-group="히든">히든 완료</button>
+                </div>
+            </section>
+            <div class="panel-section cart-section pc-cart-body deduct-list-cart-section" id="deductCartSection">
+                <div class="cart-header" data-action="toggleCartCollapse">
+                    <span class="cart-title">장바구니</span>
+                    <span id="deductCartCollapseBtn" class="cart-collapse-btn">▼</span>
+                </div>
+                <div id="deductCartTabBar" class="cart-tab-bar"></div>
+                <div id="deductCartListArea" class="cart-list-area"></div>
+            </div>
         </aside>
     </div>
     <div id="recipeTooltip" class="recipe-tooltip" role="tooltip" aria-live="polite"></div>

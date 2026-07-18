@@ -21,10 +21,6 @@ const PRIMARY_UNIT_GROUPS = Object.freeze({
     "혼종": ["나루드", "유물", "아몬의젤나가피조물", "혼종종언자", "사라케리건"]
 });
 
-const PRIMARY_UNIT_PRESET_COLORS = Object.freeze({
-    "테바": "빨강", "테메": "주황", "토바": "파랑", "토메": "하늘", "저그중립": "초록", "혼종": "보라"
-});
-
 window.NEXUS_USER_CONFIG = {
 
     // ── 01. 도구 유닛 예외 ─────────────────────────────────────────────────
@@ -72,7 +68,7 @@ window.NEXUS_USER_CONFIG = {
     },
 
     // ── 06. 주력 유닛 연결 ─────────────────────────────────────────────────
-    // 카드 태그와 주력 프리셋이 공용 목록을 사용한다.
+    // 유닛 카드의 주력 태그 목록으로 사용한다.
     primaryUnitGroups: PRIMARY_UNIT_GROUPS,
 
     // ── 07. 프리셋 버튼 ────────────────────────────────────────────────────
@@ -83,12 +79,6 @@ window.NEXUS_USER_CONFIG = {
         { label: "불나비", group: "일반 프리셋", command: "불새케리건/나루드/비밀작전노바/자이언트플라워*3/유물", tooltip: "불새 나루드 비밀작전노바", oneTime: true, 배경색: "빨강", 글씨색: "흰색" },
         { label: "불아비", group: "일반 프리셋", command: "불새케리건/아몬/비밀작전노바/자이언트플라워*3/유물", tooltip: "불새 아몬 비밀작전노바", oneTime: true, 배경색: "파랑", 글씨색: "흰색" },
         { label: "땅굴*8", group: "일반 프리셋", command: "땅굴파괴자*8", tooltip: "땅굴파괴자 8마리", oneTime: true, 배경색: "검정", 글씨색: "금색" },
-        ...Object.entries(PRIMARY_UNIT_GROUPS).map(([category, units]) => ({
-            label: `주력유닛:${category}`, group: "일반 프리셋", command: units.join("/"),
-            tooltip: `${category} 주력 유닛 ${units.length}종`, oneTime: true, preventStack: true,
-            배경색: PRIMARY_UNIT_PRESET_COLORS[category], 글씨색: "흰색"
-        })),
-
         // 07-2. 정수 프리셋
         { label: "코랄정수[9종]", group: "정수 프리셋", command: "비밀작전노바/테라트론/아우구스트그라드의자랑/제우스폭격기/창공의분노/마일스블레이즈루이스/핵의원천/광부/드라켄레이저천공기", tooltip: "코랄의정수 9종", oneTime: true, 배경색: "빨강", 글씨색: "흰색" },
         { label: "아이어정수[8종]", group: "정수 프리셋", command: "아몬/아둔의창/하늘군주/정화자감시자/말라쉬/라사라/케이다란초석/모한다르", tooltip: "아이어 정수 8종", oneTime: true, 배경색: "파랑", 글씨색: "흰색" },

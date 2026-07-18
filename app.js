@@ -106,6 +106,21 @@
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
+    const DEDUCT_UNIT_BOARD_ATOMS = Object.freeze([
+        "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
+        "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
+        "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
+        "죽음의머리", "검은망치", "광전사석상", "교란기", "라바사우르스",
+        "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
+        "짐레이너", "대천사", "제라툴", "거신", "케리건",
+        "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
+        "공허포격기", "우르사돈수", "우르사돈암", "테이스틀로프", "아토실로프",
+        "노바", "히페리온", "보라준", "공허의구도자", "거대괴수",
+        "특공대레이너", "고르곤전투순양함", "아르타니스", "셀렌디스", "원시케리건",
+        "땅거미지뢰", "자이언트플라워", "자동포탑", "갓오타", "메시브"
+    ]);
+    const DEDUCT_UNIT_ATOM_HASH = Object.fromEntries(DEDUCT_UNIT_BOARD_ATOMS.map(a => [clean(a), a]));
+    const DEDUCT_UNIT_BOARD_IDS = new Set(DEDUCT_UNIT_BOARD_ATOMS.map(clean));
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_HIDDEN_IDS = makeCleanSet(SYSTEM_CONFIG.search.hiddenIds || []);
@@ -186,6 +201,8 @@
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
     let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isDeductionBoardRendered = false;
+    let _ownedInputMode = 'auto';
+    const ownedMagic = new Map(), completedOwnedMagic = new Map();
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
     let _restoreAllPendingTimer = null;
@@ -218,6 +235,15 @@
     };
     const setPositiveMapValue = (map, uid, qty) => {
         const normalized = normalizeUnitQty(uid, qty);
+        if (normalized > 0) map.set(uid, normalized);
+    };
+    const normalizeOwnedMagicQty = (qty) => {
+        const n = Math.floor(Number(qty));
+        if (!Number.isFinite(n) || n <= 0) return 0;
+        return n;
+    };
+    const setOwnedMapValue = (map, uid, qty) => {
+        const normalized = normalizeOwnedMagicQty(qty);
         if (normalized > 0) map.set(uid, normalized);
     };
     const compareUnitForDisplay = (a, b) =>
@@ -254,7 +280,16 @@
         normalizeMap(activeUnits);
         normalizeMap(completedTargets);
         normalizeMap(completedUnits, true);
+        [ownedMagic, completedOwnedMagic].forEach(map => {
+            for (const [rawUid, rawQty] of [...map.entries()]) {
+                const uid = normalizeSavedId(rawUid);
+                const qty = normalizeOwnedMagicQty(rawQty);
+                map.delete(rawUid);
+                if (qty > 0 && DEDUCT_UNIT_BOARD_IDS.has(uid)) map.set(uid, qty);
+            }
+        });
         completedTargets.forEach((_, uid) => activeUnits.delete(uid));
+        if (activeUnits.size > 0 || completedTargets.size === 0) completedOwnedMagic.clear();
         if (!['active', 'done'].includes(_cartTab)) _cartTab = 'active';
         if (_cartTab === 'done' && completedTargets.size === 0 && activeUnits.size > 0) _cartTab = 'active';
         _cartCollapsed = false;
@@ -341,6 +376,8 @@
             completedUnits.clear();
             completedTargets.clear();
             _presetUsed.clear();
+            ownedMagic.clear();
+            completedOwnedMagic.clear();
 
             state.active?.forEach(([k, v]) => setPositiveMapValue(activeUnits, normalizeSavedId(k), v));
             state.completed?.forEach(([k, v]) => {
@@ -357,18 +394,27 @@
                 if (Number.isInteger(idx) && SYSTEM_CONFIG.presets[idx]) _presetUsed.set(idx, !!v);
             });
             _hideCompleted = !!state.hideCompleted;
+            if (state.ownedInputMode === 'manual' || state.ownedInputMode === 'auto') _ownedInputMode = state.ownedInputMode;
+            state.ownedMagic?.forEach?.(([k, v]) => {
+                const uid = normalizeSavedId(k);
+                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) setOwnedMapValue(ownedMagic, uid, v);
+            });
+            state.completedOwnedMagic?.forEach?.(([k, v]) => {
+                const uid = normalizeSavedId(k);
+                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) setOwnedMapValue(completedOwnedMagic, uid, v);
+            });
             _cartCollapsed = false;
 
             sanitizeRuntimeState();
         } catch(e) {
-            activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); _presetUsed.clear();
+            activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); _presetUsed.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
         }
     }
 
     function saveNexusState() {
         try {
             sanitizeRuntimeState();
-            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify({ active: [...activeUnits], completed: [...completedUnits], completedTargets: [...completedTargets], cartTab: _cartTab, presetUsed: [..._presetUsed], hideCompleted: _hideCompleted }));
+            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify({ active: [...activeUnits], completed: [...completedUnits], completedTargets: [...completedTargets], cartTab: _cartTab, presetUsed: [..._presetUsed], hideCompleted: _hideCompleted, ownedInputMode: _ownedInputMode, ownedMagic: [...ownedMagic], completedOwnedMagic: [...completedOwnedMagic] }));
         } catch(e) {}
     }
 
@@ -413,7 +459,7 @@
         return best;
     }
 
-    function processCommand(val, fromPreset = false, preventStack = false) {
+    function processCommand(val, fromPreset = false) {
         if (!val.trim()) return;
         let successCount = 0, restrictedCount = 0;
         val.split('/').filter(c => c.trim()).forEach(cmd => {
@@ -424,7 +470,7 @@
             const match = findUnitFlexible(targetName);
             if (match) {
                 if (isRestrictedUnit(match.id) || isHiddenUnit(match.id)) { restrictedCount++; return; }
-                if (fromPreset && (preventStack || CLEAN_PRESET_NOSTACK.has(match.id)) && activeUnits.has(match.id)) { successCount++; return; }
+                if (fromPreset && CLEAN_PRESET_NOSTACK.has(match.id) && activeUnits.has(match.id)) { successCount++; return; }
                 activeUnits.set(match.id, isOneTime(match) ? 1 : Math.min((activeUnits.get(match.id) || 0) + qty, SYSTEM_CONFIG.policy.maxUnitCapacity));
                 successCount++;
             }
@@ -465,6 +511,7 @@
 
     function calculateDeductedRequirements() {
         let reqMap = new Map(), baseMap = new Map(), reasonMap = new Map();
+        const effectiveCompletedUnits = getEffectiveCompletedUnits();
         let specialReq = {}, baseSpecialReq = {}, specialReason = {};
         COMBO_SLOT_RAWS.forEach(k => { specialReq[k] = 0; baseSpecialReq[k] = 0; specialReason[k] = new Map(); });
 
@@ -483,7 +530,7 @@
                 let tNeed = map.get(uid) || 0;
                 if ((!unitMap.has(uid) && !virtualUnitIds.has(uid)) || tNeed <= 0) continue;
                 
-                let eNeed = tNeed - (isDeficit ? Math.min(mergedActive.has(uid) ? 0 : (completedUnits.get(uid) || 0), tNeed) : 0);
+                let eNeed = tNeed - (isDeficit ? Math.min(mergedActive.has(uid) ? 0 : (effectiveCompletedUnits.get(uid) || 0), tNeed) : 0);
                 const prevNeed = processed.get(uid) || 0;
                 let delta = eNeed - prevNeed;
                 if (delta <= 0) continue;
@@ -512,7 +559,7 @@
         let deficits = calcBFS(true);
 
         baseDeficits.forEach((val, k) => val > 0 && baseMap.set(k, val));
-        deficits.forEach((val, k) => val > 0 && reqMap.set(k, Math.max(0, val - (completedUnits.get(k) || 0))));
+        deficits.forEach((val, k) => val > 0 && reqMap.set(k, Math.max(0, val - (effectiveCompletedUnits.get(k) || 0))));
 
         const updateSpecials = (map, reqObj) => map.forEach((needed, uid) => unitMap.get(uid)?.parsedCost?.forEach(pc => {
             if (COMBO_SLOT_SET.has(pc.key)) reqObj[pc.key] += pc.qty * needed;
@@ -520,7 +567,7 @@
         
         updateSpecials(baseDeficits, baseSpecialReq);
         updateSpecials(deficits, specialReq);
-        COMBO_SLOT_RAWS.forEach(k => specialReq[k] = Math.max(0, specialReq[k] - (completedUnits.get(k) || 0)));
+        COMBO_SLOT_RAWS.forEach(k => specialReq[k] = Math.max(0, specialReq[k] - (effectiveCompletedUnits.get(clean(k)) || effectiveCompletedUnits.get(k) || 0)));
 
         let rootTracking = new Map();
         baseDeficits.forEach((_, uid) => rootTracking.set(uid, new Map()));
@@ -611,9 +658,17 @@
         updateTimer = requestAnimationFrame(() => {
             let calcResult = calculateDeductedRequirements();
             if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
+            let deductListState = calculateDeductListRequirements();
+            if (completeDeductTargetsIfReady(deductListState)) {
+                calcResult = calculateDeductedRequirements();
+                if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
+                deductListState = calculateDeductListRequirements();
+            }
             _lastCalcResult = calcResult;
             updateMagicDashboard();
             updateEssence();
+            updateDeductUnitBoard(deductListState);
+            updateDeductOwnedBoard(deductListState);
             updateTabsUI();
             updateTabContentUI();
             updateDeductionBoard(calcResult);
@@ -715,12 +770,35 @@
         if (!completedTargets.has(uid)) return;
         const qty = completedTargets.get(uid) || 1;
         completedTargets.delete(uid);
+        completedOwnedMagic.clear();
         // 완료 취소 시 하위 재료 기록도 함께 역산한다.
         deleteCompletedRecipe(uid, qty);
         completedUnits.delete(uid);
         if (!activeUnits.has(uid)) activeUnits.set(uid, qty);
         if (completedTargets.size === 0) _cartTab = 'active';
         triggerHaptic(); debouncedUpdateAllPanels();
+    }
+
+    function completeDeductTargetsIfReady(state) {
+        if (activeUnits.size === 0 || !state) return false;
+        const baseValues = Object.values(state.base || {});
+        const remainingValues = Object.values(state.remaining || {});
+        if (!baseValues.some(value => value > 0) || remainingValues.some(value => value > 0)) return false;
+
+        activeUnits.forEach((qty, uid) => {
+            deleteCompletedRecipe(uid, qty);
+            completedTargets.set(uid, (completedTargets.get(uid) || 0) + qty);
+        });
+        completedOwnedMagic.clear();
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const qty = normalizeOwnedMagicQty(state.base?.[atom] || 0);
+            if (qty > 0) completedOwnedMagic.set(clean(atom), qty);
+        });
+        activeUnits.clear();
+        ownedMagic.clear();
+        _cartTab = 'done';
+        toggleHighlight(null);
+        return true;
     }
 
     function restoreAllCompleted() {
@@ -743,7 +821,7 @@
 
         _restoreAllPendingTimer = setTimeout(() => {
             _restoreAllPendingTimer = null;
-            activeUnits.clear(); completedUnits.clear(); completedTargets.clear();
+            activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
             _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility(); _presetUsed.clear(); updatePresetBtns(); triggerHaptic(); debouncedUpdateAllPanels();
             if (!btn || !label) return;
             _restoreAllCooldown = true;
@@ -761,6 +839,7 @@
                 activeUnits.set(uid, qty);
             });
             completedTargets.clear();
+            completedOwnedMagic.clear();
             _cartTab = 'active';
             _presetUsed.clear(); updatePresetBtns();
         } else {
@@ -779,15 +858,302 @@
     }
 
     function resetCodex() {
-        activeUnits.clear(); completedUnits.clear(); completedTargets.clear();
+        activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
         toggleHighlight(null); _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility();
         _presetUsed.clear(); updatePresetBtns(); debouncedUpdateAllPanels();
     }
 
 
     // ── 06. 통합 보드 및 대시보드 ─────────────────────────────────────────
+
+    function calculateDeductListBaseRequirements() {
+        const reqMap = new Map();
+        const specialReq = Object.fromEntries(COMBO_SLOT_RAWS.map(id => [clean(id), 0]));
+        const addToMap = (map, uid, qty) => {
+            if (!uid || qty <= 0) return;
+            map.set(uid, (map.get(uid) || 0) + qty);
+        };
+        const addSpecial = (target, uid, qty) => {
+            const id = clean(uid);
+            if (!id || qty <= 0) return;
+            target[id] = (target[id] || 0) + qty;
+        };
+        const queue = [];
+        const inQueue = new Set();
+        const processed = new Map();
+        activeUnits.forEach((qty, uid) => {
+            const normalizedQty = isOneTime(unitMap.get(uid)) ? 1 : qty;
+            if (normalizedQty <= 0) return;
+            addToMap(reqMap, uid, normalizedQty);
+            queue.push(uid);
+            inQueue.add(uid);
+        });
+        let loopCount = 0;
+        while (queue.length > 0) {
+            if (++loopCount > APP_INTERNAL.maxLoopQueue) break;
+            const uid = queue.shift();
+            inQueue.delete(uid);
+            const need = reqMap.get(uid) || 0;
+            if (!unitMap.has(uid) || need <= 0) continue;
+            const previous = processed.get(uid) || 0;
+            const delta = need - previous;
+            if (delta <= 0) continue;
+            processed.set(uid, need);
+            getToolNeed(uid).forEach(toolId => {
+                const next = isOneTime(unitMap.get(toolId)) ? Math.min((reqMap.get(toolId) || 0) + 1, 1) : (reqMap.get(toolId) || 0) + 1;
+                reqMap.set(toolId, next);
+                if (!inQueue.has(toolId)) { queue.push(toolId); inQueue.add(toolId); }
+            });
+            unitMap.get(uid)?.parsedRecipe?.forEach(child => {
+                if (!child.id || isToolRequirement(uid, child.id)) return;
+                if (COMBO_SLOT_SET.has(child.id)) { addSpecial(specialReq, child.id, child.qty * delta); return; }
+                if (!unitMap.has(child.id) && !DEDUCT_UNIT_BOARD_IDS.has(child.id)) return;
+                const next = isOneTime(unitMap.get(child.id)) ? Math.min((reqMap.get(child.id) || 0) + child.qty * delta, 1) : (reqMap.get(child.id) || 0) + child.qty * delta;
+                reqMap.set(child.id, next);
+                if (!inQueue.has(child.id)) { queue.push(child.id); inQueue.add(child.id); }
+            });
+        }
+        reqMap.forEach((qty, uid) => {
+            if (qty <= 0) return;
+            unitMap.get(uid)?.parsedCost?.forEach(cost => {
+                if (COMBO_SLOT_SET.has(cost.key)) addSpecial(specialReq, cost.key, cost.qty * qty);
+            });
+        });
+        const base = {};
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            base[atom] = COMBO_SLOT_SET.has(uid) ? Math.max(0, specialReq[uid] || 0) : Math.max(0, reqMap.get(uid) || 0);
+        });
+        return base;
+    }
+
+    function calculateDeductListCoverage(base = calculateDeductListBaseRequirements()) {
+        const ownedCoverage = new Map();
+        const ownedSpecialCoverage = Object.fromEntries(COMBO_SLOT_RAWS.map(id => [clean(id), 0]));
+        const addCoverage = (map, uid, qty) => {
+            if (!uid || qty <= 0) return;
+            map.set(uid, (map.get(uid) || 0) + qty);
+        };
+        const addSpecialCoverage = (uid, qty) => {
+            const id = clean(uid);
+            if (!id || qty <= 0) return;
+            ownedSpecialCoverage[id] = (ownedSpecialCoverage[id] || 0) + qty;
+        };
+        const expandOwnedUnit = (uid, qty, path) => {
+            if (!uid || qty <= 0 || path.has(uid)) return;
+            path.add(uid);
+            try {
+                if (COMBO_SLOT_SET.has(uid)) { addSpecialCoverage(uid, qty); return; }
+                if (DEDUCT_UNIT_BOARD_IDS.has(uid) || unitMap.has(uid)) addCoverage(ownedCoverage, uid, qty);
+                const unit = unitMap.get(uid);
+                if (!unit) return;
+                unit.parsedRecipe?.forEach(child => {
+                    if (!child.id || isToolRequirement(uid, child.id)) return;
+                    expandOwnedUnit(child.id, child.qty * qty, path);
+                });
+                unit.parsedCost?.forEach(cost => {
+                    if (COMBO_SLOT_SET.has(cost.key)) addSpecialCoverage(cost.key, cost.qty * qty);
+                    else if (DEDUCT_UNIT_BOARD_IDS.has(cost.key) || unitMap.has(cost.key)) addCoverage(ownedCoverage, cost.key, cost.qty * qty);
+                });
+            } finally {
+                path.delete(uid);
+            }
+        };
+        ownedMagic.forEach((qty, uid) => {
+            const atom = DEDUCT_UNIT_ATOM_HASH[uid];
+            if (!atom) return;
+            const effective = Math.min(normalizeOwnedMagicQty(qty), Math.max(0, base[atom] || 0));
+            if (effective > 0) expandOwnedUnit(uid, effective, new Set());
+        });
+        return { ownedCoverage, ownedSpecialCoverage };
+    }
+
+    function calculateDeductListRequirements() {
+        const base = calculateDeductListBaseRequirements();
+        const { ownedCoverage, ownedSpecialCoverage } = calculateDeductListCoverage(base);
+        const remaining = {};
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const covered = COMBO_SLOT_SET.has(uid) ? (ownedSpecialCoverage[uid] || 0) : (ownedCoverage.get(uid) || 0);
+            remaining[atom] = Math.max(0, (base[atom] || 0) - covered);
+        });
+        return { base, remaining };
+    }
+
+    function getDeductLinkedCompletedUnits() {
+        const linked = new Map();
+        const base = calculateDeductListBaseRequirements();
+        const { ownedCoverage, ownedSpecialCoverage } = calculateDeductListCoverage(base);
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            if (!unitMap.has(uid) && !COMBO_SLOT_SET.has(uid) && !virtualUnitIds.has(uid)) return;
+            const maxNeed = Math.max(0, base[atom] || 0);
+            if (maxNeed <= 0) return;
+            const covered = COMBO_SLOT_SET.has(uid) ? (ownedSpecialCoverage[uid] || 0) : (ownedCoverage.get(uid) || 0);
+            const linkedQty = Math.min(maxNeed, Math.max(0, covered || 0));
+            if (linkedQty > 0) linked.set(uid, linkedQty);
+        });
+        return linked;
+    }
+
+    function getEffectiveCompletedUnits() {
+        const merged = new Map(completedUnits);
+        getDeductLinkedCompletedUnits().forEach((qty, uid) => {
+            merged.set(uid, (merged.get(uid) || 0) + qty);
+        });
+        return merged;
+    }
+
+    function renderDeductUnitBoard() {
+        const board = getEl('deductUnitBoardDashboard'); if (!board) return;
+        board.innerHTML = DEDUCT_UNIT_BOARD_ATOMS
+            .map(a => `<div class="cost-slot is-magic-slot" id="deduct-vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name">${a}</div></div>`)
+            .join('');
+    }
+
+    function renderDeductOwnedBoard() {
+        const board = getEl('deductOwnedDashboard'); if (!board) return;
+        board.innerHTML = DEDUCT_UNIT_BOARD_ATOMS.map(atom => {
+            const uid = clean(atom);
+            if (_ownedInputMode === 'manual') {
+                return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 수동 입력"><input type="number" min="0" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
+            }
+            return `<button type="button" class="cost-slot inventory-slot is-magic-slot" id="deduct-owned-slot-${uid}" data-action="increaseOwnedMagic" data-magic-id="${uid}" aria-label="${atom} 보유량 증가"><div class="owned-main-val"></div><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></button>`;
+        }).join('');
+        updateOwnedInputModeUI();
+        updateDeductOwnedBoard(calculateDeductListRequirements());
+    }
+
+    function updateDeductListEssence() {
+        const essence = getEssenceCount(activeUnits);
+        let totalEssence = 0;
+        const hybridKey = SYSTEM_CONFIG.essence.mapping["혼종"] || "혼종";
+        const hybridWeight = SYSTEM_CONFIG.policy.hybridWeight || 3;
+        SYSTEM_CONFIG.essence.display.forEach(d => {
+            const value = Math.max(0, essence[d.name] || 0);
+            const el = getEl(`deduct-val-essence-${d.id}`);
+            if (el) el.textContent = value > 0 ? String(value) : '';
+            getEl(`deduct-slot-essence-${d.id}`)?.classList.toggle('active', value > 0);
+            totalEssence += value * (d.name === hybridKey ? hybridWeight : 1);
+        });
+        const totalEl = getEl('deduct-val-total-essence');
+        if (totalEl) totalEl.textContent = totalEssence > 0 ? String(totalEssence) : '';
+        getEl('deduct-slot-total-essence')?.classList.toggle('active', totalEssence > 0);
+    }
+
+    function updateDeductUnitBoard(state = calculateDeductListRequirements()) {
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const slot = getEl(`deduct-vslot-${clean(atom)}`);
+            const valueEl = slot?.querySelector('.cost-val');
+            if (!slot || !valueEl) return;
+            const remaining = Math.max(0, state.remaining?.[atom] || 0);
+            valueEl.textContent = remaining > 0 ? String(remaining) : '';
+            slot.classList.toggle('active', remaining > 0);
+        });
+        updateDeductListEssence();
+    }
+
+    function updateDeductOwnedBoard(state = calculateDeductListRequirements()) {
+        const showCompletedOwned = activeUnits.size === 0 && completedTargets.size > 0 && completedOwnedMagic.size > 0;
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const slot = getEl(`deduct-owned-slot-${uid}`);
+            if (!slot) return;
+            const completedOwned = completedOwnedMagic.get(uid) || 0;
+            const need = showCompletedOwned ? completedOwned : Math.max(0, state.base?.[atom] || 0);
+            const owned = showCompletedOwned ? completedOwned : (ownedMagic.get(uid) || 0);
+            const valueEl = slot.querySelector('.owned-main-val');
+            const needBadge = slot.querySelector('.owned-needed-badge');
+            const inputEl = slot.querySelector('.owned-manual-input');
+            if (valueEl) valueEl.textContent = String(owned);
+            if (needBadge) needBadge.textContent = String(need);
+            if (inputEl) {
+                inputEl.disabled = showCompletedOwned;
+                if (document.activeElement !== inputEl) inputEl.value = String(owned);
+            }
+            if (slot.tagName === 'BUTTON') slot.disabled = showCompletedOwned;
+            slot.classList.toggle('has-needed', need > 0);
+            slot.classList.toggle('has-owned', owned > 0);
+            slot.classList.toggle('owned-exact', need > 0 && owned === need);
+            slot.classList.toggle('owned-over', owned > need);
+            slot.classList.toggle('partial', need > 0 && owned > 0 && owned < need);
+            slot.classList.toggle('covered', need > 0 && owned === need);
+            const guide = showCompletedOwned ? '완료 당시 보유 수량' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : '클릭하면 보유량 1 증가, 우클릭하면 1 감소');
+            slot.setAttribute('aria-label', `${atom} 보유 ${owned}, 필요 ${need}. ${guide}`);
+            slot.removeAttribute('title');
+        });
+        updateOwnedInputModeUI();
+    }
+
+    function updateOwnedInputModeUI() {
+        const auto = _ownedInputMode === 'auto';
+        const autoBtn = getEl('btnOwnedModeAuto');
+        const manualBtn = getEl('btnOwnedModeManual');
+        if (autoBtn) { autoBtn.classList.toggle('active', auto); autoBtn.setAttribute('aria-pressed', auto ? 'true' : 'false'); }
+        if (manualBtn) { manualBtn.classList.toggle('active', !auto); manualBtn.setAttribute('aria-pressed', !auto ? 'true' : 'false'); }
+        const resetBtn = getEl('btnOwnedReset');
+        if (resetBtn) resetBtn.disabled = ownedMagic.size === 0 && completedOwnedMagic.size === 0;
+    }
+
+    function switchOwnedInputMode(mode) {
+        if (mode !== 'auto' && mode !== 'manual') return;
+        if (_ownedInputMode === mode) { updateOwnedInputModeUI(); return; }
+        _ownedInputMode = mode;
+        renderDeductOwnedBoard();
+        saveNexusState();
+    }
+
+    function setOwnedMagicQty(rawUid, qty) {
+        const uid = normalizeSavedId(rawUid);
+        if (!DEDUCT_UNIT_BOARD_IDS.has(uid)) return;
+        const next = normalizeOwnedMagicQty(qty);
+        if (next > 0) ownedMagic.set(uid, next); else ownedMagic.delete(uid);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function changeOwnedMagicQty(rawUid, delta) {
+        const uid = normalizeSavedId(rawUid);
+        if (!DEDUCT_UNIT_BOARD_IDS.has(uid)) return;
+        const current = ownedMagic.get(uid) || 0;
+        setOwnedMagicQty(uid, current + delta);
+    }
+
+    function resetDeductOwned() {
+        if (ownedMagic.size === 0 && completedOwnedMagic.size === 0) { updateOwnedInputModeUI(); return; }
+        ownedMagic.clear();
+        completedOwnedMagic.clear();
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function completeOwnedGroup(group) {
+        if (!group) return;
+        const state = calculateDeductListRequirements();
+        let changed = false;
+        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const unit = unitMap.get(uid);
+            const isTargetGroup = group === 'all' || (group === 'cost' ? !unit : unit?.grade === group);
+            if (!isTargetGroup) return;
+            const need = Math.max(0, state.base?.[atom] || 0);
+            if (need <= 0) return;
+            const current = ownedMagic.get(uid) || 0;
+            if (current < need) {
+                ownedMagic.set(uid, need);
+                changed = true;
+            }
+        });
+        if (changed) {
+            triggerHaptic();
+            debouncedUpdateAllPanels();
+        } else {
+            updateOwnedInputModeUI();
+        }
+    }
+
     function updateEssence() {
-        let tE = getEssenceCount(activeUnits), cE = getEssenceCount(completedUnits), totalEssence = 0;
+        let tE = getEssenceCount(activeUnits), cE = getEssenceCount(getEffectiveCompletedUnits()), totalEssence = 0;
 
         const hybridKey = SYSTEM_CONFIG.essence.mapping["혼종"] || "혼종";
         const hybridWeight = SYSTEM_CONFIG.policy.hybridWeight || 3;
@@ -850,8 +1216,9 @@
         };
 
         let activePath = new Set(), compPath = new Set();
+        const effectiveCompletedUnits = getEffectiveCompletedUnits();
         activeUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, tMap, activePath));
-        completedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
+        effectiveCompletedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
 
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
@@ -926,6 +1293,7 @@
         if (!_isDeductionBoardRendered) return;
         // 07-3. 계산 결과·하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
+        const effectiveCompletedUnits = getEffectiveCompletedUnits();
         const mergedSlots = new Set();
 
         const getReasonParentNeed = (info) => {
@@ -947,7 +1315,7 @@
                 baseQty: getReasonBaseQty(rId, info),
                 displayQty: info?.depth === 0 ? 0 : getReasonBaseQty(rId, info)
             }));
-            let remainingCompleted = Math.max(0, completedUnits.get(slotId) || 0);
+            let remainingCompleted = Math.max(0, effectiveCompletedUnits.get(slotId) || 0);
             entries
                 .filter(entry => entry.baseQty > 0)
                 .sort((a, b) => a.baseQty - b.baseQty || a.index - b.index)
@@ -1049,8 +1417,8 @@
             const isMergedSlot = isTarget && !isSpecialCost && mergedSlots.has(id);
             
             let needed = isSpecialCost ? (specialReq[id]||0) : (reqMap.get(id)||0);
-            if (isMergedSlot) needed = Math.max(0, (baseMap.get(id)||0) - (completedUnits.get(id)||0));
-            else if (isTarget && !isSpecialCost) needed = Math.max(0, (activeUnits.get(id)||1) - (completedUnits.get(id)||0));
+            if (isMergedSlot) needed = Math.max(0, (baseMap.get(id)||0) - (effectiveCompletedUnits.get(id)||0));
+            else if (isTarget && !isSpecialCost) needed = Math.max(0, (activeUnits.get(id)||1) - (effectiveCompletedUnits.get(id)||0));
             if (isCompletedTarget) needed = 0;
             
             let baseNeeded = isSpecialCost ? (baseSpecialReq[id]||0) :
@@ -1559,35 +1927,42 @@
     }
 
     function syncCartVisibility() {
-        const btn = getEl('cartCollapseBtn');
-        if (btn) btn.textContent = _cartCollapsed ? '▶' : '▼';
-        [getEl('cartTabBar'), getEl('cartListArea')].forEach(el => {
+        [getEl('cartCollapseBtn'), getEl('deductCartCollapseBtn')].forEach(btn => {
+            if (btn) btn.textContent = _cartCollapsed ? '▶' : '▼';
+        });
+        [getEl('cartTabBar'), getEl('cartListArea'), getEl('deductCartTabBar'), getEl('deductCartListArea')].forEach(el => {
             if (el) el.style.display = _cartCollapsed ? 'none' : '';
         });
     }
 
-    function updateCartUI() {
-        const cartListArea = getEl('cartListArea'); if (!cartListArea) return;
-        const tabBar = getEl('cartTabBar');
+    function renderCartPanel(tabBarId, listAreaId, prefix) {
+        const cartListArea = getEl(listAreaId); if (!cartListArea) return;
+        const tabBar = getEl(tabBarId);
         if (tabBar) {
             tabBar.innerHTML = `<button type="button" class="cart-tab-btn ${_cartTab === 'active' ? 'active' : ''}" data-action="switchCartTab" data-tab="active">선택 <span class="cart-tab-cnt">${activeUnits.size}</span></button><button type="button" class="cart-tab-btn ${_cartTab === 'done' ? 'active' : ''}" data-action="switchCartTab" data-tab="done">완료 <span class="cart-tab-cnt done">${completedTargets.size}</span></button>`;
             tabBar.style.display = _cartCollapsed ? 'none' : '';
         }
         cartListArea.style.display = _cartCollapsed ? 'none' : '';
         if (_cartCollapsed) return;
-
         if (_cartTab === 'active') {
-            if (activeUnits.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
-            // 09-1. 탭별 표시 대상 수집
-        const items = getUnitsFromMap(activeUnits);
-            const existingIds = Array.from(cartListArea.querySelectorAll('.cart-item')).map(el => el.id.replace('ci-', '')), newIds = items.map(i => i.id);
-            if (existingIds.length !== newIds.length || existingIds.some((id, i) => id !== newIds[i])) {
-                cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="ci-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="ci-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del" data-action="removeCartItem" data-uid="${item.id}" title="삭제">✕</button></div>`).join('');
-            } else items.forEach(item => { const valEl = getEl(`ci-val-${item.id}`); if (valEl) { const qty = activeUnits.get(item.id) || 1; if (valEl.innerText !== String(qty)) valEl.innerText = qty; } });
+            if (activeUnits.size === 0) {
+                cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
+                return;
+            }
+            const items = getUnitsFromMap(activeUnits);
+            cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del" data-action="removeCartItem" data-uid="${item.id}" title="삭제">✕</button></div>`).join('');
         } else {
-            if (completedTargets.size === 0) return cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">체크리스트에서 전체완료 시 이곳으로 이동됩니다.</span></div>`;
-            cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="cid-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
+            if (completedTargets.size === 0) {
+                cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
+                return;
+            }
+            cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
         }
+    }
+
+    function updateCartUI() {
+        renderCartPanel('cartTabBar', 'cartListArea', 'ci');
+        renderCartPanel('deductCartTabBar', 'deductCartListArea', 'dli');
     }
 
 
@@ -1596,16 +1971,31 @@
 
     function switchLayout(mode) {
         hideRecipeTooltip();
-        const layout = getEl('mainLayout'); if (!layout) return;
-        _currentViewMode = mode; layout.classList.remove('view-codex', 'view-deduct');
-        const btnCodex = getEl('btnViewCodex'), btnDeduct = getEl('btnViewDeduct');
+        if (mode !== 'codex' && mode !== 'deduct' && mode !== 'deductlist') mode = 'codex';
+        const layout = getEl('mainLayout');
+        const deductLayout = getEl('deductListLayout');
+        if (!layout) return;
+        _currentViewMode = mode;
+        layout.classList.remove('view-codex', 'view-deduct');
+        const btnCodex = getEl('btnViewCodex'), btnDeduct = getEl('btnViewDeduct'), btnDeductList = getEl('btnViewDeductList');
+        [btnCodex, btnDeduct, btnDeductList].forEach(btn => btn?.classList.remove('active'));
+        if (deductLayout) deductLayout.hidden = mode !== 'deductlist';
+        layout.hidden = mode === 'deductlist';
         if (mode === 'deduct') {
             layout.classList.add('view-deduct');
-            btnCodex?.classList.remove('active');
             btnDeduct?.classList.add('active');
             ensureDeductionBoardRendered(_lastCalcResult);
+        } else if (mode === 'deductlist') {
+            btnDeductList?.classList.add('active');
+            renderDeductOwnedBoard();
+            const deductListState = calculateDeductListRequirements();
+            updateDeductUnitBoard(deductListState);
+            updateDeductOwnedBoard(deductListState);
+            updateCartUI();
+        } else {
+            layout.classList.add('view-codex');
+            btnCodex?.classList.add('active');
         }
-        else { layout.classList.add('view-codex'); btnCodex?.classList.add('active'); btnDeduct?.classList.remove('active'); }
     }
 
     function startSmartChange(id, delta, event) {
@@ -1768,9 +2158,13 @@
         const action = actionEl.dataset.action, uid = actionEl.dataset.uid;
         switch (action) {
             case 'switchMainView': switchLayout(actionEl.dataset.view); break;
+            case 'switchOwnedInputMode': switchOwnedInputMode(actionEl.dataset.mode); break;
+            case 'resetDeductOwned': resetDeductOwned(); break;
+            case 'completeOwnedGroup': completeOwnedGroup(actionEl.dataset.gradeGroup); break;
+            case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
-                if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true, preset.preventStack === true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
+                if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
                 break;
             case 'showAppVersion': {
                 const titleRoot = actionEl.closest('.gh-logo-text') || actionEl;
@@ -1819,6 +2213,19 @@
         }
     });
 
+    document.addEventListener('input', e => {
+        const input = e.target.closest('.owned-manual-input');
+        if (!input) return;
+        setOwnedMagicQty(input.dataset.magicId, input.value);
+    });
+
+    document.addEventListener('contextmenu', e => {
+        const slot = e.target.closest('[data-action="increaseOwnedMagic"]');
+        if (!slot) return;
+        e.preventDefault();
+        changeOwnedMagicQty(slot.dataset.magicId, -1);
+    });
+
     // 11-3. 포인터 입력
     document.addEventListener('pointerdown', e => {
         const actionEl = e.target.closest('[data-action="smartChange"]');
@@ -1852,7 +2259,7 @@
             UNIT_DATABASE.forEach(kArr => unitMap.set(clean(kArr[0]), { id: clean(kArr[0]), name: kArr[0], grade: kArr[1] || SYSTEM_CONFIG.grades.order[0], category: kArr[2] || SYSTEM_CONFIG.tabs[0].key, recipe: kArr[3], cost: kArr[4] }));
             pruneFavorites();
 
-            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
+            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); renderDeductUnitBoard(); renderDeductOwnedBoard(); renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
             updateHideCompletedBtn();
             _cartCollapsed = false;
             syncCartVisibility();
