@@ -148,7 +148,7 @@
             };
             setTimeout(function(){
                 if(!window.__nexusAppReady && !window.__nexusBootError && typeof window.nexusShowBootError === 'function'){
-                    window.nexusShowBootError('N1000', new Error('boot timeout'));
+                    window.nexusShowBootError('N1300', new Error('boot timeout'));
                 }
             },8000);
         })();
@@ -327,14 +327,10 @@
                 </div>
                 <div class="deduct-grade-actions" id="deductGradeActions">
                     <button type="button" class="deduct-grade-btn grade-all" data-action="completeOwnedGroup" data-grade-group="all">전체 완료</button>
-                    <button type="button" class="deduct-grade-btn grade-cost" data-action="completeOwnedGroup" data-grade-group="cost">코스트 완료</button>
                     <button type="button" class="deduct-grade-btn grade-magic" data-action="completeOwnedGroup" data-grade-group="매직">매직 완료</button>
                     <button type="button" class="deduct-grade-btn grade-rare" data-action="completeOwnedGroup" data-grade-group="레어">레어 완료</button>
                     <button type="button" class="deduct-grade-btn grade-epic" data-action="completeOwnedGroup" data-grade-group="에픽">에픽 완료</button>
                     <button type="button" class="deduct-grade-btn grade-unique" data-action="completeOwnedGroup" data-grade-group="유니크">유니크 완료</button>
-                    <button type="button" class="deduct-grade-btn grade-hell" data-action="completeOwnedGroup" data-grade-group="헬">헬 완료</button>
-                    <button type="button" class="deduct-grade-btn grade-legend" data-action="completeOwnedGroup" data-grade-group="레전드">레전드 완료</button>
-                    <button type="button" class="deduct-grade-btn grade-hidden" data-action="completeOwnedGroup" data-grade-group="히든">히든 완료</button>
                 </div>
             </section>
             <div class="panel-section cart-section pc-cart-body deduct-list-cart-section" id="deductCartSection">

@@ -105,7 +105,9 @@
     // ── 01-1. 정규화·검색·렌더링 상수 ───────────────────────────────────────
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
+    const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
+    const DEDUCT_AUTO_COMPLETE_ATOMS = Object.freeze(["땅거미지뢰", "자동포탑"]);
     const DEDUCT_UNIT_BOARD_ATOMS = Object.freeze([
         "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
         "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
@@ -114,14 +116,14 @@
         "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
         "짐레이너", "대천사", "제라툴", "거신", "케리건",
         "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
-        "공허포격기", "우르사돈수", "우르사돈암", "테이스틀로프", "아토실로프",
-        "노바", "히페리온", "보라준", "공허의구도자", "거대괴수",
-        "특공대레이너", "고르곤전투순양함", "아르타니스", "셀렌디스", "원시케리건",
-        "땅거미지뢰", "자이언트플라워", "자동포탑", "갓오타", "메시브"
+        "공허포격기", "우르사돈수", "우르사돈암", ...DEDUCT_AUTO_COMPLETE_ATOMS
     ]);
     const DEDUCT_UNIT_ATOM_HASH = Object.fromEntries(DEDUCT_UNIT_BOARD_ATOMS.map(a => [clean(a), a]));
     const DEDUCT_UNIT_BOARD_IDS = new Set(DEDUCT_UNIT_BOARD_ATOMS.map(clean));
-    const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
+    const DEDUCT_AUTO_COMPLETE_IDS = makeCleanSet(DEDUCT_AUTO_COMPLETE_ATOMS);
+    const DEDUCT_MANUAL_BOARD_ATOMS = Object.freeze(DEDUCT_UNIT_BOARD_ATOMS.filter(atom => !DEDUCT_AUTO_COMPLETE_IDS.has(clean(atom))));
+    const DEDUCT_OWNED_STEP_BY_ID = new Map([[clean("자동포탑"), 5]]);
+    const DEDUCT_EXCLUDED_COST_IDS = makeCleanSet(["갓오타", "메시브"]);
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_HIDDEN_IDS = makeCleanSet(SYSTEM_CONFIG.search.hiddenIds || []);
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
@@ -781,9 +783,16 @@
 
     function completeDeductTargetsIfReady(state) {
         if (activeUnits.size === 0 || !state) return false;
-        const baseValues = Object.values(state.base || {});
-        const remainingValues = Object.values(state.remaining || {});
-        if (!baseValues.some(value => value > 0) || remainingValues.some(value => value > 0)) return false;
+        const hasManualRequirement = DEDUCT_MANUAL_BOARD_ATOMS.some(atom => (state.base?.[atom] || 0) > 0);
+        const hasManualRemaining = DEDUCT_MANUAL_BOARD_ATOMS.some(atom => (state.remaining?.[atom] || 0) > 0);
+        if (!hasManualRequirement || hasManualRemaining) return false;
+
+        DEDUCT_AUTO_COMPLETE_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const need = normalizeOwnedMagicQty(state.base?.[atom] || 0);
+            if (need > 0) ownedMagic.set(uid, need);
+            else ownedMagic.delete(uid);
+        });
 
         activeUnits.forEach((qty, uid) => {
             deleteCompletedRecipe(uid, qty);
@@ -868,15 +877,9 @@
 
     function calculateDeductListBaseRequirements() {
         const reqMap = new Map();
-        const specialReq = Object.fromEntries(COMBO_SLOT_RAWS.map(id => [clean(id), 0]));
         const addToMap = (map, uid, qty) => {
             if (!uid || qty <= 0) return;
             map.set(uid, (map.get(uid) || 0) + qty);
-        };
-        const addSpecial = (target, uid, qty) => {
-            const id = clean(uid);
-            if (!id || qty <= 0) return;
-            target[id] = (target[id] || 0) + qty;
         };
         const queue = [];
         const inQueue = new Set();
@@ -900,60 +903,44 @@
             if (delta <= 0) continue;
             processed.set(uid, need);
             getToolNeed(uid).forEach(toolId => {
+                if (DEDUCT_EXCLUDED_COST_IDS.has(toolId)) return;
                 const next = isOneTime(unitMap.get(toolId)) ? Math.min((reqMap.get(toolId) || 0) + 1, 1) : (reqMap.get(toolId) || 0) + 1;
                 reqMap.set(toolId, next);
                 if (!inQueue.has(toolId)) { queue.push(toolId); inQueue.add(toolId); }
             });
             unitMap.get(uid)?.parsedRecipe?.forEach(child => {
-                if (!child.id || isToolRequirement(uid, child.id)) return;
-                if (COMBO_SLOT_SET.has(child.id)) { addSpecial(specialReq, child.id, child.qty * delta); return; }
+                if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_EXCLUDED_COST_IDS.has(child.id)) return;
                 if (!unitMap.has(child.id) && !DEDUCT_UNIT_BOARD_IDS.has(child.id)) return;
                 const next = isOneTime(unitMap.get(child.id)) ? Math.min((reqMap.get(child.id) || 0) + child.qty * delta, 1) : (reqMap.get(child.id) || 0) + child.qty * delta;
                 reqMap.set(child.id, next);
                 if (!inQueue.has(child.id)) { queue.push(child.id); inQueue.add(child.id); }
             });
         }
-        reqMap.forEach((qty, uid) => {
-            if (qty <= 0) return;
-            unitMap.get(uid)?.parsedCost?.forEach(cost => {
-                if (COMBO_SLOT_SET.has(cost.key)) addSpecial(specialReq, cost.key, cost.qty * qty);
-            });
-        });
         const base = {};
         DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
-            base[atom] = COMBO_SLOT_SET.has(uid) ? Math.max(0, specialReq[uid] || 0) : Math.max(0, reqMap.get(uid) || 0);
+            base[atom] = Math.max(0, reqMap.get(uid) || 0);
         });
         return base;
     }
 
     function calculateDeductListCoverage(base = calculateDeductListBaseRequirements()) {
         const ownedCoverage = new Map();
-        const ownedSpecialCoverage = Object.fromEntries(COMBO_SLOT_RAWS.map(id => [clean(id), 0]));
         const addCoverage = (map, uid, qty) => {
             if (!uid || qty <= 0) return;
             map.set(uid, (map.get(uid) || 0) + qty);
         };
-        const addSpecialCoverage = (uid, qty) => {
-            const id = clean(uid);
-            if (!id || qty <= 0) return;
-            ownedSpecialCoverage[id] = (ownedSpecialCoverage[id] || 0) + qty;
-        };
         const expandOwnedUnit = (uid, qty, path) => {
-            if (!uid || qty <= 0 || path.has(uid)) return;
+            if (!uid || qty <= 0 || path.has(uid) || DEDUCT_EXCLUDED_COST_IDS.has(uid)) return;
             path.add(uid);
             try {
-                if (COMBO_SLOT_SET.has(uid)) { addSpecialCoverage(uid, qty); return; }
-                if (DEDUCT_UNIT_BOARD_IDS.has(uid) || unitMap.has(uid)) addCoverage(ownedCoverage, uid, qty);
+                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) addCoverage(ownedCoverage, uid, qty);
                 const unit = unitMap.get(uid);
                 if (!unit) return;
+                getToolNeed(uid).forEach(toolId => expandOwnedUnit(toolId, 1, path));
                 unit.parsedRecipe?.forEach(child => {
-                    if (!child.id || isToolRequirement(uid, child.id)) return;
+                    if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_EXCLUDED_COST_IDS.has(child.id)) return;
                     expandOwnedUnit(child.id, child.qty * qty, path);
-                });
-                unit.parsedCost?.forEach(cost => {
-                    if (COMBO_SLOT_SET.has(cost.key)) addSpecialCoverage(cost.key, cost.qty * qty);
-                    else if (DEDUCT_UNIT_BOARD_IDS.has(cost.key) || unitMap.has(cost.key)) addCoverage(ownedCoverage, cost.key, cost.qty * qty);
                 });
             } finally {
                 path.delete(uid);
@@ -965,17 +952,16 @@
             const effective = Math.min(normalizeOwnedMagicQty(qty), Math.max(0, base[atom] || 0));
             if (effective > 0) expandOwnedUnit(uid, effective, new Set());
         });
-        return { ownedCoverage, ownedSpecialCoverage };
+        return ownedCoverage;
     }
 
     function calculateDeductListRequirements() {
         const base = calculateDeductListBaseRequirements();
-        const { ownedCoverage, ownedSpecialCoverage } = calculateDeductListCoverage(base);
+        const ownedCoverage = calculateDeductListCoverage(base);
         const remaining = {};
         DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
-            const covered = COMBO_SLOT_SET.has(uid) ? (ownedSpecialCoverage[uid] || 0) : (ownedCoverage.get(uid) || 0);
-            remaining[atom] = Math.max(0, (base[atom] || 0) - covered);
+            remaining[atom] = Math.max(0, (base[atom] || 0) - (ownedCoverage.get(uid) || 0));
         });
         return { base, remaining };
     }
@@ -983,14 +969,13 @@
     function getDeductLinkedCompletedUnits() {
         const linked = new Map();
         const base = calculateDeductListBaseRequirements();
-        const { ownedCoverage, ownedSpecialCoverage } = calculateDeductListCoverage(base);
+        const ownedCoverage = calculateDeductListCoverage(base);
         DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
-            if (!unitMap.has(uid) && !COMBO_SLOT_SET.has(uid) && !virtualUnitIds.has(uid)) return;
+            if (!unitMap.has(uid) && !virtualUnitIds.has(uid)) return;
             const maxNeed = Math.max(0, base[atom] || 0);
             if (maxNeed <= 0) return;
-            const covered = COMBO_SLOT_SET.has(uid) ? (ownedSpecialCoverage[uid] || 0) : (ownedCoverage.get(uid) || 0);
-            const linkedQty = Math.min(maxNeed, Math.max(0, covered || 0));
+            const linkedQty = Math.min(maxNeed, Math.max(0, ownedCoverage.get(uid) || 0));
             if (linkedQty > 0) linked.set(uid, linkedQty);
         });
         return linked;
@@ -1060,26 +1045,34 @@
             const slot = getEl(`deduct-owned-slot-${uid}`);
             if (!slot) return;
             const completedOwned = completedOwnedMagic.get(uid) || 0;
-            const need = showCompletedOwned ? completedOwned : Math.max(0, state.base?.[atom] || 0);
+            const baseNeed = showCompletedOwned ? completedOwned : Math.max(0, state.base?.[atom] || 0);
+            const remainingNeed = showCompletedOwned ? 0 : Math.max(0, state.remaining?.[atom] || 0);
             const owned = showCompletedOwned ? completedOwned : (ownedMagic.get(uid) || 0);
             const valueEl = slot.querySelector('.owned-main-val');
             const needBadge = slot.querySelector('.owned-needed-badge');
             const inputEl = slot.querySelector('.owned-manual-input');
-            if (valueEl) valueEl.textContent = String(owned);
-            if (needBadge) needBadge.textContent = String(need);
+            const ownedText = owned > 0 || baseNeed > 0 ? String(owned) : '';
+            const isOver = owned > baseNeed;
+            const needBadgeText = isOver ? '초과' : (remainingNeed > 0 ? String(remainingNeed) : '');
+            if (valueEl) valueEl.textContent = ownedText;
+            if (needBadge) {
+                needBadge.textContent = needBadgeText;
+                needBadge.hidden = needBadgeText === '';
+            }
             if (inputEl) {
                 inputEl.disabled = showCompletedOwned;
-                if (document.activeElement !== inputEl) inputEl.value = String(owned);
+                if (document.activeElement !== inputEl) inputEl.value = ownedText;
             }
             if (slot.tagName === 'BUTTON') slot.disabled = showCompletedOwned;
-            slot.classList.toggle('has-needed', need > 0);
+            slot.classList.toggle('has-needed', remainingNeed > 0);
             slot.classList.toggle('has-owned', owned > 0);
-            slot.classList.toggle('owned-exact', need > 0 && owned === need);
-            slot.classList.toggle('owned-over', owned > need);
-            slot.classList.toggle('partial', need > 0 && owned > 0 && owned < need);
-            slot.classList.toggle('covered', need > 0 && owned === need);
-            const guide = showCompletedOwned ? '완료 당시 보유 수량' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : '클릭하면 보유량 1 증가, 우클릭하면 1 감소');
-            slot.setAttribute('aria-label', `${atom} 보유 ${owned}, 필요 ${need}. ${guide}`);
+            slot.classList.toggle('owned-exact', baseNeed > 0 && owned === baseNeed);
+            slot.classList.toggle('owned-over', isOver);
+            slot.classList.toggle('partial', baseNeed > 0 && owned > 0 && owned < baseNeed);
+            slot.classList.toggle('covered', baseNeed > 0 && owned === baseNeed);
+            const step = DEDUCT_OWNED_STEP_BY_ID.get(uid) || 1;
+            const guide = showCompletedOwned ? '완료 당시 보유 수량' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소`);
+            slot.setAttribute('aria-label', `${atom} 보유 ${owned}, 남은 필요 ${remainingNeed}. ${guide}`);
             slot.removeAttribute('title');
         });
         updateOwnedInputModeUI();
@@ -1112,11 +1105,12 @@
         debouncedUpdateAllPanels();
     }
 
-    function changeOwnedMagicQty(rawUid, delta) {
+    function changeOwnedMagicQty(rawUid, direction) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_UNIT_BOARD_IDS.has(uid)) return;
         const current = ownedMagic.get(uid) || 0;
-        setOwnedMagicQty(uid, current + delta);
+        const step = DEDUCT_OWNED_STEP_BY_ID.get(uid) || 1;
+        setOwnedMagicQty(uid, current + (direction * step));
     }
 
     function resetDeductOwned() {
@@ -1134,7 +1128,7 @@
         DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             const unit = unitMap.get(uid);
-            const isTargetGroup = group === 'all' || (group === 'cost' ? !unit : unit?.grade === group);
+            const isTargetGroup = group === 'all' ? !DEDUCT_AUTO_COMPLETE_IDS.has(uid) : unit?.grade === group;
             if (!isTargetGroup) return;
             const need = Math.max(0, state.base?.[atom] || 0);
             if (need <= 0) return;
