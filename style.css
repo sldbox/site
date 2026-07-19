@@ -5,7 +5,7 @@
    06. 패널·프리셋       07. 종족 탭           08. 도감 카드
    09. 통합 보드         10. 장바구니           11. 체크리스트
    12. 툴팁              13. 공통 상태 클래스   14. 반응형 레이아웃
-   15. 기타 UI
+   15. 차감 리스트       16. 기타 UI
    ============================================================================ */
 
 /* ── 00. 색상·크기 공통 변수 ───────────────────────────────────────────── */
@@ -288,7 +288,10 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .cart-section{background:rgba(0,0,0,0.6);padding:0;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 .cart-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;flex-shrink:0;position:relative;cursor:pointer;transition:background 0.17s;}
 .cart-header:hover{background:rgba(255,255,255,0.04);}
-.cart-collapse-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:0.65rem;font-weight:900;padding:2px 4px;border-radius:4px;line-height:1;transition:all 0.17s;flex-shrink:0;pointer-events:none;}
+.cart-header-actions{margin-left:auto;display:flex;align-items:center;gap:6px;position:relative;z-index:1;}
+.cart-clear-btn{height:24px;padding:0 8px;border-radius:6px;border:1px solid rgba(239,68,68,0.28);background:rgba(239,68,68,0.10);color:#fca5a5;font-size:calc(0.72rem * var(--fs-scale));font-weight:900;line-height:1;cursor:pointer;transition:all 0.16s;}
+.cart-clear-btn:hover{background:rgba(239,68,68,0.22);border-color:rgba(239,68,68,0.55);color:#fff;}
+.cart-collapse-btn{background:none;border:none;color:var(--text-muted);font-size:0.65rem;font-weight:900;padding:2px 4px;border-radius:4px;line-height:1;transition:all 0.17s;flex-shrink:0;pointer-events:none;}
 .cart-header:hover .cart-collapse-btn{color:var(--g);}
 .cart-title{font-family:var(--font-display);font-size:calc(var(--gh-h) * 0.28);font-weight:900;color:var(--text);letter-spacing:0.8px;position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;}
 .cart-list-area{flex:1;overflow-y:auto;min-height:0;padding:4px 8px 8px;display:flex;flex-direction:column;gap:4px;}
@@ -311,8 +314,16 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .cart-tab-btn:hover:not(.active){color:var(--text-sub);background:rgba(255,255,255,0.03);}
 .cart-tab-cnt{font-family:var(--font-mono);font-size:0.75rem;font-weight:900;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:1px 6px;color:var(--text-sub);line-height:1.4;}
 .cart-tab-cnt.done{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:#10b981;}
+.cart-tab-cnt.paused{background:rgba(251,191,36,0.10);border-color:rgba(251,191,36,0.26);color:#fbbf24;}
 .cart-tab-btn.active .cart-tab-cnt{background:rgba(56,189,248,0.12);border-color:var(--g-border);color:var(--g);}
 .cart-tab-btn.active .cart-tab-cnt.done{background:rgba(16,185,129,0.18);border-color:rgba(16,185,129,0.4);color:#34d399;}
+.cart-tab-btn.active .cart-tab-cnt.paused{background:rgba(251,191,36,0.16);border-color:rgba(251,191,36,0.40);color:#facc15;}
+.cart-item-paused{border-color:rgba(251,191,36,0.20);border-left-color:rgba(251,191,36,0.55);background:rgba(251,191,36,0.045);}
+.cart-item-paused:hover{border-color:rgba(251,191,36,0.42);border-left-color:rgba(251,191,36,0.85);background:rgba(251,191,36,0.09);}
+.paused-name{opacity:0.78;}
+.paused-qty{color:#fbbf24;background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.22);border-radius:5px;padding:2px 6px;font-size:0.72rem;font-weight:900;white-space:nowrap;}
+.cart-paused-restore-btn{color:#fbbf24;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.28);cursor:pointer;}
+.cart-paused-restore-btn:hover{background:rgba(251,191,36,0.22);border-color:rgba(251,191,36,0.52);color:#fff;}
 .cart-item-done{cursor:pointer;opacity:0.65;border-color:rgba(16,185,129,0.20);border-left:2px solid rgba(16,185,129,0.55);background:rgba(16,185,129,0.05);transition:all 0.18s;}
 .cart-item-done:hover{opacity:1;border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.1);box-shadow:0 0 8px rgba(16,185,129,0.15);}
 .done-name{text-decoration:line-through;opacity:0.7;}
@@ -631,7 +642,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .cost-name{font-size:0.55rem;margin-top:2px;padding-bottom:2px;letter-spacing:-0.5px;min-width:0;max-width:100%;overflow-wrap:anywhere;}
     .sp-val-num{font-size:0.9rem;}
     .cart-item-name{font-size:0.88rem;}
-    .cart-header{flex-direction:column;align-items:flex-start;gap:6px;}
+    .cart-header{flex-direction:row;align-items:center;gap:6px;}
     #colRightPanel .panel-header{flex-direction:column;align-items:center;gap:8px;padding:10px 10px 8px;}
     #colRightPanel .panel-header > div:first-child{flex-direction:column;gap:5px;width:100%;}
     .ph-right{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -687,17 +698,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .cost-slot{aspect-ratio:unset;min-height:58px;}
 }
 
-/* ── 15. 기타 UI ──────────────────────────────────────────────────────── */
-
-/* 15-1. 빈 화면 안내 */
-.empty-msg-enhanced{text-align:center;padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;}
-.empty-arrow{font-size:1.8rem;animation:emptyBounce 1.2s ease-in-out infinite;color:var(--g);}
-.empty-main{font-size:1rem;font-weight:900;color:var(--text);}
-.empty-sub{font-size:0.82rem;color:var(--text-muted);line-height:1.6;word-break:keep-all;}
-@keyframes emptyBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-
-
-/* ── 14. 차감 리스트 전용 화면 ───────────────────────────────────────── */
+/* ── 15. 차감 리스트 전용 화면 ───────────────────────────────────────── */
 
 #mainLayout[hidden],
 .main-layout[hidden]{display:none;}
@@ -705,6 +706,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-list-layout{display:grid;grid-template-columns:2fr 2fr 1fr;align-items:stretch;gap:10px;padding:calc(var(--gh-h) + 10px) 14px 14px;height:100dvh;min-height:0;overflow:hidden;}
 .deduct-list-layout .hud-panel{min-height:0;overflow:hidden;display:flex;flex-direction:column;}
 .deduct-list-layout .pc-cost-body{flex:1 1 auto;min-height:0;padding:8px 10px;display:flex;flex-direction:column;overflow:hidden;}
+.deduct-owned-panel>.pc-cost-body{background:linear-gradient(180deg,rgba(52,211,153,0.14),rgba(6,78,59,0.24));border:1px solid rgba(52,211,153,0.44);border-top-color:rgba(52,211,153,0.32);}
 .deduct-list-panel-header{box-sizing:border-box;min-height:46px;height:46px;padding:7px 10px 6px;align-items:center;}
 .deduct-unit-board-panel>.deduct-list-panel-header,.deduct-grade-header{justify-content:center;}
 .panel-header-with-actions{justify-content:space-between;gap:8px;}
@@ -731,19 +733,26 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-grade-btn.grade-epic{color:var(--grade-epic);}
 .deduct-grade-btn.grade-unique{color:var(--grade-unique);}
 .deduct-list-cart-section{flex:1 1 calc(50% - 5px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;}
-.inventory-slot{justify-content:center;background:linear-gradient(180deg,rgba(48,9,16,0.82),rgba(14,3,6,0.98));border:1px solid rgba(244,63,94,0.48);border-top-color:rgba(251,113,133,0.58);cursor:pointer;color:inherit;appearance:none;-webkit-appearance:none;}
+.inventory-slot{justify-content:center;background:linear-gradient(180deg,rgba(6,78,59,0.78),rgba(2,44,34,0.98));border:1px solid rgba(52,211,153,0.50);border-top-color:rgba(52,211,153,0.70);cursor:pointer;color:inherit;appearance:none;-webkit-appearance:none;}
 .inventory-slot .cost-name{color:#fff;}
-.inventory-slot:hover{border-color:rgba(251,113,133,0.76);background:linear-gradient(180deg,rgba(72,13,25,0.90),rgba(19,4,8,0.98));}
-.inventory-slot:focus-visible{outline:2px solid rgba(248,113,113,0.75);outline-offset:2px;}
-.inventory-slot.has-needed{border-color:rgba(251,113,133,0.68);background:linear-gradient(180deg,rgba(61,10,21,0.88),rgba(16,3,7,0.98));}
-.inventory-slot.has-owned{box-shadow:inset 0 0 18px rgba(56,189,248,0.08),0 0 8px rgba(56,189,248,0.06);}
-.inventory-slot.partial{border-color:rgba(251,191,36,0.36);box-shadow:inset 0 0 18px rgba(251,191,36,0.08);}
-.inventory-slot.owned-exact{border-color:rgba(251,191,36,0.70);background:linear-gradient(180deg,rgba(48,34,4,0.88),#0a0a0a);box-shadow:inset 0 0 22px rgba(251,191,36,0.16),0 0 12px rgba(251,191,36,0.12);}
-.inventory-slot.owned-exact .owned-main-val,.inventory-slot.owned-exact .owned-manual-input{color:#fde68a;text-shadow:0 0 18px rgba(251,191,36,0.45),0 2px 5px var(--ts-deep);}
-.inventory-slot.owned-over{border-color:rgba(248,113,113,0.82);background:linear-gradient(180deg,rgba(68,10,10,0.90),#0a0a0a);box-shadow:inset 0 0 22px rgba(248,113,113,0.18),0 0 12px rgba(248,113,113,0.14);}
+.inventory-slot:hover{border-color:rgba(52,211,153,0.86);background:linear-gradient(180deg,rgba(6,95,70,0.88),rgba(3,52,40,0.98));}
+.inventory-slot:focus-visible{outline:2px solid rgba(52,211,153,0.75);outline-offset:2px;}
+.inventory-slot.is-empty{background:linear-gradient(180deg,rgba(10,10,10,0.98),#0a0a0a);border-color:rgba(255,255,255,0.10);border-top-color:rgba(255,255,255,0.14);box-shadow:inset 0 3px 18px var(--ts-deep),0 1px 0 rgba(255,255,255,0.08),inset 0 0 0 1px rgba(255,255,255,0.02);}
+.inventory-slot.is-empty::before{opacity:0;}
+.inventory-slot.is-empty .owned-main-val,.inventory-slot.is-empty .owned-manual-input{opacity:0;}
+.inventory-slot.is-empty .owned-manual-input:focus{opacity:1;}
+.inventory-slot.is-empty .cost-name{opacity:0.22;color:var(--text-muted);}
+.inventory-slot.is-empty:hover{background:linear-gradient(180deg,rgba(8,28,22,0.62),#0a0a0a);border-color:rgba(52,211,153,0.34);}
+.inventory-slot.has-needed{border-color:rgba(52,211,153,0.76);background:linear-gradient(180deg,rgba(6,95,70,0.82),rgba(2,44,34,0.98));}
+.inventory-slot.has-owned{box-shadow:inset 0 0 18px rgba(52,211,153,0.12),0 0 8px rgba(52,211,153,0.08);}
+.inventory-slot.partial{border-color:rgba(52,211,153,0.72);box-shadow:inset 0 0 18px rgba(52,211,153,0.12);}
+.inventory-slot.owned-exact{border-color:rgba(52,211,153,0.90);background:linear-gradient(180deg,rgba(6,95,70,0.92),#052e24);box-shadow:inset 0 0 22px rgba(52,211,153,0.20),0 0 12px rgba(52,211,153,0.15);}
+.inventory-slot.owned-exact .owned-main-val,.inventory-slot.owned-exact .owned-manual-input{color:#bbf7d0;text-shadow:0 0 18px rgba(52,211,153,0.48),0 2px 5px var(--ts-deep);}
+.inventory-slot.owned-over{border-color:rgba(248,113,113,0.92);background:linear-gradient(180deg,rgba(68,10,10,0.92),#0a0a0a);box-shadow:inset 0 0 22px rgba(248,113,113,0.22),0 0 12px rgba(248,113,113,0.18);}
 .inventory-slot.owned-over .owned-main-val,.inventory-slot.owned-over .owned-manual-input{color:#fecaca;text-shadow:0 0 18px rgba(248,113,113,0.54),0 2px 5px var(--ts-deep);}
+.inventory-slot.owned-over .owned-needed-badge{background:rgba(239,68,68,0.94);border-color:rgba(254,202,202,0.85);color:#fff;}
 .owned-main-val,.owned-manual-input{color:#fff;text-shadow:0 0 18px rgba(255,255,255,0.22),0 2px 5px var(--ts-deep);}
-.owned-needed-badge{position:absolute;top:4px;right:5px;min-height:14px;padding:1px 4px;border-radius:999px;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.30);color:#fecdd3;font-size:clamp(0.48rem,0.95vh,0.64rem);font-weight:900;line-height:1.2;letter-spacing:-0.3px;pointer-events:none;}
+.owned-needed-badge{position:absolute;top:4px;right:5px;min-height:14px;padding:1px 4px;border-radius:999px;background:rgba(52,211,153,0.14);border:1px solid rgba(52,211,153,0.36);color:#bbf7d0;font-size:clamp(0.48rem,0.95vh,0.64rem);font-weight:900;line-height:1.2;letter-spacing:-0.3px;pointer-events:none;}
 .inventory-slot-manual{cursor:default;}
 .owned-manual-input{border:0;background:transparent;text-align:center;outline:none;appearance:textfield;-webkit-appearance:none;caret-color:var(--g);}
 .owned-manual-input:focus{background:rgba(56,189,248,0.07);box-shadow:inset 0 0 0 1px rgba(56,189,248,0.35);}
@@ -770,9 +779,10 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .deduct-list-layout .panel-header-with-actions .ph-title{position:static;left:auto;width:100%;transform:none;text-align:center;}
     .deduct-list-cart-section .cart-header{flex-direction:row;align-items:center;justify-content:flex-end;gap:0;}
     .deduct-list-cart-section .cart-title{position:absolute;left:50%;transform:translateX(-50%);text-align:center;}
-    .owned-header-actions{width:100%;margin-left:0;gap:6px;flex-wrap:nowrap;justify-content:center;}
-    .owned-mode-btn{height:24px;padding:0 6px;font-size:0.62rem;}
-    .owned-reset-btn{height:26px;padding:0 7px;font-size:0.62rem;}
+    .owned-header-actions{display:grid;grid-template-columns:2fr 1fr;width:100%;margin-left:0;gap:6px;align-items:center;}
+    .owned-mode-toggle{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:4px;padding:2px;}
+    .owned-mode-btn{width:100%;height:26px;padding:0 6px;font-size:0.62rem;}
+    .owned-reset-btn{width:100%;height:30px;padding:0 7px;font-size:0.62rem;}
     .deduct-unit-board-grid,.deduct-owned-grid{gap:3px;grid-auto-rows:52px;}
     .deduct-unit-board-grid .cost-slot,.deduct-owned-grid .cost-slot{min-height:52px;height:52px;}
     .deduct-unit-board-grid .cost-val,.deduct-owned-grid .owned-main-val,.deduct-owned-grid .owned-manual-input{height:28px;min-height:28px;}
@@ -783,3 +793,12 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .owned-main-val,.owned-manual-input{font-size:0.95rem;min-height:24px;}
     .owned-needed-badge{top:3px;right:3px;font-size:0.48rem;padding:1px 3px;}
 }
+
+/* ── 16. 기타 UI ──────────────────────────────────────────────────────── */
+
+/* 16-1. 빈 화면 안내 */
+.empty-msg-enhanced{text-align:center;padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.empty-arrow{font-size:1.8rem;animation:emptyBounce 1.2s ease-in-out infinite;color:var(--g);}
+.empty-main{font-size:1rem;font-weight:900;color:var(--text);}
+.empty-sub{font-size:0.82rem;color:var(--text-muted);line-height:1.6;word-break:keep-all;}
+@keyframes emptyBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}

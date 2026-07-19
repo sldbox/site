@@ -3,7 +3,7 @@
 // 00. 설정·정책 병합        01. 런타임 상수·상태
 // 02. 공통 유틸·데이터      03. 저장·검색·명령
 // 04. 계산 엔진             05. 완료·복구·초기화
-// 06. 통합 보드             07. 체크리스트
+// 06. 차감 리스트·대시보드  07. 체크리스트
 // 08. 도감·탭·프리셋       09. 장바구니
 // 10. 화면·입력·툴팁       11. 이벤트 바인딩
 // 12. 앱 초기화
@@ -141,7 +141,7 @@
     const CLEAN_UNIT_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitConditions || {}).map(([k, v]) => [clean(k), v]));
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
-    const unitMap = new Map(), activeUnits = new Map(), completedUnits = new Map(), depCache = new Map();
+    const unitMap = new Map(), activeUnits = new Map(), pausedUnits = new Map(), completedUnits = new Map(), depCache = new Map();
     const completedTargets = new Map(), _unitNativeLevels = new Map();
     const _depVisiting = new Set();
     const PRESET_COLOR_MAP = {
@@ -235,18 +235,29 @@
         if (!Number.isFinite(n) || n <= 0) return 0;
         return isOneTime(u) ? 1 : Math.min(n, SYSTEM_CONFIG.policy.maxUnitCapacity);
     };
-    const setPositiveMapValue = (map, uid, qty) => {
-        const normalized = normalizeUnitQty(uid, qty);
+    const setNormalizedMapValue = (map, uid, qty, normalizer) => {
+        const normalized = normalizer(uid, qty);
         if (normalized > 0) map.set(uid, normalized);
     };
+    const setPositiveMapValue = (map, uid, qty) => setNormalizedMapValue(map, uid, qty, normalizeUnitQty);
     const normalizeOwnedMagicQty = (qty) => {
         const n = Math.floor(Number(qty));
         if (!Number.isFinite(n) || n <= 0) return 0;
         return n;
     };
-    const setOwnedMapValue = (map, uid, qty) => {
-        const normalized = normalizeOwnedMagicQty(qty);
-        if (normalized > 0) map.set(uid, normalized);
+    const setOwnedMapValue = (map, uid, qty) => setNormalizedMapValue(map, uid, qty, (_uid, value) => normalizeOwnedMagicQty(value));
+    const CART_TABS = ['active', 'paused', 'done'];
+    const isValidCartTab = (tab) => CART_TABS.includes(tab);
+    const setCartTab = (tab) => { _cartTab = isValidCartTab(tab) ? tab : 'active'; };
+    const setActiveUnitQty = (uid, qty, { add = false } = {}) => {
+        const unit = unitMap.get(uid);
+        if (!unit) return false;
+        const baseQty = add ? (activeUnits.get(uid) || 0) : 0;
+        const nextQty = normalizeUnitQty(uid, baseQty + (parseInt(qty, 10) || 1));
+        if (nextQty <= 0) return false;
+        activeUnits.set(uid, nextQty);
+        pausedUnits.delete(uid);
+        return true;
     };
     const compareUnitForDisplay = (a, b) =>
         (isOneTime(b) ? 1 : 0) - (isOneTime(a) ? 1 : 0) ||
@@ -267,6 +278,20 @@
             input.classList.remove('search-input-error');
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
+
+    function clearProgressState({ clearPresets = true, resetCart = true } = {}) {
+        activeUnits.clear();
+        pausedUnits.clear();
+        completedUnits.clear();
+        completedTargets.clear();
+        ownedMagic.clear();
+        completedOwnedMagic.clear();
+        if (clearPresets) _presetUsed.clear();
+        if (resetCart) {
+            _cartTab = 'active';
+            _cartCollapsed = false;
+        }
+    }
     // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
     function sanitizeRuntimeState() {
         const normalizeMap = (map, allowCombo = false) => {
@@ -280,6 +305,7 @@
             }
         };
         normalizeMap(activeUnits);
+        normalizeMap(pausedUnits);
         normalizeMap(completedTargets);
         normalizeMap(completedUnits, true);
         [ownedMagic, completedOwnedMagic].forEach(map => {
@@ -290,10 +316,13 @@
                 if (qty > 0 && DEDUCT_UNIT_BOARD_IDS.has(uid)) map.set(uid, qty);
             }
         });
-        completedTargets.forEach((_, uid) => activeUnits.delete(uid));
+        activeUnits.forEach((_, uid) => pausedUnits.delete(uid));
+        completedTargets.forEach((_, uid) => {
+            activeUnits.delete(uid);
+            pausedUnits.delete(uid);
+        });
         if (activeUnits.size > 0 || completedTargets.size === 0) completedOwnedMagic.clear();
-        if (!['active', 'done'].includes(_cartTab)) _cartTab = 'active';
-        if (_cartTab === 'done' && completedTargets.size === 0 && activeUnits.size > 0) _cartTab = 'active';
+        if (!isValidCartTab(_cartTab)) _cartTab = 'active';
         _cartCollapsed = false;
     }
 
@@ -374,14 +403,10 @@
             const state = JSON.parse(data);
             if (!state || typeof state !== 'object') return;
 
-            activeUnits.clear();
-            completedUnits.clear();
-            completedTargets.clear();
-            _presetUsed.clear();
-            ownedMagic.clear();
-            completedOwnedMagic.clear();
+            clearProgressState({ resetCart: false });
 
             state.active?.forEach(([k, v]) => setPositiveMapValue(activeUnits, normalizeSavedId(k), v));
+            state.paused?.forEach?.(([k, v]) => setPositiveMapValue(pausedUnits, normalizeSavedId(k), v));
             state.completed?.forEach(([k, v]) => {
                 const uid = normalizeSavedId(k);
                 const q = parseInt(v, 10);
@@ -390,7 +415,7 @@
                 else if (COMBO_SLOT_SET.has(uid)) completedUnits.set(uid, q);
             });
             state.completedTargets?.forEach(([k, v]) => setPositiveMapValue(completedTargets, normalizeSavedId(k), v));
-            _cartTab = ['active', 'done'].includes(state.cartTab) ? state.cartTab : 'active';
+            _cartTab = isValidCartTab(state.cartTab) ? state.cartTab : 'active';
             state.presetUsed?.forEach(([k, v]) => {
                 const idx = parseInt(k, 10);
                 if (Number.isInteger(idx) && SYSTEM_CONFIG.presets[idx]) _presetUsed.set(idx, !!v);
@@ -409,14 +434,14 @@
 
             sanitizeRuntimeState();
         } catch(e) {
-            activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); _presetUsed.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
+            clearProgressState({ resetCart: false });
         }
     }
 
     function saveNexusState() {
         try {
             sanitizeRuntimeState();
-            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify({ active: [...activeUnits], completed: [...completedUnits], completedTargets: [...completedTargets], cartTab: _cartTab, presetUsed: [..._presetUsed], hideCompleted: _hideCompleted, ownedInputMode: _ownedInputMode, ownedMagic: [...ownedMagic], completedOwnedMagic: [...completedOwnedMagic] }));
+            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify({ active: [...activeUnits], paused: [...pausedUnits], completed: [...completedUnits], completedTargets: [...completedTargets], cartTab: _cartTab, presetUsed: [..._presetUsed], hideCompleted: _hideCompleted, ownedInputMode: _ownedInputMode, ownedMagic: [...ownedMagic], completedOwnedMagic: [...completedOwnedMagic] }));
         } catch(e) {}
     }
 
@@ -473,7 +498,7 @@
             if (match) {
                 if (isRestrictedUnit(match.id) || isHiddenUnit(match.id)) { restrictedCount++; return; }
                 if (fromPreset && CLEAN_PRESET_NOSTACK.has(match.id) && activeUnits.has(match.id)) { successCount++; return; }
-                activeUnits.set(match.id, isOneTime(match) ? 1 : Math.min((activeUnits.get(match.id) || 0) + qty, SYSTEM_CONFIG.policy.maxUnitCapacity));
+                setActiveUnitQty(match.id, qty, { add: true });
                 successCount++;
             }
         });
@@ -655,17 +680,22 @@
         return changed;
     }
 
+    function getStableCalculationState() {
+        let calcResult = calculateDeductedRequirements();
+        if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
+        return {
+            calcResult,
+            deductListState: calculateDeductListRequirements()
+        };
+    }
+
     function debouncedUpdateAllPanels() {
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
-            let calcResult = calculateDeductedRequirements();
-            if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
-            let deductListState = calculateDeductListRequirements();
-            if (completeDeductTargetsIfReady(deductListState)) {
-                calcResult = calculateDeductedRequirements();
-                if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
-                deductListState = calculateDeductListRequirements();
-            }
+            let state = getStableCalculationState();
+            if (completeReadyTargets(state.deductListState)) state = getStableCalculationState();
+
+            const { calcResult, deductListState } = state;
             _lastCalcResult = calcResult;
             updateMagicDashboard();
             updateEssence();
@@ -776,16 +806,33 @@
         // 완료 취소 시 하위 재료 기록도 함께 역산한다.
         deleteCompletedRecipe(uid, qty);
         completedUnits.delete(uid);
+        pausedUnits.delete(uid);
         if (!activeUnits.has(uid)) activeUnits.set(uid, qty);
-        if (completedTargets.size === 0) _cartTab = 'active';
         triggerHaptic(); debouncedUpdateAllPanels();
+    }
+
+    function completeNonDeductibleTargets() {
+        if (activeUnits.size === 0) return false;
+        const targets = [];
+        activeUnits.forEach((qty, uid) => {
+            if (!hasDeductListBaseRequirementForUnit(uid, qty)) targets.push([uid, qty]);
+        });
+        if (targets.length === 0) return false;
+
+        targets.forEach(([uid, qty]) => {
+            deleteCompletedRecipe(uid, qty);
+            completedTargets.set(uid, (completedTargets.get(uid) || 0) + qty);
+            activeUnits.delete(uid);
+        });
+        _cartTab = 'done';
+        toggleHighlight(null);
+        return true;
     }
 
     function completeDeductTargetsIfReady(state) {
         if (activeUnits.size === 0 || !state) return false;
-        const hasManualRequirement = DEDUCT_MANUAL_BOARD_ATOMS.some(atom => (state.base?.[atom] || 0) > 0);
         const hasManualRemaining = DEDUCT_MANUAL_BOARD_ATOMS.some(atom => (state.remaining?.[atom] || 0) > 0);
-        if (!hasManualRequirement || hasManualRemaining) return false;
+        if (hasManualRemaining) return false;
 
         DEDUCT_AUTO_COMPLETE_ATOMS.forEach(atom => {
             const uid = clean(atom);
@@ -810,6 +857,13 @@
         return true;
     }
 
+    function completeReadyTargets(state = calculateDeductListRequirements()) {
+        let changed = completeNonDeductibleTargets();
+        const nextState = changed ? calculateDeductListRequirements() : state;
+        if (completeDeductTargetsIfReady(nextState)) changed = true;
+        return changed;
+    }
+
     function restoreAllCompleted() {
         if (_restoreAllCooldown) return;
         const cfg = SYSTEM_CONFIG.policy.restoreAllBtn;
@@ -830,8 +884,11 @@
 
         _restoreAllPendingTimer = setTimeout(() => {
             _restoreAllPendingTimer = null;
-            activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
-            _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility(); _presetUsed.clear(); updatePresetBtns(); triggerHaptic(); debouncedUpdateAllPanels();
+            clearProgressState();
+            syncCartVisibility();
+            updatePresetBtns();
+            triggerHaptic();
+            debouncedUpdateAllPanels();
             if (!btn || !label) return;
             _restoreAllCooldown = true;
             btn.classList.remove('reset-btn-pending');
@@ -867,15 +924,17 @@
     }
 
     function resetCodex() {
-        activeUnits.clear(); completedUnits.clear(); completedTargets.clear(); ownedMagic.clear(); completedOwnedMagic.clear();
-        toggleHighlight(null); _cartTab = 'active'; _cartCollapsed = false; syncCartVisibility();
-        _presetUsed.clear(); updatePresetBtns(); debouncedUpdateAllPanels();
+        clearProgressState();
+        toggleHighlight(null);
+        syncCartVisibility();
+        updatePresetBtns();
+        debouncedUpdateAllPanels();
     }
 
 
-    // ── 06. 통합 보드 및 대시보드 ─────────────────────────────────────────
+    // ── 06. 차감 리스트·통합 보드 대시보드 ─────────────────────────────────────
 
-    function calculateDeductListBaseRequirements() {
+    function calculateDeductListBaseRequirementsFrom(sourceMap) {
         const reqMap = new Map();
         const addToMap = (map, uid, qty) => {
             if (!uid || qty <= 0) return;
@@ -884,8 +943,9 @@
         const queue = [];
         const inQueue = new Set();
         const processed = new Map();
-        activeUnits.forEach((qty, uid) => {
-            const normalizedQty = isOneTime(unitMap.get(uid)) ? 1 : qty;
+        sourceMap.forEach((qty, uid) => {
+            const unit = unitMap.get(uid);
+            const normalizedQty = isOneTime(unit) ? 1 : normalizeOwnedMagicQty(qty);
             if (normalizedQty <= 0) return;
             addToMap(reqMap, uid, normalizedQty);
             queue.push(uid);
@@ -922,6 +982,17 @@
             base[atom] = Math.max(0, reqMap.get(uid) || 0);
         });
         return base;
+    }
+
+    function calculateDeductListBaseRequirements() {
+        return calculateDeductListBaseRequirementsFrom(activeUnits);
+    }
+
+    function hasDeductListBaseRequirementForUnit(uid, qty) {
+        if (!unitMap.has(uid)) return false;
+        const single = new Map([[uid, qty]]);
+        const base = calculateDeductListBaseRequirementsFrom(single);
+        return DEDUCT_UNIT_BOARD_ATOMS.some(atom => (base[atom] || 0) > 0);
     }
 
     function calculateDeductListCoverage(base = calculateDeductListBaseRequirements()) {
@@ -1064,6 +1135,8 @@
                 if (document.activeElement !== inputEl) inputEl.value = ownedText;
             }
             if (slot.tagName === 'BUTTON') slot.disabled = showCompletedOwned;
+            const isEmptySlot = ownedText === '' && needBadgeText === '';
+            slot.classList.toggle('is-empty', isEmptySlot);
             slot.classList.toggle('has-needed', remainingNeed > 0);
             slot.classList.toggle('has-owned', owned > 0);
             slot.classList.toggle('owned-exact', baseNeed > 0 && owned === baseNeed);
@@ -1138,7 +1211,8 @@
                 changed = true;
             }
         });
-        if (changed) {
+        const completedByGroup = group === 'all' && completeReadyTargets(calculateDeductListRequirements());
+        if (changed || completedByGroup) {
             triggerHaptic();
             debouncedUpdateAllPanels();
         } else {
@@ -1239,12 +1313,10 @@
         if (_isDeductionBoardRendered) return;
         const boardEl = getEl('deductionBoard');
         if (!boardEl) return;
-        // 07-1. 슬롯·그룹 템플릿
         const renderSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `<div class="deduct-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}><div class="deduct-group-title" data-action="toggleGroup" data-grid-id="${pid}"><div style="display:flex;align-items:center;gap:7px;pointer-events:none;"><span class="grp-toggle-icon" style="display:inline-block;transition:transform 0.2s;transform:${isCol?'rotate(-90deg)':'rotate(0deg)'};font-size:0.75rem;">▼</span><span class="grp-title-text">${title}</span>${resetLevel > 0 ? `<span class="grp-count-badge" id="grp-count-${pid}" style="margin-left:2px;"></span>` : ''}</div>${resetLevel > 0 ? `<button type="button" class="btn-text-link grp-restore-btn" data-action="resetGroup" data-level="${resetLevel}" style="pointer-events:auto;">${resetLabel}</button>` : ''}</div><div class="deduct-grid" id="${pid}" ${isCol?'style="display:none;"':''}></div></div>`;
 
         const allUnits = Array.from(unitMap.values());
-        // 07-2. 슬롯 유형별 HTML 생성
         const specialSlots = COMBO_SLOT_RAWS.map(k => renderSlot(k, k, '코스트')).join('');
         const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForChecklist) && !COMBO_SLOT_SET.has(u.id)).map(u => renderSlot(u.id, u.name, u.grade)).join('');
         const autoSlots = SPECIAL_RENDER_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => renderSlot(e.id, e.raw, '코스트')).join('');
@@ -1285,7 +1357,6 @@
 
     function updateDeductionBoard(calcResult) {
         if (!_isDeductionBoardRendered) return;
-        // 07-3. 계산 결과·하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
         const effectiveCompletedUnits = getEffectiveCompletedUnits();
         const mergedSlots = new Set();
@@ -1384,7 +1455,6 @@
             queue = nextQueue;
         }
 
-        // 07-4. 슬롯 배치 초기화
         document.querySelectorAll('.deduct-slot[data-uid]').forEach(el => {
             el.style.display = 'none'; el.classList.remove('is-visible','has-target','is-completed','is-inactive');
             if (pool && el.parentElement !== pool) pool.appendChild(el);
@@ -1393,12 +1463,10 @@
         document.querySelectorAll('.deduct-slot-ghost').forEach(el => el.remove());
         document.querySelectorAll('.deduct-page').forEach(el => el.remove());
 
-        // 07-5. 고정 행·일반 슬롯 배치 준비
         const topFixedRows = SYSTEM_CONFIG.topFixedOrder.map(row => row.map(clean));
         const topFixedSet = new Set(topFixedRows.flat());
         const ROW_SIZE = Math.max(...topFixedRows.map(r => r.length));
 
-        // 07-6. 슬롯 수량·완료·강조 상태 반영
         const processSlot = (id, isTopFixedCall = false) => {
             const slotEl = getEl(`d-slot-wrap-${id}`); if (!slotEl) return null;
             
@@ -1617,7 +1685,6 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        // 07-7. 그룹 페이지·표시 상태 갱신
         Object.values(grids).forEach(g => wrapDeductGridPages(g, 9));
 
         Object.values(grids).forEach(g => {
@@ -1884,16 +1951,13 @@
     function toggleUnitSelection(id, forceQty) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id)) return;
         if (activeUnits.has(id)) activeUnits.delete(id);
-        else activeUnits.set(id, normalizeUnitQty(id, forceQty || 1));
+        else setActiveUnitQty(id, forceQty || pausedUnits.get(id) || 1);
         debouncedUpdateAllPanels();
     }
 
     function setUnitQty(id, val) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id) || isOneTime(unitMap.get(id))) return;
-        const q = normalizeUnitQty(id, val);
-        if (q <= 0) return;
-        activeUnits.set(id, q);
-        debouncedUpdateAllPanels();
+        if (setActiveUnitQty(id, val)) debouncedUpdateAllPanels();
     }
 
     function toggleSelectAllTab() {
@@ -1902,7 +1966,7 @@
         const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && (getGradeIndex(u.grade) >= minGradeIdx || isSearchAllowed(u.id)) && !isHiddenUnit(u.id) && !isRestrictedUnit(u.id));
         if (!catItems.length) return;
         if (catItems.every(item => activeUnits.has(item.id))) catItems.forEach(item => activeUnits.delete(item.id));
-        else catItems.forEach(item => !activeUnits.has(item.id) && activeUnits.set(item.id, normalizeUnitQty(item.id, 1)));
+        else catItems.forEach(item => !activeUnits.has(item.id) && setActiveUnitQty(item.id, pausedUnits.get(item.id) || 1));
         triggerHaptic(); debouncedUpdateAllPanels();
     }
 
@@ -1929,29 +1993,81 @@
         });
     }
 
+    function pauseCartUnit(uid) {
+        if (!activeUnits.has(uid) || !unitMap.has(uid)) return;
+        const qty = activeUnits.get(uid) || 1;
+        activeUnits.delete(uid);
+        setPositiveMapValue(pausedUnits, uid, qty);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function clearCartItems() {
+        const hasCartItems = activeUnits.size > 0 || pausedUnits.size > 0 || completedTargets.size > 0 || completedUnits.size > 0 || completedOwnedMagic.size > 0;
+        if (!hasCartItems && _cartTab === 'active') return;
+        activeUnits.clear();
+        pausedUnits.clear();
+        completedTargets.clear();
+        completedUnits.clear();
+        completedOwnedMagic.clear();
+        _cartTab = 'active';
+        toggleHighlight(null);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function restorePausedUnit(uid) {
+        if (!pausedUnits.has(uid) || !unitMap.has(uid)) return;
+        const qty = pausedUnits.get(uid) || 1;
+        pausedUnits.delete(uid);
+        setActiveUnitQty(uid, qty);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function getCartTabDefinitions() {
+        return [
+            { key: 'active', label: '선택', count: activeUnits.size, countClass: '' },
+            { key: 'paused', label: '보류', count: pausedUnits.size, countClass: 'paused' },
+            { key: 'done', label: '완료', count: completedTargets.size, countClass: 'done' }
+        ];
+    }
+
     function renderCartPanel(tabBarId, listAreaId, prefix) {
         const cartListArea = getEl(listAreaId); if (!cartListArea) return;
         const tabBar = getEl(tabBarId);
         if (tabBar) {
-            tabBar.innerHTML = `<button type="button" class="cart-tab-btn ${_cartTab === 'active' ? 'active' : ''}" data-action="switchCartTab" data-tab="active">선택 <span class="cart-tab-cnt">${activeUnits.size}</span></button><button type="button" class="cart-tab-btn ${_cartTab === 'done' ? 'active' : ''}" data-action="switchCartTab" data-tab="done">완료 <span class="cart-tab-cnt done">${completedTargets.size}</span></button>`;
+            tabBar.innerHTML = getCartTabDefinitions().map(tab => `<button type="button" class="cart-tab-btn ${_cartTab === tab.key ? 'active' : ''}" data-action="switchCartTab" data-tab="${tab.key}">${tab.label} <span class="cart-tab-cnt ${tab.countClass}">${tab.count}</span></button>`).join('');
             tabBar.style.display = _cartCollapsed ? 'none' : '';
         }
         cartListArea.style.display = _cartCollapsed ? 'none' : '';
         if (_cartCollapsed) return;
+
         if (_cartTab === 'active') {
             if (activeUnits.size === 0) {
-                cartListArea.innerHTML = `<div class="cart-empty-msg">목표 유닛을 선택하면<br>여기에 표시됩니다.</div>`;
+                const subText = pausedUnits.size > 0 ? '보류 탭에서 복구하면 다시 계산에 포함됩니다.' : '목표 유닛을 선택하면 여기에 표시됩니다.';
+                cartListArea.innerHTML = `<div class="cart-empty-msg">선택된 유닛이 없습니다.<br><span class="cart-empty-sub">${subText}</span></div>`;
                 return;
             }
             const items = getUnitsFromMap(activeUnits);
-            cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del" data-action="removeCartItem" data-uid="${item.id}" title="삭제">✕</button></div>`).join('');
-        } else {
-            if (completedTargets.size === 0) {
-                cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
+            cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del cart-item-pause" data-action="pauseCartItem" data-uid="${item.id}" title="보류로 이동">✕</button></div>`).join('');
+            return;
+        }
+
+        if (_cartTab === 'paused') {
+            if (pausedUnits.size === 0) {
+                cartListArea.innerHTML = `<div class="cart-empty-msg">보류된 유닛이 없습니다.<br><span class="cart-empty-sub">선택 탭의 ✕를 누르면 이곳으로 이동됩니다.</span></div>`;
                 return;
             }
-            cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
+            cartListArea.innerHTML = getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button></div>`).join('');
+            return;
         }
+
+        if (completedTargets.size === 0) {
+            cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
+            return;
+        }
+        cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
     }
 
     function updateCartUI() {
@@ -1994,14 +2110,36 @@
 
     function startSmartChange(id, delta, event) {
         if (event) {
-            if (event.type === 'touchstart' || event.type === 'pointerdown') _lastInteractionTime = Date.now();
-            else if (event.type === 'mousedown' && Date.now() - _lastInteractionTime < (APP_INTERNAL.mouseAfterTouchDelay)) { if (event.cancelable) event.preventDefault(); event.stopPropagation?.(); return; }
+            if (event.type === 'touchstart' || event.type === 'pointerdown') {
+                _lastInteractionTime = Date.now();
+            } else if (event.type === 'mousedown' && Date.now() - _lastInteractionTime < APP_INTERNAL.mouseAfterTouchDelay) {
+                if (event.cancelable) event.preventDefault();
+                event.stopPropagation?.();
+                return;
+            }
         }
-        stopSmartChange(); triggerHaptic(); _touchHoldCount = 0;
-        const action = () => { let accelDelta = delta * (event?.shiftKey ? (APP_INTERNAL.accelShiftMultiplier) : (Math.floor(++_touchHoldCount / (APP_INTERNAL.accelStepUnit)) + 1)), current = activeUnits.get(id) || 0; if (current === 0 && accelDelta > 0) toggleUnitSelection(id, accelDelta); else setUnitQty(id, current + accelDelta); };
-        action(); _currentAccelInterval = APP_INTERNAL.accelInterval;
-        const loop = () => { triggerHaptic(); action(); _currentAccelInterval = Math.max(APP_INTERNAL.accelMinInterval, _currentAccelInterval - (APP_INTERNAL.accelDecreaseStep)); repeatTimer = setTimeout(loop, _currentAccelInterval); };
-        repeatDelayTimer = setTimeout(loop, APP_INTERNAL.holdStartDelay);
+
+        stopSmartChange();
+        triggerHaptic();
+        _touchHoldCount = 0;
+
+        const runSmartStep = () => {
+            const multiplier = event?.shiftKey ? APP_INTERNAL.accelShiftMultiplier : Math.floor(++_touchHoldCount / APP_INTERNAL.accelStepUnit) + 1;
+            const accelDelta = delta * multiplier;
+            const current = activeUnits.get(id) || 0;
+            if (current === 0 && accelDelta > 0) toggleUnitSelection(id, accelDelta);
+            else setUnitQty(id, current + accelDelta);
+        };
+        const scheduleSmartRepeat = () => {
+            triggerHaptic();
+            runSmartStep();
+            _currentAccelInterval = Math.max(APP_INTERNAL.accelMinInterval, _currentAccelInterval - APP_INTERNAL.accelDecreaseStep);
+            repeatTimer = setTimeout(scheduleSmartRepeat, _currentAccelInterval);
+        };
+
+        runSmartStep();
+        _currentAccelInterval = APP_INTERNAL.accelInterval;
+        repeatDelayTimer = setTimeout(scheduleSmartRepeat, APP_INTERNAL.holdStartDelay);
     }
 
     function stopSmartChange() {
@@ -2014,12 +2152,13 @@
 
     function startFontHold(delta) {
         stopFontHold();
-        const action = () => setFontScale(_fontScale + delta);
-        action();
-        _fontRepeatDelayTimer = setTimeout(() => {
-            const loop = () => { action(); _fontRepeatTimer = setTimeout(loop, APP_INTERNAL.fontHoldRepeatDelay); };
-            loop();
-        }, APP_INTERNAL.fontHoldStartDelay);
+        const applyFontStep = () => setFontScale(_fontScale + delta);
+        const scheduleFontRepeat = () => {
+            applyFontStep();
+            _fontRepeatTimer = setTimeout(scheduleFontRepeat, APP_INTERNAL.fontHoldRepeatDelay);
+        };
+        applyFontStep();
+        _fontRepeatDelayTimer = setTimeout(scheduleFontRepeat, APP_INTERNAL.fontHoldStartDelay);
     }
 
     function stopFontHold() {
@@ -2185,7 +2324,8 @@
             case 'resetCodex': resetCodex(); break;
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
             case 'toggleSelectAllTab': toggleSelectAllTab(); break;
-            case 'removeCartItem': e.stopPropagation(); if (uid) { activeUnits.delete(uid); debouncedUpdateAllPanels(); } break;
+            case 'pauseCartItem': e.stopPropagation(); if (uid) pauseCartUnit(uid); break;
+            case 'clearCartItems': e.stopPropagation(); clearCartItems(); break;
             case 'toggleFavorite': toggleFavorite(uid, e); break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
@@ -2198,9 +2338,10 @@
                 break;
             case 'addComplete': e.stopPropagation(); completeUnit(uid, parseInt(actionEl.dataset.batch || 1, 10)); break;
             case 'completeUnit': e.stopPropagation(); completeUnit(uid); break;
-            case 'switchCartTab': _cartTab = actionEl.dataset.tab || 'active'; updateCartUI(); break;
+            case 'switchCartTab': setCartTab(actionEl.dataset.tab || 'active'); updateCartUI(); break;
             case 'toggleCartCollapse': toggleCartCollapse(); break;
             case 'restoreUnit': e.stopPropagation(); restoreUnit(uid); break;
+            case 'restorePausedUnit': e.stopPropagation(); restorePausedUnit(uid); break;
             case 'resetGroup': e.stopPropagation(); resetGroupCompleted(parseInt(actionEl.dataset.level, 10)); break;
             case 'showExcludedTooltip': e.stopPropagation(); showExcludedTooltip(uid, e); break;
             case 'showRecipeTooltip': e.stopPropagation(); showRecipeTooltip(uid, e, actionEl.dataset.isDeduction === 'true'); break;
@@ -2220,14 +2361,12 @@
         changeOwnedMagicQty(slot.dataset.magicId, -1);
     });
 
-    // 11-3. 포인터 입력
     document.addEventListener('pointerdown', e => {
         const actionEl = e.target.closest('[data-action="smartChange"]');
         if (actionEl) { e.stopPropagation(); startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e); return; }
         if (e.target.closest('[data-action="increaseFont"]')) { e.preventDefault(); startFontHold(APP_INTERNAL.fontScaleStep); return; }
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
-    // 11-4. 키보드 접근성·단축 처리
     document.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('[data-action="showAppVersion"]')) {
             e.preventDefault();
