@@ -79,15 +79,18 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .gh-nav-btn.active{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.22);color:#fff;}
 .gh-nav-btn.active::after{content:"";position:absolute;bottom:-1px;left:15%;width:70%;height:2px;border-radius:2px 2px 0 0;background:rgba(255,255,255,0.65);}
 .gh-nav-label{font-size:0.92rem;}
-.gh-right{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;}
+.gh-right{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;}
 .gh-divider{width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 2px;}
 .gh-fontsize-ctrl{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.82);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:2px 5px;height:28px;}
 .gh-fontsize-val{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-sub);min-width:30px;text-align:center;}
 .gh-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 7px;min-width:34px;height:32px;background:rgba(0,0,0,0.82);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-sub);cursor:pointer;transition:all 0.18s;flex-shrink:0;}
 .gh-icon-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#fff;}
 
-.btn-trait-icon{padding:6px 9px;color:#9fb6d8;border-color:transparent;background:transparent;box-shadow:none;}
-.gh-trait-link{text-decoration:none;}
+.btn-trait-icon{padding:6px 10px;color:#9fb6d8;border-color:transparent;background:transparent;box-shadow:none;}
+.gh-trait-link{text-decoration:none;min-width:70px;justify-content:center;}
+.header-dps-link{gap:5px;font-size:0.9rem;font-weight:900;}
+.header-dps-link .gh-nav-label{font-size:0.9rem;}
+.gh-link-arrow{display:inline-flex;align-items:center;justify-content:center;margin-left:1px;font-size:0.9em;line-height:1;}
 .btn-trait-icon:hover{color:#dbeafe;background:transparent;border-color:transparent;box-shadow:none;}
 .gh-fontsize-ctrl .gh-icon-btn{height:24px;min-width:32px;padding:0 7px;flex-direction:row;background:transparent;border-color:transparent;}
 .gh-fontsize-ctrl .gh-icon-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.14);}
@@ -627,7 +630,8 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .gh-center{position:static;transform:none;width:100%;flex:none;display:flex;gap:4px;flex-wrap:nowrap;justify-content:center;order:2;}
     .gh-nav-btn#btnViewCodex,.gh-nav-btn#btnViewDeduct,.gh-nav-btn#btnViewDeductList{flex:1 1 0;padding:8px 4px;font-size:0.92rem;justify-content:center;text-align:center;}
     .gh-right{display:flex;align-items:center;justify-content:flex-end;gap:0;margin-left:auto;order:1;flex:0 0 auto;}
-    .gh-right .gh-trait-link{display:flex;padding:7px 8px;font-size:0.78rem;justify-content:center;text-align:center;color:#9fb6d8;}
+    .gh-right .gh-trait-link{display:flex;min-width:64px;padding:7px 8px;font-size:0.78rem;justify-content:center;text-align:center;color:#9fb6d8;}
+    .gh-right .header-dps-link .gh-nav-label{font-size:0.78rem;}
     .left-tabs-wrap{flex-direction:column;gap:8px;padding:10px;}
     .left-tab-actions{order:1;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
     .btn-tab-action,.reset-btn{width:100%;}

@@ -13,13 +13,13 @@
     <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
         // [00] 빌드/캐시 버전과 파일별 자산 버전
-        window.NEXUS_BUILD_VERSION = "2607191300";
-        window.APP_VERSION = "2607191300";
+        window.NEXUS_BUILD_VERSION = "2607191700";
+        window.APP_VERSION = "2607191700";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "2607191300",
-            "config.js": "2607191300",
-            "style.css": "2607191300",
-            "data.js": "2607191300"
+            "app.js": "2607191700",
+            "config.js": "2607191700",
+            "style.css": "2607191700",
+            "data.js": "2607191700"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -148,7 +148,7 @@
             };
             setTimeout(function(){
                 if(!window.__nexusAppReady && !window.__nexusBootError && typeof window.nexusShowBootError === 'function'){
-                    window.nexusShowBootError('N1300', new Error('boot timeout'));
+                    window.nexusShowBootError('N1700', new Error('boot timeout'));
                 }
             },8000);
         })();
@@ -161,12 +161,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=2607191300" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2607191300">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2607191300">
+    <link rel="icon" href="./icon.png?v=2607191700" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2607191700">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2607191700">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2607191300">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2607191700">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="히든조합표, 체크리스트, 정수계산, 을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -214,15 +214,16 @@
             </button>
         </nav>
         <div class="gh-right">
+            <a class="gh-nav-btn btn-trait-icon gh-trait-link header-dps-link" href="https://sldbox.github.io/dps/" title="DPS 바로가기" aria-label="DPS 바로가기">
+                <span class="gh-nav-label">DPS</span>
+                <span class="gh-link-arrow" aria-hidden="true">↗</span>
+            </a>
+            <div class="gh-divider"></div>
             <div class="gh-fontsize-ctrl" title="글씨 크기 조절">
                 <button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소" title="글씨 축소">A-</button>
                 <span class="gh-fontsize-val" id="fontSizeLabel">100%</span>
                 <button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대" title="글씨 확대">A+</button>
             </div>
-            <div class="gh-divider"></div>
-            <a class="gh-nav-btn btn-trait-icon gh-trait-link" href="https://sldbox.github.io/dps/" title="DPS웹" aria-label="DPS웹">
-                <span class="gh-nav-label">DPS웹</span>
-            </a>
         </div>
     </header>
     <!-- [03] 메인 레이아웃: 도감 / 통합 보드 / 장바구니 / 체크리스트 -->
