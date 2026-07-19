@@ -1072,7 +1072,7 @@
         board.innerHTML = DEDUCT_UNIT_BOARD_ATOMS.map(atom => {
             const uid = clean(atom);
             if (_ownedInputMode === 'manual') {
-                return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 수동 입력"><input type="number" min="0" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
+                return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 수동 입력"><input type="text" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
             }
             return `<button type="button" class="cost-slot inventory-slot is-magic-slot" id="deduct-owned-slot-${uid}" data-action="increaseOwnedMagic" data-magic-id="${uid}" aria-label="${atom} 보유량 증가"><div class="owned-main-val"></div><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></button>`;
         }).join('');
@@ -2108,6 +2108,13 @@
         }
     }
 
+    function selectOwnedManualInput(input) {
+        if (!input || input.disabled) return;
+        requestAnimationFrame(() => {
+            try { input.select(); } catch(e) {}
+        });
+    }
+
     function startSmartChange(id, delta, event) {
         if (event) {
             if (event.type === 'touchstart' || event.type === 'pointerdown') {
@@ -2348,10 +2355,24 @@
         }
     });
 
+    document.addEventListener('focusin', e => {
+        const input = e.target.closest('.owned-manual-input');
+        if (!input) return;
+        selectOwnedManualInput(input);
+    });
+
+    document.addEventListener('click', e => {
+        const input = e.target.closest('.owned-manual-input');
+        if (!input) return;
+        selectOwnedManualInput(input);
+    });
+
     document.addEventListener('input', e => {
         const input = e.target.closest('.owned-manual-input');
         if (!input) return;
-        setOwnedMagicQty(input.dataset.magicId, input.value);
+        const numericValue = input.value.replace(/\D/g, '');
+        if (input.value !== numericValue) input.value = numericValue;
+        setOwnedMagicQty(input.dataset.magicId, numericValue);
     });
 
     document.addEventListener('contextmenu', e => {
