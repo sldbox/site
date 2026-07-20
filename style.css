@@ -757,16 +757,16 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-unit-board-grid .cost-val,.deduct-owned-grid .owned-main-val,.deduct-owned-grid .owned-manual-input{flex:1 1 auto;font-family:var(--font-display);font-size:clamp(1rem,2.4vh,2rem);font-weight:900;line-height:1;min-height:0;height:auto;display:flex;align-items:center;justify-content:center;width:100%;padding:3px;letter-spacing:-0.5px;}
 .deduct-unit-board-grid .cost-name,.deduct-owned-grid .cost-name{height:24px;min-height:24px;padding:3px;font-size:clamp(0.68rem,1.15vh,0.82rem);line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:900;}
 .deduct-cart-panel{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:10px;}
-.deduct-grade-section{flex:0 0 calc(50% - 5px);min-height:0;display:flex;flex-direction:column;overflow:hidden;background:rgba(0,0,0,0.18);}
-.deduct-grade-actions{flex:1;min-height:0;padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;}
-.deduct-grade-btn{width:100%;min-height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.70));color:#f8fafc;font-size:0.78rem;font-weight:900;cursor:pointer;letter-spacing:-0.2px;}
+.deduct-grade-section{flex:0 0 calc(30% - 2px);min-height:0;display:flex;flex-direction:column;overflow:hidden;background:rgba(0,0,0,0.18);}
+.deduct-grade-actions{flex:1;min-height:0;padding:6px 8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr));gap:5px;overflow:hidden;}
+.deduct-grade-btn{width:100%;min-height:0;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.70));color:#f8fafc;font-size:0.72rem;font-weight:900;cursor:pointer;letter-spacing:-0.2px;}
 .deduct-grade-btn:hover{border-color:rgba(56,189,248,0.45);box-shadow:0 0 10px rgba(56,189,248,0.10);}
 .deduct-grade-btn.grade-all{grid-column:1/-1;color:#e5e7eb;border-color:rgba(229,231,235,0.24);}
 .deduct-grade-btn.grade-magic{color:var(--grade-magic);}
 .deduct-grade-btn.grade-rare{color:var(--grade-rare);}
 .deduct-grade-btn.grade-epic{color:var(--grade-epic);}
 .deduct-grade-btn.grade-unique{color:var(--grade-unique);}
-.deduct-list-cart-section{flex:1 1 calc(50% - 5px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;}
+.deduct-list-cart-section{flex:1 1 calc(70% - 8px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;}
 .inventory-slot{--inv-rgb:52,211,153;--inv-solid:#34d399;--inv-name:#fff;--inv-value:#fff;--inv-bg:linear-gradient(180deg,rgba(var(--inv-rgb),0.46),rgba(0,0,0,0.86));--inv-bg-hover:linear-gradient(180deg,rgba(var(--inv-rgb),0.58),rgba(0,0,0,0.82));justify-content:center;background:var(--inv-bg);border:1px solid rgba(var(--inv-rgb),0.62);border-top-color:rgba(var(--inv-rgb),0.82);cursor:pointer;color:var(--inv-value);appearance:none;-webkit-appearance:none;}
 .inventory-slot.deduct-grade-skin-magic{--inv-rgb:147,197,253;--inv-solid:#93c5fd;}
 .inventory-slot.deduct-grade-skin-rare{--inv-rgb:252,211,77;--inv-solid:#fcd34d;}
