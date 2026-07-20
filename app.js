@@ -20,7 +20,6 @@
             oneTimeMinGrade: "슈퍼히든",
             hiddenGroupMinGrade: "히든",
             minGradeForChecklist: "레어",
-            magicComboKey: "갓오타/메시브",
             hideCompletedExcludeGroups: ["최종 목표", "기초 재료"],
             restoreAllBtn: {
                 idBtn: "btnRestoreAll",
@@ -73,7 +72,11 @@
             "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
             "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
             "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
-            "땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타/메시브"
+            "죽음의머리", "검은망치", "광전사석상", "교란기", "라바사우르스",
+            "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
+            "짐레이너", "대천사", "제라툴", "거신", "케리건",
+            "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
+            "공허포격기", "우르사돈수", "우르사돈암", "땅거미지뢰", "자동포탑"
         ],
         storageKeys: window.NEXUS_STORAGE_KEYS || {
             saveData: "nexusSaveData",
@@ -106,29 +109,25 @@
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
+    const CHECKLIST_FORCE_AUTO_COMPLETE_IDS = makeCleanSet(["갓오타", "메시브"]);
+    const DEDUCT_LIST_DELAYED_AUTO_COMPLETE_IDS = makeCleanSet(["유물"]);
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
-    const DEDUCT_LIST_BOARD_ATOMS = Object.freeze([
-        "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
-        "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
-        "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
-        "죽음의머리", "검은망치", "광전사석상", "교란기", "라바사우르스",
-        "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
-        "짐레이너", "대천사", "제라툴", "거신", "케리건",
-        "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
-        "공허포격기", "우르사돈수", "우르사돈암", "땅거미지뢰", "자동포탑"
-    ]);
+    const resolveDashboardAtom = (id) => ATOM_HASH[clean(id)] || null;
+    const DASHBOARD_BOARD_SLOTS = Object.freeze([...SYSTEM_CONFIG.dashboardAtoms]);
+    const DEDUCT_LIST_BOARD_ATOMS = Object.freeze([...SYSTEM_CONFIG.dashboardAtoms]);
+    const DEDUCT_LIST_BOARD_SLOTS = Object.freeze([...DEDUCT_LIST_BOARD_ATOMS]);
     const DEDUCT_LIST_ATOM_HASH = Object.fromEntries(DEDUCT_LIST_BOARD_ATOMS.map(a => [clean(a), a]));
     const DEDUCT_LIST_BOARD_IDS = new Set(DEDUCT_LIST_BOARD_ATOMS.map(clean));
     const DEDUCT_LIST_OWNED_STEP_BY_ID = new Map([[clean("자동포탑"), 5]]);
-    const DEDUCT_LIST_EXCLUDED_COST_IDS = makeCleanSet(["갓오타", "메시브"]);
+    const DEDUCT_LIST_EXCLUDED_COST_IDS = makeCleanSet([]);
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_HIDDEN_IDS = makeCleanSet(SYSTEM_CONFIG.search.hiddenIds || []);
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
     const CLEAN_SEARCH_ALLOW_IDS = new Set((SYSTEM_CONFIG.search.searchAllowIds || []).map(clean));
     const _behaviors = SYSTEM_CONFIG.unitBehaviors || {};
     const CHECKLIST_RENDER_SLOT_LIST = Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
-    const COMBO_SLOT_SET = new Set(Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => clean(id)));
-    const COMBO_SLOT_RAWS = Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => id);
+    const COMBO_SLOT_SET = new Set(Object.entries(_behaviors).filter(([id, b]) => b.comboSlot && !CHECKLIST_FORCE_AUTO_COMPLETE_IDS.has(clean(id))).map(([id]) => clean(id)));
+    const COMBO_SLOT_RAWS = Object.entries(_behaviors).filter(([id, b]) => b.comboSlot && !CHECKLIST_FORCE_AUTO_COMPLETE_IDS.has(clean(id))).map(([id]) => id);
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
     const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(SYSTEM_CONFIG.primaryUnitGroups || {}).flat());
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
@@ -201,6 +200,7 @@
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
     let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isChecklistBoardRendered = false;
     let _ownedInputMode = 'auto';
+    let _deductListOwnedInputTriggered = false;
     const ownedMagic = new Map(), completedOwnedMagic = new Map();
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
@@ -214,6 +214,7 @@
     const getEl = (id) => document.getElementById(id);
     const triggerHaptic = () => navigator.vibrate?.(APP_INTERNAL.hapticDuration);
     const virtualUnitIds = new Set(CHECKLIST_AUTO_COMPLETE_IDS);
+    const isCompletableCostId = (id) => COMBO_SLOT_SET.has(id) || virtualUnitIds.has(id);
     const isToolRequirement = (parent, child) => CLEAN_TOOLS_MAP[parent]?.includes(child);
     const getToolNeed = (parent) => CLEAN_TOOLS_MAP[parent] || [];
     const isSpecialRender = (id) => CHECKLIST_RENDER_SLOT_LIST.some(e => e.id === id);
@@ -221,6 +222,10 @@
     const isHiddenUnit = (id) => CLEAN_HIDDEN_IDS.has(id);
     const isRestrictedUnit = (id) => CLEAN_RESTRICTED_IDS.has(id);
     const getGradeIndex = (grade) => Math.max(SYSTEM_CONFIG.grades.order.indexOf(grade), -99);
+    const DEDUCT_COST_GRADE_IDS = makeCleanSet(["자동포탑"]);
+    const DEDUCT_GRADE_SLUG = Object.freeze({ "매직": "magic", "레어": "rare", "에픽": "epic", "유니크": "unique", "히든": "hidden", "코스트": "cost" });
+    const getDeductAtomGrade = (rawId) => DEDUCT_COST_GRADE_IDS.has(clean(rawId)) ? "코스트" : (unitMap.get(clean(rawId))?.grade || "코스트");
+    const getDeductGradeSkinClass = (rawId) => `deduct-grade-skin-${DEDUCT_GRADE_SLUG[getDeductAtomGrade(rawId)] || 'cost'}`;
     const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
     const getUnitId = (rawName) => clean(rawName);
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
@@ -283,6 +288,7 @@
         completedTargets.clear();
         ownedMagic.clear();
         completedOwnedMagic.clear();
+        _deductListOwnedInputTriggered = false;
         if (clearPresets) _presetUsed.clear();
         if (resetCart) {
             _cartTab = 'active';
@@ -298,7 +304,7 @@
                 map.delete(rawUid);
                 if (!Number.isFinite(qty) || qty <= 0) continue;
                 if (unitMap.has(uid)) setPositiveMapValue(map, uid, qty);
-                else if (allowCombo && COMBO_SLOT_SET.has(uid)) map.set(uid, qty);
+                else if (allowCombo && isCompletableCostId(uid)) map.set(uid, qty);
             }
         };
         normalizeMap(activeUnits);
@@ -318,7 +324,7 @@
             activeUnits.delete(uid);
             pausedUnits.delete(uid);
         });
-        if (activeUnits.size > 0 || completedTargets.size === 0) completedOwnedMagic.clear();
+        syncCompletedOwnedMagicFromTargets();
         if (!isValidCartTab(_cartTab)) _cartTab = 'active';
         _cartCollapsed = false;
     }
@@ -409,7 +415,7 @@
                 const q = parseInt(v, 10);
                 if (!Number.isFinite(q) || q <= 0) return;
                 if (unitMap.has(uid)) setPositiveMapValue(completedUnits, uid, q);
-                else if (COMBO_SLOT_SET.has(uid)) completedUnits.set(uid, q);
+                else if (isCompletableCostId(uid)) completedUnits.set(uid, q);
             });
             state.completedTargets?.forEach(([k, v]) => setPositiveMapValue(completedTargets, normalizeSavedId(k), v));
             _cartTab = isValidCartTab(state.cartTab) ? state.cartTab : 'active';
@@ -657,7 +663,7 @@
         let changed = false;
         for (let [uid, rawQty] of [...completedUnits.entries()]) {
             const compQty = parseInt(rawQty, 10);
-            if (!Number.isFinite(compQty) || compQty <= 0 || (!unitMap.has(uid) && !COMBO_SLOT_SET.has(uid))) {
+            if (!Number.isFinite(compQty) || compQty <= 0 || (!unitMap.has(uid) && !isCompletableCostId(uid))) {
                 completedUnits.delete(uid);
                 changed = true;
                 continue;
@@ -711,7 +717,6 @@
         const nextQty = accumulate ? (completedTargets.get(uid) || 0) + qty : qty;
         completedTargets.set(uid, nextQty);
         activeUnits.delete(uid);
-        _cartTab = 'done';
     }
 
     function deleteCompletedRecipe(uid, multiplier) {
@@ -800,20 +805,28 @@
         if (!completedTargets.has(uid)) return;
         const qty = completedTargets.get(uid) || 1;
         completedTargets.delete(uid);
-        completedOwnedMagic.clear();
         // 완료 취소 시 하위 재료 기록도 함께 역산한다.
         deleteCompletedRecipe(uid, qty);
+        syncCompletedOwnedMagicFromTargets();
         completedUnits.delete(uid);
         pausedUnits.delete(uid);
         if (!activeUnits.has(uid)) activeUnits.set(uid, qty);
         triggerHaptic(); debouncedUpdateAllPanels();
     }
 
+    function shouldCompleteDeductListNoBoardTarget(uid) {
+        if (!DEDUCT_LIST_DELAYED_AUTO_COMPLETE_IDS.has(uid)) return true;
+        if (!_deductListOwnedInputTriggered) return false;
+        return Array.from(activeUnits.keys()).some(activeUid => activeUid !== uid);
+    }
+
     function completeDeductListTargetsWithoutBoardCost() {
         if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
         const targets = [];
         activeUnits.forEach((qty, uid) => {
-            if (!hasDeductListBaseRequirementForUnit(uid, qty)) targets.push([uid, qty]);
+            if (hasDeductListBaseRequirementForUnit(uid, qty)) return;
+            if (!shouldCompleteDeductListNoBoardTarget(uid)) return;
+            targets.push([uid, qty]);
         });
         if (targets.length === 0) return false;
 
@@ -821,34 +834,112 @@
             deleteCompletedRecipe(uid, qty);
             setCompletedTargetFromActive(uid, qty, { accumulate: true });
         });
+        syncCompletedOwnedMagicFromTargets();
         toggleHighlight(null);
         return true;
     }
 
-    function completeDeductListTargetsIfBoardCovered(state) {
-        if (_currentViewMode !== 'deductlist' || activeUnits.size === 0 || !state) return false;
-        const hasRemaining = DEDUCT_LIST_BOARD_ATOMS.some(atom => (state.remaining?.[atom] || 0) > 0);
-        if (hasRemaining) return false;
+    function syncCompletedOwnedMagicFromTargets() {
+        completedOwnedMagic.clear();
+        if (completedTargets.size === 0) return;
+        const base = calculateDeductListBaseRequirementsFrom(completedTargets);
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
+            const qty = normalizeOwnedMagicQty(base?.[atom] || 0);
+            if (qty > 0) completedOwnedMagic.set(clean(atom), qty);
+        });
+    }
 
-        Array.from(activeUnits.entries()).forEach(([uid, qty]) => {
+    function consumeOwnedForBase(base) {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
+            const need = normalizeOwnedMagicQty(base?.[atom] || 0);
+            if (need <= 0) return;
+            const uid = clean(atom);
+            const remain = Math.max(0, (ownedMagic.get(uid) || 0) - need);
+            if (remain > 0) ownedMagic.set(uid, remain);
+            else ownedMagic.delete(uid);
+        });
+    }
+
+    function isDeductListBaseCoveredByOwned(base, coverageMap = calculateDeductListCoverage(base)) {
+        let hasRequirement = false;
+        for (const atom of DEDUCT_LIST_BOARD_ATOMS) {
+            const uid = clean(atom);
+            const need = normalizeOwnedMagicQty(base?.[atom] || 0);
+            if (need <= 0) continue;
+            hasRequirement = true;
+            if ((coverageMap.get(uid) || 0) < need) return false;
+        }
+        return hasRequirement;
+    }
+
+    function subtractDeductListBaseFromCoverage(coverageMap, base) {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const need = normalizeOwnedMagicQty(base?.[atom] || 0);
+            if (need <= 0) return;
+            const next = Math.max(0, (coverageMap.get(uid) || 0) - need);
+            if (next > 0) coverageMap.set(uid, next);
+            else coverageMap.delete(uid);
+        });
+    }
+
+    function replaceOwnedMagicWithCoverage(coverageMap) {
+        ownedMagic.clear();
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
+            const uid = clean(atom);
+            const qty = normalizeOwnedMagicQty(coverageMap.get(uid) || 0);
+            if (qty > 0) ownedMagic.set(uid, qty);
+        });
+    }
+
+    function isDeductListWholeBaseCovered(base) {
+        return isDeductListBaseCoveredByOwned(base, calculateDeductListCoverage(base));
+    }
+
+    function completeDeductListAllActiveTargetsIfCovered() {
+        if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
+        const fullBase = calculateDeductListBaseRequirementsFrom(activeUnits);
+        if (!isDeductListWholeBaseCovered(fullBase)) return false;
+        const targets = Array.from(activeUnits.entries());
+        targets.forEach(([uid, qty]) => {
+            if (!activeUnits.has(uid)) return;
             deleteCompletedRecipe(uid, qty);
             setCompletedTargetFromActive(uid, qty, { accumulate: true });
         });
-        completedOwnedMagic.clear();
-        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
-            const qty = normalizeOwnedMagicQty(state.base?.[atom] || 0);
-            if (qty > 0) completedOwnedMagic.set(clean(atom), qty);
-        });
         ownedMagic.clear();
+        syncCompletedOwnedMagicFromTargets();
+        toggleHighlight(null);
+        return targets.length > 0;
+    }
+
+    function completeDeductListCoveredTargets() {
+        if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
+        const coverageBudget = calculateDeductListCoverage(calculateDeductListBaseRequirements());
+        const targets = [];
+        Array.from(activeUnits.entries()).forEach(([uid, qty]) => {
+            if (!activeUnits.has(uid)) return;
+            const base = calculateDeductListBaseRequirementsFrom(new Map([[uid, qty]]));
+            if (!isDeductListBaseCoveredByOwned(base, coverageBudget)) return;
+            targets.push([uid, qty, base]);
+            subtractDeductListBaseFromCoverage(coverageBudget, base);
+        });
+        if (targets.length === 0) return false;
+        targets.forEach(([uid, qty]) => {
+            if (!activeUnits.has(uid)) return;
+            deleteCompletedRecipe(uid, qty);
+            setCompletedTargetFromActive(uid, qty, { accumulate: true });
+        });
+        syncCompletedOwnedMagicFromTargets();
+        if (activeUnits.size === 0) ownedMagic.clear();
+        else replaceOwnedMagicWithCoverage(coverageBudget);
         toggleHighlight(null);
         return true;
     }
 
-    function completeDeductListReadyTargets(state = calculateDeductListRequirements()) {
+    function completeDeductListReadyTargets() {
         if (_currentViewMode !== 'deductlist') return false;
         let changed = completeDeductListTargetsWithoutBoardCost();
-        const nextState = changed ? deductListBoardRules.calculateRequirements() : state;
-        if (completeDeductListTargetsIfBoardCovered(nextState)) changed = true;
+        if (completeDeductListCoveredTargets()) changed = true;
         return changed;
     }
 
@@ -920,7 +1011,7 @@
     }
 
 
-    // ── 06. 차감 리스트·통합 보드 대시보드 ─────────────────────────────────────
+    // ── 06. 차감 리스트·코스트 보드 대시보드 ─────────────────────────────────────
 
     function calculateDeductListBaseRequirementsFrom(sourceMap) {
         const reqMap = new Map();
@@ -956,12 +1047,21 @@
                 reqMap.set(toolId, next);
                 if (!inQueue.has(toolId)) { queue.push(toolId); inQueue.add(toolId); }
             });
+            const recipeCostIds = new Set();
             unitMap.get(uid)?.parsedRecipe?.forEach(child => {
                 if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_LIST_EXCLUDED_COST_IDS.has(child.id)) return;
                 if (!unitMap.has(child.id) && !DEDUCT_LIST_BOARD_IDS.has(child.id)) return;
+                recipeCostIds.add(child.id);
                 const next = isOneTime(unitMap.get(child.id)) ? Math.min((reqMap.get(child.id) || 0) + child.qty * delta, 1) : (reqMap.get(child.id) || 0) + child.qty * delta;
                 reqMap.set(child.id, next);
-                if (!inQueue.has(child.id)) { queue.push(child.id); inQueue.add(child.id); }
+                if (!inQueue.has(child.id) && unitMap.has(child.id)) { queue.push(child.id); inQueue.add(child.id); }
+            });
+            unitMap.get(uid)?.parsedCost?.forEach(pc => {
+                if (!COMBO_SLOT_SET.has(pc.key) || DEDUCT_LIST_EXCLUDED_COST_IDS.has(pc.key) || recipeCostIds.has(clean(pc.key))) return;
+                const atom = DEDUCT_LIST_ATOM_HASH[clean(pc.key)];
+                if (!atom) return;
+                const costUid = clean(atom);
+                reqMap.set(costUid, (reqMap.get(costUid) || 0) + pc.qty * delta);
             });
         }
         const base = {};
@@ -1006,9 +1106,8 @@
             }
         };
         ownedMagic.forEach((qty, uid) => {
-            const atom = DEDUCT_LIST_ATOM_HASH[uid];
-            if (!atom) return;
-            const effective = Math.min(normalizeOwnedMagicQty(qty), Math.max(0, base[atom] || 0));
+            if (!DEDUCT_LIST_ATOM_HASH[uid]) return;
+            const effective = normalizeOwnedMagicQty(qty);
             if (effective > 0) expandOwnedUnit(uid, effective, new Set());
         });
         return ownedCoverage;
@@ -1028,23 +1127,30 @@
     function renderDeductListBoardSlots(boardId, renderSlot) {
         const board = getEl(boardId);
         if (!board) return false;
-        board.innerHTML = DEDUCT_LIST_BOARD_ATOMS.map(renderSlot).join('');
+        board.innerHTML = DEDUCT_LIST_BOARD_SLOTS.map(renderSlot).join('');
         return true;
     }
 
     function renderDeductUnitBoard() {
-        renderDeductListBoardSlots('deductUnitBoardDashboard', atom =>
-            `<div class="cost-slot is-magic-slot" id="deduct-vslot-${clean(atom)}"><div class="cost-val"></div><div class="cost-name">${atom}</div></div>`
-        );
+        renderDeductListBoardSlots('deductUnitBoardDashboard', atom => {
+            if (!atom) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
+            const uid = clean(atom);
+            const gradeName = getDeductAtomGrade(uid);
+            const skinClass = getDeductGradeSkinClass(uid);
+            return `<div class="cost-slot is-magic-slot ${skinClass}" id="deduct-vslot-${uid}" data-cost-grade="${gradeName}"><div class="cost-val"></div><div class="cost-name">${atom}</div></div>`;
+        });
     }
 
     function renderDeductOwnedBoard() {
         const rendered = renderDeductListBoardSlots('deductOwnedDashboard', atom => {
+            if (!atom) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
             const uid = clean(atom);
+            const gradeName = getDeductAtomGrade(uid);
+            const skinClass = getDeductGradeSkinClass(uid);
             if (_ownedInputMode === 'manual') {
-                return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 수동 입력"><input type="text" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
+                return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot ${skinClass}" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" data-cost-grade="${gradeName}" aria-label="${atom} 보유량 수동 입력"><input type="text" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
             }
-            return `<button type="button" class="cost-slot inventory-slot is-magic-slot" id="deduct-owned-slot-${uid}" data-action="increaseOwnedMagic" data-magic-id="${uid}" aria-label="${atom} 보유량 증가"><div class="owned-main-val"></div><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></button>`;
+            return `<button type="button" class="cost-slot inventory-slot is-magic-slot ${skinClass}" id="deduct-owned-slot-${uid}" data-action="increaseOwnedMagic" data-magic-id="${uid}" data-cost-grade="${gradeName}" aria-label="${atom} 보유량 증가"><div class="owned-main-val"></div><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></button>`;
         });
         if (!rendered) return;
         updateOwnedInputModeUI();
@@ -1081,42 +1187,52 @@
     }
 
     function updateDeductOwnedBoard(state = calculateDeductListRequirements()) {
-        const showCompletedOwned = activeUnits.size === 0 && completedTargets.size > 0 && completedOwnedMagic.size > 0;
         DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             const slot = getEl(`deduct-owned-slot-${uid}`);
             if (!slot) return;
             const completedOwned = completedOwnedMagic.get(uid) || 0;
-            const baseNeed = showCompletedOwned ? completedOwned : Math.max(0, state.base?.[atom] || 0);
-            const remainingNeed = showCompletedOwned ? 0 : Math.max(0, state.remaining?.[atom] || 0);
-            const owned = showCompletedOwned ? completedOwned : (ownedMagic.get(uid) || 0);
+            const activeBaseNeed = Math.max(0, state.base?.[atom] || 0);
+            const activeRemainingNeed = Math.max(0, state.remaining?.[atom] || 0);
+            const activeOwned = ownedMagic.get(uid) || 0;
+            const baseNeed = activeBaseNeed + completedOwned;
+            const owned = activeOwned + completedOwned;
+            const remainingNeed = activeRemainingNeed;
             const valueEl = slot.querySelector('.owned-main-val');
             const needBadge = slot.querySelector('.owned-needed-badge');
             const inputEl = slot.querySelector('.owned-manual-input');
-            const ownedText = owned > 0 || baseNeed > 0 ? String(owned) : '';
-            const isOver = owned > baseNeed;
-            const needBadgeText = isOver ? '초과' : (remainingNeed > 0 ? String(remainingNeed) : '');
+            const isInactiveSlot = baseNeed <= 0 && activeOwned <= 0;
+            const displayOwned = isInactiveSlot ? 0 : owned;
+            const displayBaseNeed = isInactiveSlot ? 0 : baseNeed;
+            const displayRemainingNeed = isInactiveSlot ? 0 : remainingNeed;
+            const ownedText = displayOwned > 0 || displayBaseNeed > 0 ? String(displayOwned) : '';
+            const isOver = displayOwned > displayBaseNeed && displayOwned > 0;
+            const isExact = displayBaseNeed > 0 && displayOwned === displayBaseNeed;
+            const needBadgeText = isOver ? '초과' : (isExact ? '완료' : (displayRemainingNeed > 0 ? String(displayRemainingNeed) : ''));
             if (valueEl) valueEl.textContent = ownedText;
             if (needBadge) {
                 needBadge.textContent = needBadgeText;
                 needBadge.hidden = needBadgeText === '';
             }
-            if (inputEl) {
-                inputEl.disabled = showCompletedOwned;
-                if (document.activeElement !== inputEl) inputEl.value = ownedText;
+            if (inputEl && document.activeElement !== inputEl) {
+                inputEl.value = ownedText;
             }
-            if (slot.tagName === 'BUTTON') slot.disabled = showCompletedOwned;
-            const isEmptySlot = ownedText === '' && needBadgeText === '';
+            if (slot.tagName === 'BUTTON') slot.disabled = false;
+            if (inputEl) inputEl.disabled = false;
+            const isEmptySlot = isInactiveSlot || (ownedText === '' && needBadgeText === '');
             slot.classList.toggle('is-empty', isEmptySlot);
-            slot.classList.toggle('has-needed', remainingNeed > 0);
-            slot.classList.toggle('has-owned', owned > 0);
-            slot.classList.toggle('owned-exact', baseNeed > 0 && owned === baseNeed);
+            slot.classList.toggle('is-inactive', isInactiveSlot);
+            slot.classList.toggle('has-needed', displayRemainingNeed > 0);
+            slot.classList.toggle('has-owned', displayOwned > 0);
+            slot.classList.toggle('owned-exact', isExact);
+            slot.dataset.baseNeed = String(displayBaseNeed);
+            slot.dataset.ownedQty = String(displayOwned);
             slot.classList.toggle('owned-over', isOver);
-            slot.classList.toggle('partial', baseNeed > 0 && owned > 0 && owned < baseNeed);
-            slot.classList.toggle('covered', baseNeed > 0 && owned === baseNeed);
+            slot.classList.toggle('partial', displayBaseNeed > 0 && displayOwned > 0 && displayOwned < displayBaseNeed);
+            slot.classList.toggle('covered', displayBaseNeed > 0 && displayOwned === displayBaseNeed);
             const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
-            const guide = showCompletedOwned ? '완료 당시 보유 수량' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소`);
-            slot.setAttribute('aria-label', `${atom} 보유 ${owned}, 남은 필요 ${remainingNeed}. ${guide}`);
+            const guide = isInactiveSlot ? (_ownedInputMode === 'manual' ? '필요 없는 코스트지만 숫자 입력 시 초과로 표시' : `필요 없는 코스트지만 클릭하면 보유량 ${step} 초과 입력`) : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소, 완료 상태는 더블클릭 시 초과 입력`);
+            slot.setAttribute('aria-label', `${atom} 보유 ${displayOwned}, 남은 필요 ${displayRemainingNeed}. ${guide}`);
             slot.removeAttribute('title');
         });
         updateOwnedInputModeUI();
@@ -1140,28 +1256,99 @@
         saveNexusState();
     }
 
-    function setOwnedMagicQty(rawUid, qty) {
+    function hasActiveDeductListNeedForOwned(rawUid) {
+        const uid = normalizeSavedId(rawUid);
+        const atom = DEDUCT_LIST_ATOM_HASH[uid];
+        if (!atom) return false;
+        const state = deductListBoardRules.calculateRequirements();
+        return Math.max(0, state.base?.[atom] || 0) > 0;
+    }
+
+    function setOwnedMagicQty(rawUid, qty, options = {}) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const next = normalizeOwnedMagicQty(qty);
-        if (next > 0) ownedMagic.set(uid, next); else ownedMagic.delete(uid);
+        const canApplyPositive = options.allowAnyOwned || (options.allowCompletedNeed ? hasDisplayedDeductListNeedForOwned(uid) : hasActiveDeductListNeedForOwned(uid));
+        if (next > 0 && !canApplyPositive) {
+            updateOwnedInputModeUI();
+            return;
+        }
+        if (next > 0) {
+            ownedMagic.set(uid, next);
+            if (_currentViewMode === 'deductlist') _deductListOwnedInputTriggered = true;
+        } else ownedMagic.delete(uid);
         deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
         triggerHaptic();
         debouncedUpdateAllPanels();
     }
 
-    function changeOwnedMagicQty(rawUid, direction) {
+    function getDisplayedDeductListNeedForOwned(rawUid) {
+        const uid = normalizeSavedId(rawUid);
+        const atom = DEDUCT_LIST_ATOM_HASH[uid];
+        if (!atom) return 0;
+        const state = deductListBoardRules.calculateRequirements();
+        return Math.max(0, state.base?.[atom] || 0) + (completedOwnedMagic.get(uid) || 0);
+    }
+
+    function changeOwnedMagicQty(rawUid, direction, options = {}) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const current = ownedMagic.get(uid) || 0;
+        const completedOwned = completedOwnedMagic.get(uid) || 0;
+        const displayedOwned = current + completedOwned;
         const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
-        setOwnedMagicQty(uid, current + (direction * step));
+        const clickDetail = Number(options.clickDetail || 1);
+        if (direction > 0) {
+            const displayedNeed = getDisplayedDeductListNeedForOwned(uid);
+            if (displayedNeed <= 0) {
+                setOwnedMagicQty(uid, current + step, { allowAnyOwned: true });
+                return;
+            }
+            if (displayedOwned > displayedNeed) {
+                setOwnedMagicQty(uid, current + step, { allowCompletedNeed: true });
+                return;
+            }
+            if (displayedOwned === displayedNeed) {
+                if (clickDetail >= 2) setOwnedMagicQty(uid, current + step, { allowCompletedNeed: true });
+                else updateOwnedInputModeUI();
+                return;
+            }
+            const nextDisplayed = Math.min(displayedNeed, displayedOwned + step);
+            setOwnedMagicQty(uid, Math.max(0, nextDisplayed - completedOwned), { allowCompletedNeed: true });
+            return;
+        }
+        setOwnedMagicQty(uid, current + (direction * step), { allowAnyOwned: true });
+    }
+
+    function hasDisplayedDeductListNeedForOwned(rawUid) {
+        const uid = normalizeSavedId(rawUid);
+        const atom = DEDUCT_LIST_ATOM_HASH[uid];
+        if (!atom) return false;
+        const state = deductListBoardRules.calculateRequirements();
+        const activeBaseNeed = Math.max(0, state.base?.[atom] || 0);
+        const completedOwned = completedOwnedMagic.get(uid) || 0;
+        return activeBaseNeed + completedOwned > 0;
     }
 
     function resetDeductOwned() {
-        if (ownedMagic.size === 0 && completedOwnedMagic.size === 0) { updateOwnedInputModeUI(); return; }
+        const restoreCompletedByOwned = completedOwnedMagic.size > 0 ? Array.from(completedTargets.keys()) : [];
+        if (ownedMagic.size === 0 && completedOwnedMagic.size === 0 && restoreCompletedByOwned.length === 0) { updateOwnedInputModeUI(); return; }
+
         ownedMagic.clear();
         completedOwnedMagic.clear();
+        _deductListOwnedInputTriggered = false;
+
+        restoreCompletedByOwned.forEach(uid => {
+            if (!completedTargets.has(uid)) return;
+            const qty = completedTargets.get(uid) || 1;
+            completedTargets.delete(uid);
+            deleteCompletedRecipe(uid, qty);
+            completedUnits.delete(uid);
+            pausedUnits.delete(uid);
+            if (!activeUnits.has(uid)) activeUnits.set(uid, qty);
+        });
+
+        syncCompletedOwnedMagicFromTargets();
         triggerHaptic();
         debouncedUpdateAllPanels();
     }
@@ -1183,7 +1370,10 @@
                 changed = true;
             }
         });
-        const completedByGroup = deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
+        if (group === 'all' && activeUnits.size > 0) _deductListOwnedInputTriggered = true;
+        const completedByGroup = group === 'all'
+            ? completeDeductListAllActiveTargetsIfCovered()
+            : deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
         if (changed || completedByGroup) {
             triggerHaptic();
             debouncedUpdateAllPanels();
@@ -1213,67 +1403,26 @@
 
     function renderDashboardAtoms() {
         let db = getEl('magicDashboard'); if (!db) return;
-        const comboKey = SYSTEM_CONFIG.policy.magicComboKey;
-        db.innerHTML = `<div class="cost-slot total-essence" id="slot-total-essence"><div class="cost-val" id="val-total-essence"></div><div class="cost-name">통합 정수</div></div>` +
-            SYSTEM_CONFIG.essence.display.map(d => `<div class="cost-slot is-magic-slot" id="slot-essence-${d.id}"><div class="cost-val" id="val-essence-${d.id}" style="color:${d.color};"></div><div class="cost-name">${d.name}</div></div>`).join('') +
-            SYSTEM_CONFIG.dashboardAtoms.map(a => `<div class="cost-slot ${a === comboKey ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`).join('');
+        db.innerHTML = DASHBOARD_BOARD_SLOTS.map(a => {
+            if (!a) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
+            return `<div class="cost-slot is-magic-slot" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`;
+        }).join('');
     }
 
     function updateMagicDashboard() {
-        const tMap = {}, cMap = {}, comboKey = SYSTEM_CONFIG.policy.magicComboKey, specials = COMBO_SLOT_RAWS;
-        SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
-            if (a === comboKey) { tMap[a] = {}; cMap[a] = {}; specials.forEach(k => { tMap[a][k] = 0; cMap[a][k] = 0; }); }
-            else tMap[a] = cMap[a] = 0;
-        });
-
-        const flattenUnitToAtoms = (uid, qty, map, path) => {
-            if (qty <= 0 || path.has(uid)) return;
-            path.add(uid);
-            try {
-                if (specials.includes(uid)) { map[comboKey][uid] += qty; return; }
-                let atomRaw = ATOM_HASH[uid];
-                if (atomRaw && atomRaw !== comboKey) { map[atomRaw] = (map[atomRaw] || 0) + qty; return; }
-                const u = unitMap.get(uid); if (!u) return;
-                if (u.parsedCost?.length) {
-                    u.parsedCost.forEach(pc => {
-                        if (pc.type === 'special' && specials.includes(pc.key)) map[comboKey][pc.key] += pc.qty * qty;
-                        else {
-                            let pcRaw = ATOM_HASH[pc.key] || pc.key;
-                            if (pcRaw !== comboKey) { if (SYSTEM_CONFIG.dashboardAtoms.includes(pcRaw)) map[pcRaw] = (map[pcRaw] || 0) + pc.qty * qty; else flattenUnitToAtoms(pc.key, pc.qty * qty, map, path); }
-                        }
-                    });
-                    getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, 1, map, path));
-                } else if (u.parsedRecipe?.length) {
-                    u.parsedRecipe.forEach(child => {
-                        if (!child.id) return;
-                        isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, 1, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path);
-                    });
-                    u.parsedCost?.forEach(pc => specials.includes(pc.key) && (map[comboKey][pc.key] += pc.qty * qty));
-                }
-            } finally {
-                path.delete(uid);
-            }
-        };
-
-        let activePath = new Set(), compPath = new Set();
-        activeUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, tMap, activePath));
-        completedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
-
+        const boardValues = calculateDeductListBaseRequirementsFrom(activeUnits);
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
             if (!container || !e || !nEl) return;
-
-            if (a === comboKey) {
-                let hasValue = specials.some(k => Math.max(0, tMap[a][k] - cMap[a][k]) > 0);
-                if (hasValue) {
-                    let spHtml = specials.map(k => `<div class="sp-row"><span class="sp-val-num">${Math.max(0, tMap[a][k] - cMap[a][k])}</span></div>`).join('<div class="sp-divider"></div>');
-                    if (e.innerHTML !== spHtml) e.innerHTML = spHtml;
-                    nEl.style.display = 'block'; container.classList.add('active');
-                } else { if (e.innerHTML !== '') e.innerHTML = ''; nEl.style.display = 'block'; container.classList.remove('active'); }
+            const value = Math.max(0, boardValues[a] || 0);
+            if (value > 0) {
+                if (e.innerText !== String(value)) e.innerText = String(value);
+                nEl.style.display = 'block';
+                container.classList.add('active');
             } else {
-                let fV = Math.max(0, tMap[a] - cMap[a]);
-                if (fV > 0) { if (e.innerText !== String(fV)) e.innerText = String(fV); nEl.style.display = 'block'; container.classList.add('active'); }
-                else { if (e.innerHTML !== '') e.innerHTML = ''; nEl.style.display = 'block'; container.classList.remove('active'); }
+                if (e.innerHTML !== '') e.innerHTML = '';
+                nEl.style.display = 'block';
+                container.classList.remove('active');
             }
         });
     }
@@ -1747,7 +1896,7 @@
 
     function starBtnHtml(id) {
         const isFav = _favorites.has(id);
-        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" title="${isFav ? '즐겨찾기 해제' : '즐겨찾기 등록'}" aria-label="즐겨찾기">${isFav ? '★' : '☆'}</button>`;
+        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-label="즐겨찾기">${isFav ? '★' : '☆'}</button>`;
     }
 
     function buildCardControl(item, prefix, isRestricted, isOT) {
@@ -1757,15 +1906,29 @@
         return `<div class="uc-ctrl-area uc-ctrl-area-reserved" aria-hidden="true"><div class="smart-stepper smart-stepper-placeholder"><button type="button" disabled>-</button><div class="ss-val">-</div><button type="button" disabled>+</button></div></div>`;
     }
 
+    function getUnitCodexEssenceText(item) {
+        if (!item?.id) return '';
+        const counts = getEssenceCount(new Map([[item.id, 1]]));
+        const hybrid = Math.max(0, counts['혼종'] || 0);
+        const parts = [
+            ['coral', '코랄', Math.max(0, (counts['코랄'] || 0) + hybrid)],
+            ['aiur', '아이어', Math.max(0, (counts['아이어'] || 0) + hybrid)],
+            ['zerus', '제루스', Math.max(0, (counts['제루스'] || 0) + hybrid)]
+        ].filter(([, , value]) => value > 0);
+        return parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('');
+    }
+
     function buildCard(item, idx, prefix, showRecipe) {
         const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item), isFav = _favorites.has(item.id);
         const isPrimaryUnit = CLEAN_PRIMARY_UNIT_IDS.has(item.id);
+        const essenceText = getUnitCodexEssenceText(item);
         return `<div id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}${isFav ? ' is-fav-card' : ''}${showRecipe ? '' : ' no-recipe'}" data-grade="${item.grade}" style="${idx >= 0 ? `animation-delay:${idx*0.02}s;` : ''}${isRestricted ? 'pointer-events:auto;cursor:not-allowed;' : ''}" data-action="toggleUnit" data-uid="${item.id}">` +
             `<div class="uc-card-inner">` +
             `${starBtnHtml(item.id)}` +
             `<div class="uc-head${showRecipe ? '' : ' uc-head-slim'}">` +
             `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isPrimaryUnit ? '<span class="badge-primary-unit">주력</span>' : ''}</div>` +
             `<div class="uc-name-row" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</div>` +
+            `${essenceText ? `<div class="uc-essence-row">${essenceText}</div>` : ''}` +
             `${isRestricted ? `<span class="badge-excluded" data-action="showExcludedTooltip" data-uid="${item.id}">선택제한</span>` : ''}` +
             `</div>` +
             `${showRecipe ? `<div class="uc-recipe-area">${formatRecipe(item, 1, false)}</div>` : ''}` +
@@ -1864,7 +2027,7 @@
             const uid = btn.dataset.uid, isFav = _favorites.has(uid);
             btn.classList.toggle('is-fav', isFav);
             btn.textContent = isFav ? '★' : '☆';
-            btn.title = isFav ? '즐겨찾기 해제' : '즐겨찾기 등록';
+            btn.removeAttribute('title');
         });
     }
 
@@ -1901,7 +2064,7 @@
             else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
             else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
             else if (isBrightColor(p.배경색)) styleStr += ';--btn-text-override:#111111';
-            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" title="${p.tooltip || p.label}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
+            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
         }).join('');
 
         wrap.style.display = '';
@@ -1911,7 +2074,7 @@
     function updatePresetBtns() {
         SYSTEM_CONFIG.presets.forEach((p, i) => {
             const btn = document.querySelector(`[data-action="runPreset"][data-preset-idx="${i}"]`), used = p.oneTime && _presetUsed.get(i);
-            if (btn) { btn.disabled = !!used; btn.classList.toggle('gohaeng-used', !!used); btn.title = used ? '초기화 버튼으로 재활성화됩니다' : (p.tooltip || p.label); }
+            if (btn) { btn.disabled = !!used; btn.classList.toggle('gohaeng-used', !!used); }
         });
     }
 
@@ -1970,6 +2133,34 @@
         debouncedUpdateAllPanels();
     }
 
+    function discardActiveCartUnit(uid) {
+        if (!activeUnits.has(uid)) return;
+        const qty = activeUnits.get(uid) || 1;
+        activeUnits.delete(uid);
+        deleteCompletedRecipe(uid, qty);
+        completedUnits.delete(uid);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function discardPausedCartUnit(uid) {
+        if (!pausedUnits.has(uid)) return;
+        pausedUnits.delete(uid);
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function discardCompletedCartUnit(uid) {
+        if (!completedTargets.has(uid)) return;
+        const qty = completedTargets.get(uid) || 1;
+        completedTargets.delete(uid);
+        deleteCompletedRecipe(uid, qty);
+        completedUnits.delete(uid);
+        syncCompletedOwnedMagicFromTargets();
+        triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
     function clearCartItems() {
         const hasCartItems = activeUnits.size > 0 || pausedUnits.size > 0 || completedTargets.size > 0 || completedUnits.size > 0 || completedOwnedMagic.size > 0;
         if (!hasCartItems && _cartTab === 'active') return;
@@ -1990,6 +2181,18 @@
         pausedUnits.delete(uid);
         setActiveUnitQty(uid, qty);
         triggerHaptic();
+        debouncedUpdateAllPanels();
+    }
+
+    function restoreAllPausedUnits() {
+        if (pausedUnits.size === 0) return;
+        Array.from(pausedUnits.keys()).forEach(uid => restorePausedUnit(uid));
+        debouncedUpdateAllPanels();
+    }
+
+    function restoreAllCompletedUnits() {
+        if (completedTargets.size === 0) return;
+        Array.from(completedTargets.keys()).forEach(uid => restoreUnit(uid));
         debouncedUpdateAllPanels();
     }
 
@@ -2018,24 +2221,31 @@
                 return;
             }
             const items = getUnitsFromMap(activeUnits);
-            cartListArea.innerHTML = items.map(item => `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${activeUnits.get(item.id) || 1}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : ''}<button type="button" class="cart-item-del cart-item-pause" data-action="pauseCartItem" data-uid="${item.id}" title="보류로 이동">✕</button></div>`).join('');
+            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-active-remove-all-btn" data-action="clearCartItems">전체 제거</button></div>`;
+            cartListArea.innerHTML = actionHtml + items.map(item => {
+                const qty = activeUnits.get(item.id) || 1;
+                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime active-qty">×${qty}</span>`;
+                return `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
+            }).join('');
             return;
         }
 
         if (_cartTab === 'paused') {
+            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-paused-restore-all-btn" data-action="restoreAllPausedUnits" ${pausedUnits.size === 0 ? 'disabled' : ''}>전체보류 복구</button></div>`;
             if (pausedUnits.size === 0) {
-                cartListArea.innerHTML = `<div class="cart-empty-msg">보류된 유닛이 없습니다.<br><span class="cart-empty-sub">선택 탭의 ✕를 누르면 이곳으로 이동됩니다.</span></div>`;
+                cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">보류된 유닛이 없습니다.<br><span class="cart-empty-sub">선택 탭의 보류 버튼을 누르면 이곳으로 이동됩니다.</span></div>`;
                 return;
             }
-            cartListArea.innerHTML = getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button></div>`).join('');
+            cartListArea.innerHTML = actionHtml + getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removePausedUnit" data-uid="${item.id}">제거</button></div>`).join('');
             return;
         }
 
+        const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-done-restore-all-btn" data-action="restoreAllCompletedUnits" ${completedTargets.size === 0 ? 'disabled' : ''}>전체완료 복구</button></div>`;
         if (completedTargets.size === 0) {
-            cartListArea.innerHTML = `<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
+            cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
             return;
         }
-        cartListArea.innerHTML = getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}" data-action="restoreUnit" data-uid="${item.id}" title="클릭하면 선택탭으로 복구됩니다"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><span class="cart-done-restore-hint always-show">복구</span></div>`).join('');
+        cartListArea.innerHTML = actionHtml + getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><button type="button" class="cart-done-restore-hint cart-restore-btn always-show" data-action="restoreUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeCompletedUnit" data-uid="${item.id}">제거</button></div>`).join('');
     }
 
     function updateCartUI() {
@@ -2299,7 +2509,7 @@
             case 'switchOwnedInputMode': switchOwnedInputMode(actionEl.dataset.mode); break;
             case 'resetDeductOwned': resetDeductOwned(); break;
             case 'completeOwnedGroup': completeOwnedGroup(actionEl.dataset.gradeGroup); break;
-            case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1); break;
+            case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1, { clickDetail: e.detail || 1 }); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
                 if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
@@ -2330,6 +2540,11 @@
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
             case 'toggleSelectAllTab': toggleSelectAllTab(); break;
             case 'pauseCartItem': e.stopPropagation(); if (uid) pauseCartUnit(uid); break;
+            case 'removeActiveUnit': e.stopPropagation(); if (uid) discardActiveCartUnit(uid); break;
+            case 'removePausedUnit': e.stopPropagation(); if (uid) discardPausedCartUnit(uid); break;
+            case 'removeCompletedUnit': e.stopPropagation(); if (uid) discardCompletedCartUnit(uid); break;
+            case 'restoreAllPausedUnits': e.stopPropagation(); restoreAllPausedUnits(); break;
+            case 'restoreAllCompletedUnits': e.stopPropagation(); restoreAllCompletedUnits(); break;
             case 'clearCartItems': e.stopPropagation(); clearCartItems(); break;
             case 'toggleFavorite': toggleFavorite(uid, e); break;
             case 'toggleUnit': unitCategoryBoard.toggleSelection(uid, 1); break;
@@ -2353,6 +2568,12 @@
         }
     });
 
+    document.addEventListener('dblclick', e => {
+        const slot = e.target.closest('[data-action="increaseOwnedMagic"]');
+        if (!slot || _ownedInputMode !== 'auto') return;
+        e.preventDefault();
+    });
+
     document.addEventListener('focusin', e => {
         const input = e.target.closest('.owned-manual-input');
         if (!input) return;
@@ -2370,7 +2591,7 @@
         if (!input) return;
         const numericValue = input.value.replace(/\D/g, '');
         if (input.value !== numericValue) input.value = numericValue;
-        setOwnedMagicQty(input.dataset.magicId, numericValue);
+        setOwnedMagicQty(input.dataset.magicId, numericValue, { allowAnyOwned: true });
     });
 
     document.addEventListener('contextmenu', e => {

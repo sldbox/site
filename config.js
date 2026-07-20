@@ -27,7 +27,7 @@ window.NEXUS_USER_CONFIG = {
 
     // ── 02. 유닛별 특수 동작 ───────────────────────────────────────────────
     // presetNoStack: 프리셋 중복 방지 · specialRender: 자동 완료 슬롯
-    // comboSlot: 통합 보드 콤보 슬롯 · batch: 1회 완료 수량
+    // comboSlot: 코스트 보드 콤보 슬롯 · batch: 1회 완료 수량
     unitBehaviors: {
         "갓오타": { specialRender: true, comboSlot: true, batch: 1 },
         "메시브": { specialRender: true, comboSlot: true, batch: 1 },

@@ -4,7 +4,7 @@
   00. 빌드/캐시 버전과 자산 URL 헬퍼
   01. Boot 화면/초기화 오류 표시
   02. 글로벌 헤더와 메인 레이아웃 DOM
-  03. 좌측 도감·중앙 통합 보드·우측 체크리스트 패널
+  03. 좌측 도감·중앙 코스트 보드·우측 체크리스트 패널
   04. data.js → config.js → app.js 순차 로드
 -->
 <html lang="ko" class="nexus-booting">
@@ -214,19 +214,19 @@
             </button>
         </nav>
         <div class="gh-right">
-            <a class="gh-nav-btn btn-trait-icon gh-trait-link header-dps-link" href="https://sldbox.github.io/dps/" title="DPS 바로가기" aria-label="DPS 바로가기">
+            <a class="gh-nav-btn btn-trait-icon gh-trait-link header-dps-link" href="https://sldbox.github.io/dps/" aria-label="DPS 바로가기">
                 <span class="gh-nav-label">DPS</span>
                 <span class="gh-link-arrow" aria-hidden="true">↗</span>
             </a>
             <div class="gh-divider"></div>
-            <div class="gh-fontsize-ctrl" title="글씨 크기 조절">
-                <button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소" title="글씨 축소">A-</button>
+            <div class="gh-fontsize-ctrl">
+                <button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소">A-</button>
                 <span class="gh-fontsize-val" id="fontSizeLabel">100%</span>
-                <button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대" title="글씨 확대">A+</button>
+                <button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대">A+</button>
             </div>
         </div>
     </header>
-    <!-- [03] 메인 레이아웃: 도감 / 통합 보드 / 장바구니 / 체크리스트 -->
+    <!-- [03] 메인 레이아웃: 도감 / 코스트 보드 / 장바구니 / 체크리스트 -->
     <div id="mainLayout" class="main-layout">
         <aside class="panel-left hud-panel" id="panelLeft">
             <div class="left-search-wrap">
@@ -251,27 +251,28 @@
                 <div id="tabContent" class="panel-body panel-codex-body"></div>
             </div>
         </aside>
-        <main class="panel-cost hud-panel" id="panelCost">
-            <div class="panel-header ph-compact pc-cost-header">
-                <div class="ph-title ph-title-accent">통합 보드</div>
-            </div>
-            <div class="panel-section cost-section pc-cost-body">
-                <div id="magicDashboard" class="magic-grid"></div>
-            </div>
-        </main>
-        <aside class="panel-cart hud-panel" id="panelCart">
-            <div class="panel-section cart-section pc-cart-body" id="cartSection">
-                <div class="cart-header" data-action="toggleCartCollapse">
-                    <span class="cart-title">장바구니</span>
-                    <div class="cart-header-actions">
-                        <button type="button" class="cart-clear-btn" data-action="clearCartItems" title="선택/보류/완료 비우기">비우기</button>
-                        <span id="cartCollapseBtn" class="cart-collapse-btn">▼</span>
-                    </div>
+        <section class="left-rail-scroll" id="leftRailScroll" aria-label="코스트 보드 및 장바구니">
+            <main class="panel-cost hud-panel" id="panelCost">
+                <div class="panel-header ph-compact pc-cost-header">
+                    <div class="ph-title ph-title-accent">코스트 보드</div>
                 </div>
-                <div id="cartTabBar" class="cart-tab-bar"></div>
-                <div id="cartListArea" class="cart-list-area"></div>
-            </div>
-        </aside>
+                <div class="panel-section cost-section pc-cost-body">
+                    <div id="magicDashboard" class="magic-grid"></div>
+                </div>
+            </main>
+            <aside class="panel-cart hud-panel" id="panelCart">
+                <div class="panel-section cart-section pc-cart-body" id="cartSection">
+                    <div class="cart-header" data-action="toggleCartCollapse">
+                        <span class="cart-title">장바구니</span>
+                        <div class="cart-header-actions">
+                            <span id="cartCollapseBtn" class="cart-collapse-btn">▼</span>
+                        </div>
+                    </div>
+                    <div id="cartTabBar" class="cart-tab-bar"></div>
+                    <div id="cartListArea" class="cart-list-area"></div>
+                </div>
+            </aside>
+        </section>
         <aside class="panel-right hud-panel" id="colRightPanel">
             <div class="panel-header ph-compact checklist-ph">
                 <div class="checklist-info-center">
@@ -303,7 +304,7 @@
     <div id="deductListLayout" class="deduct-list-layout" hidden>
         <section class="deduct-unit-board-panel hud-panel" id="deductUnitBoardPanel">
             <div class="panel-header ph-compact deduct-list-panel-header">
-                <div class="ph-title ph-title-accent">유닛 보드</div>
+                <div class="ph-title ph-title-accent">코스트 보드</div>
             </div>
             <div class="panel-section cost-section pc-cost-body">
                 <div id="deductUnitBoardDashboard" class="magic-grid deduct-unit-board-grid"></div>
@@ -341,7 +342,6 @@
                 <div class="cart-header" data-action="toggleCartCollapse">
                     <span class="cart-title">장바구니</span>
                     <div class="cart-header-actions">
-                        <button type="button" class="cart-clear-btn" data-action="clearCartItems" title="선택/보류/완료 비우기">비우기</button>
                         <span id="deductCartCollapseBtn" class="cart-collapse-btn">▼</span>
                     </div>
                 </div>
