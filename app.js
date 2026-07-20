@@ -107,8 +107,7 @@
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
-    const DEDUCT_AUTO_COMPLETE_ATOMS = Object.freeze(["땅거미지뢰", "자동포탑"]);
-    const DEDUCT_UNIT_BOARD_ATOMS = Object.freeze([
+    const DEDUCT_LIST_BOARD_ATOMS = Object.freeze([
         "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
         "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
         "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
@@ -116,27 +115,25 @@
         "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
         "짐레이너", "대천사", "제라툴", "거신", "케리건",
         "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
-        "공허포격기", "우르사돈수", "우르사돈암", ...DEDUCT_AUTO_COMPLETE_ATOMS
+        "공허포격기", "우르사돈수", "우르사돈암", "땅거미지뢰", "자동포탑"
     ]);
-    const DEDUCT_UNIT_ATOM_HASH = Object.fromEntries(DEDUCT_UNIT_BOARD_ATOMS.map(a => [clean(a), a]));
-    const DEDUCT_UNIT_BOARD_IDS = new Set(DEDUCT_UNIT_BOARD_ATOMS.map(clean));
-    const DEDUCT_AUTO_COMPLETE_IDS = makeCleanSet(DEDUCT_AUTO_COMPLETE_ATOMS);
-    const DEDUCT_MANUAL_BOARD_ATOMS = Object.freeze(DEDUCT_UNIT_BOARD_ATOMS.filter(atom => !DEDUCT_AUTO_COMPLETE_IDS.has(clean(atom))));
-    const DEDUCT_OWNED_STEP_BY_ID = new Map([[clean("자동포탑"), 5]]);
-    const DEDUCT_EXCLUDED_COST_IDS = makeCleanSet(["갓오타", "메시브"]);
+    const DEDUCT_LIST_ATOM_HASH = Object.fromEntries(DEDUCT_LIST_BOARD_ATOMS.map(a => [clean(a), a]));
+    const DEDUCT_LIST_BOARD_IDS = new Set(DEDUCT_LIST_BOARD_ATOMS.map(clean));
+    const DEDUCT_LIST_OWNED_STEP_BY_ID = new Map([[clean("자동포탑"), 5]]);
+    const DEDUCT_LIST_EXCLUDED_COST_IDS = makeCleanSet(["갓오타", "메시브"]);
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_HIDDEN_IDS = makeCleanSet(SYSTEM_CONFIG.search.hiddenIds || []);
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
     const CLEAN_SEARCH_ALLOW_IDS = new Set((SYSTEM_CONFIG.search.searchAllowIds || []).map(clean));
     const _behaviors = SYSTEM_CONFIG.unitBehaviors || {};
-    const SPECIAL_RENDER_LIST = Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
+    const CHECKLIST_RENDER_SLOT_LIST = Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
     const COMBO_SLOT_SET = new Set(Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => clean(id)));
     const COMBO_SLOT_RAWS = Object.entries(_behaviors).filter(([, b]) => b.comboSlot).map(([id]) => id);
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
     const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(SYSTEM_CONFIG.primaryUnitGroups || {}).flat());
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
-    const CLEAN_CRAFT_BATCH = Object.fromEntries(SPECIAL_RENDER_LIST.map(e => [e.id, e.batch]));
-    const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => e.id);
+    const CHECKLIST_CRAFT_BATCH_BY_ID = Object.fromEntries(CHECKLIST_RENDER_SLOT_LIST.map(e => [e.id, e.batch]));
+    const CHECKLIST_AUTO_COMPLETE_IDS = CHECKLIST_RENDER_SLOT_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => e.id);
     const CLEAN_SPECIAL_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.specialConditions).map(([k, v]) => [clean(k), v]));
     const CLEAN_UNIT_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitConditions || {}).map(([k, v]) => [clean(k), v]));
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
@@ -202,7 +199,7 @@
     // ── 01-4. 선택·완료·화면 상태 ──────────────────────────────────────────
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
-    let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isDeductionBoardRendered = false;
+    let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isChecklistBoardRendered = false;
     let _ownedInputMode = 'auto';
     const ownedMagic = new Map(), completedOwnedMagic = new Map();
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
@@ -216,10 +213,10 @@
     // ── 02-1. DOM·등급·검색 공통 유틸 ──────────────────────────────────────
     const getEl = (id) => document.getElementById(id);
     const triggerHaptic = () => navigator.vibrate?.(APP_INTERNAL.hapticDuration);
-    const virtualUnitIds = new Set(AUTO_COMPLETE_IDS);
+    const virtualUnitIds = new Set(CHECKLIST_AUTO_COMPLETE_IDS);
     const isToolRequirement = (parent, child) => CLEAN_TOOLS_MAP[parent]?.includes(child);
     const getToolNeed = (parent) => CLEAN_TOOLS_MAP[parent] || [];
-    const isSpecialRender = (id) => SPECIAL_RENDER_LIST.some(e => e.id === id);
+    const isSpecialRender = (id) => CHECKLIST_RENDER_SLOT_LIST.some(e => e.id === id);
     const isSearchAllowed = (id) => CLEAN_SEARCH_ALLOW_IDS.has(id);
     const isHiddenUnit = (id) => CLEAN_HIDDEN_IDS.has(id);
     const isRestrictedUnit = (id) => CLEAN_RESTRICTED_IDS.has(id);
@@ -313,7 +310,7 @@
                 const uid = normalizeSavedId(rawUid);
                 const qty = normalizeOwnedMagicQty(rawQty);
                 map.delete(rawUid);
-                if (qty > 0 && DEDUCT_UNIT_BOARD_IDS.has(uid)) map.set(uid, qty);
+                if (qty > 0 && DEDUCT_LIST_BOARD_IDS.has(uid)) map.set(uid, qty);
             }
         });
         activeUnits.forEach((_, uid) => pausedUnits.delete(uid));
@@ -378,7 +375,7 @@
                     let type = 'atom', key = cName;
                     if (COMBO_SLOT_SET.has(cName)) { type = 'special'; }
                     else {
-                        const spKey = AUTO_COMPLETE_IDS.find(k => k === cName || cName.includes(k));
+                        const spKey = CHECKLIST_AUTO_COMPLETE_IDS.find(k => k === cName || cName.includes(k));
                         if (spKey) key = spKey; else key = ATOM_HASH[getUnitId(cName)] || getUnitId(cName);
                     }
                     u.parsedCost.push({ type, key, qty, name: u.name });
@@ -424,11 +421,11 @@
             if (state.ownedInputMode === 'manual' || state.ownedInputMode === 'auto') _ownedInputMode = state.ownedInputMode;
             state.ownedMagic?.forEach?.(([k, v]) => {
                 const uid = normalizeSavedId(k);
-                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) setOwnedMapValue(ownedMagic, uid, v);
+                if (DEDUCT_LIST_BOARD_IDS.has(uid)) setOwnedMapValue(ownedMagic, uid, v);
             });
             state.completedOwnedMagic?.forEach?.(([k, v]) => {
                 const uid = normalizeSavedId(k);
-                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) setOwnedMapValue(completedOwnedMagic, uid, v);
+                if (DEDUCT_LIST_BOARD_IDS.has(uid)) setOwnedMapValue(completedOwnedMagic, uid, v);
             });
             _cartCollapsed = false;
 
@@ -503,6 +500,7 @@
             }
         });
         if (successCount > 0) {
+            if (_currentViewMode === 'deductlist') deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
             debouncedUpdateAllPanels();
             const searchInp = getEl('unitSearchInput');
             if (searchInp) searchInp.value = '';
@@ -536,9 +534,8 @@
         return counts;
     }
 
-    function calculateDeductedRequirements() {
+    function calculateChecklistBoardRequirements() {
         let reqMap = new Map(), baseMap = new Map(), reasonMap = new Map();
-        const effectiveCompletedUnits = getEffectiveCompletedUnits();
         let specialReq = {}, baseSpecialReq = {}, specialReason = {};
         COMBO_SLOT_RAWS.forEach(k => { specialReq[k] = 0; baseSpecialReq[k] = 0; specialReason[k] = new Map(); });
 
@@ -557,7 +554,7 @@
                 let tNeed = map.get(uid) || 0;
                 if ((!unitMap.has(uid) && !virtualUnitIds.has(uid)) || tNeed <= 0) continue;
                 
-                let eNeed = tNeed - (isDeficit ? Math.min(mergedActive.has(uid) ? 0 : (effectiveCompletedUnits.get(uid) || 0), tNeed) : 0);
+                let eNeed = tNeed - (isDeficit ? Math.min(mergedActive.has(uid) ? 0 : (completedUnits.get(uid) || 0), tNeed) : 0);
                 const prevNeed = processed.get(uid) || 0;
                 let delta = eNeed - prevNeed;
                 if (delta <= 0) continue;
@@ -586,7 +583,7 @@
         let deficits = calcBFS(true);
 
         baseDeficits.forEach((val, k) => val > 0 && baseMap.set(k, val));
-        deficits.forEach((val, k) => val > 0 && reqMap.set(k, Math.max(0, val - (effectiveCompletedUnits.get(k) || 0))));
+        deficits.forEach((val, k) => val > 0 && reqMap.set(k, Math.max(0, val - (completedUnits.get(k) || 0))));
 
         const updateSpecials = (map, reqObj) => map.forEach((needed, uid) => unitMap.get(uid)?.parsedCost?.forEach(pc => {
             if (COMBO_SLOT_SET.has(pc.key)) reqObj[pc.key] += pc.qty * needed;
@@ -594,7 +591,7 @@
         
         updateSpecials(baseDeficits, baseSpecialReq);
         updateSpecials(deficits, specialReq);
-        COMBO_SLOT_RAWS.forEach(k => specialReq[k] = Math.max(0, specialReq[k] - (effectiveCompletedUnits.get(clean(k)) || effectiveCompletedUnits.get(k) || 0)));
+        COMBO_SLOT_RAWS.forEach(k => specialReq[k] = Math.max(0, specialReq[k] - (completedUnits.get(clean(k)) || completedUnits.get(k) || 0)));
 
         let rootTracking = new Map();
         baseDeficits.forEach((_, uid) => rootTracking.set(uid, new Map()));
@@ -656,7 +653,7 @@
     }
 
     function clampCompletedUnits(calcResult) {
-        const { baseMap, baseSpecialReq } = calcResult || calculateDeductedRequirements();
+        const { baseMap, baseSpecialReq } = calcResult || calculateChecklistBoardRequirements();
         let changed = false;
         for (let [uid, rawQty] of [...completedUnits.entries()]) {
             const compQty = parseInt(rawQty, 10);
@@ -681,29 +678,26 @@
     }
 
     function getStableCalculationState() {
-        let calcResult = calculateDeductedRequirements();
-        if (clampCompletedUnits(calcResult)) calcResult = calculateDeductedRequirements();
+        let calcResult = checklistBoardRules.calculateRequirements();
+        if (checklistBoardRules.clampCompleted(calcResult)) calcResult = checklistBoardRules.calculateRequirements();
         return {
             calcResult,
-            deductListState: calculateDeductListRequirements()
+            deductListState: deductListBoardRules.calculateRequirements()
         };
     }
 
     function debouncedUpdateAllPanels() {
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
-            let state = getStableCalculationState();
-            if (completeReadyTargets(state.deductListState)) state = getStableCalculationState();
-
-            const { calcResult, deductListState } = state;
+            const { calcResult, deductListState } = getStableCalculationState();
             _lastCalcResult = calcResult;
             updateMagicDashboard();
             updateEssence();
-            updateDeductUnitBoard(deductListState);
-            updateDeductOwnedBoard(deductListState);
-            updateTabsUI();
-            updateTabContentUI();
-            updateDeductionBoard(calcResult);
+            deductListBoardRules.updateUnitBoard(deductListState);
+            deductListBoardRules.updateOwnedBoard(deductListState);
+            unitCategoryBoard.updateTabs();
+            unitCategoryBoard.updateSelection();
+            checklistBoardRules.updateBoard(calcResult);
             updateCartUI();
             updateEmptyMsg();
             saveNexusState();
@@ -712,6 +706,14 @@
 
 
     // ── 05. 완료·복구·초기화 ───────────────────────────────────────────────
+    function setCompletedTargetFromActive(uid, qty, { accumulate = false } = {}) {
+        if (!uid || qty <= 0) return;
+        const nextQty = accumulate ? (completedTargets.get(uid) || 0) + qty : qty;
+        completedTargets.set(uid, nextQty);
+        activeUnits.delete(uid);
+        _cartTab = 'done';
+    }
+
     function deleteCompletedRecipe(uid, multiplier) {
         const u = unitMap.get(uid); if (!u) return;
         u.parsedRecipe?.forEach(child => {
@@ -725,7 +727,7 @@
             }
         });
         u.parsedCost?.forEach(pc => {
-            if (COMBO_SLOT_SET.has(pc.key) && !SPECIAL_RENDER_LIST.some(e => e.id === pc.key)) {
+            if (COMBO_SLOT_SET.has(pc.key) && !CHECKLIST_RENDER_SLOT_LIST.some(e => e.id === pc.key)) {
                 const needed = pc.qty * multiplier;
                 const comp = completedUnits.get(pc.key) || 0;
                 const consume = Math.min(needed, comp);
@@ -737,14 +739,14 @@
         });
     }
 
-    function completeUnit(uid, amount) {
+    function completeChecklistUnit(uid, amount) {
         if (_completeLock.has(uid)) return;
         _completeLock.add(uid);
         const cWrapEl = document.getElementById(`craft-wrap-${uid}`);
         const lockBtns = cWrapEl ? Array.from(cWrapEl.querySelectorAll('button')) : [];
         lockBtns.forEach(b => b.disabled = true);
         try {
-            const { reqMap, baseMap, specialReq } = calculateDeductedRequirements();
+            const { reqMap, baseMap, specialReq } = checklistBoardRules.calculateRequirements();
             const isTarget = activeUnits.has(uid);
             const isSpecial = COMBO_SLOT_SET.has(uid);
             let isMergedSlot = false;
@@ -768,21 +770,17 @@
 
                 if (isPureTarget) {
                     if (newComp >= (activeUnits.get(uid) || 1)) {
-                        completedTargets.set(uid, activeUnits.get(uid) || 1);
-                        activeUnits.delete(uid);
+                        setCompletedTargetFromActive(uid, activeUnits.get(uid) || 1);
                         completedUnits.delete(uid);
-                        _cartTab = 'done';
                     }
                 } else if (isTarget && isMergedSlot) {
                     const totalQty = baseMap.get(uid) || 1;
                     if (newComp >= totalQty) {
                         const activeQty = activeUnits.get(uid) || 1;
                         const matQty = totalQty - activeQty;
-                        completedTargets.set(uid, activeQty);
-                        activeUnits.delete(uid);
+                        setCompletedTargetFromActive(uid, activeQty);
                         if (matQty > 0) completedUnits.set(uid, matQty);
                         else completedUnits.delete(uid);
-                        _cartTab = 'done';
                     }
                 }
                 toggleHighlight(null);
@@ -811,8 +809,8 @@
         triggerHaptic(); debouncedUpdateAllPanels();
     }
 
-    function completeNonDeductibleTargets() {
-        if (activeUnits.size === 0) return false;
+    function completeDeductListTargetsWithoutBoardCost() {
+        if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
         const targets = [];
         activeUnits.forEach((qty, uid) => {
             if (!hasDeductListBaseRequirementForUnit(uid, qty)) targets.push([uid, qty]);
@@ -821,46 +819,36 @@
 
         targets.forEach(([uid, qty]) => {
             deleteCompletedRecipe(uid, qty);
-            completedTargets.set(uid, (completedTargets.get(uid) || 0) + qty);
-            activeUnits.delete(uid);
+            setCompletedTargetFromActive(uid, qty, { accumulate: true });
         });
-        _cartTab = 'done';
         toggleHighlight(null);
         return true;
     }
 
-    function completeDeductTargetsIfReady(state) {
-        if (activeUnits.size === 0 || !state) return false;
-        const hasManualRemaining = DEDUCT_MANUAL_BOARD_ATOMS.some(atom => (state.remaining?.[atom] || 0) > 0);
-        if (hasManualRemaining) return false;
+    function completeDeductListTargetsIfBoardCovered(state) {
+        if (_currentViewMode !== 'deductlist' || activeUnits.size === 0 || !state) return false;
+        const hasRemaining = DEDUCT_LIST_BOARD_ATOMS.some(atom => (state.remaining?.[atom] || 0) > 0);
+        if (hasRemaining) return false;
 
-        DEDUCT_AUTO_COMPLETE_ATOMS.forEach(atom => {
-            const uid = clean(atom);
-            const need = normalizeOwnedMagicQty(state.base?.[atom] || 0);
-            if (need > 0) ownedMagic.set(uid, need);
-            else ownedMagic.delete(uid);
-        });
-
-        activeUnits.forEach((qty, uid) => {
+        Array.from(activeUnits.entries()).forEach(([uid, qty]) => {
             deleteCompletedRecipe(uid, qty);
-            completedTargets.set(uid, (completedTargets.get(uid) || 0) + qty);
+            setCompletedTargetFromActive(uid, qty, { accumulate: true });
         });
         completedOwnedMagic.clear();
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const qty = normalizeOwnedMagicQty(state.base?.[atom] || 0);
             if (qty > 0) completedOwnedMagic.set(clean(atom), qty);
         });
-        activeUnits.clear();
         ownedMagic.clear();
-        _cartTab = 'done';
         toggleHighlight(null);
         return true;
     }
 
-    function completeReadyTargets(state = calculateDeductListRequirements()) {
-        let changed = completeNonDeductibleTargets();
-        const nextState = changed ? calculateDeductListRequirements() : state;
-        if (completeDeductTargetsIfReady(nextState)) changed = true;
+    function completeDeductListReadyTargets(state = calculateDeductListRequirements()) {
+        if (_currentViewMode !== 'deductlist') return false;
+        let changed = completeDeductListTargetsWithoutBoardCost();
+        const nextState = changed ? deductListBoardRules.calculateRequirements() : state;
+        if (completeDeductListTargetsIfBoardCovered(nextState)) changed = true;
         return changed;
     }
 
@@ -923,7 +911,7 @@
         toggleHighlight(null); debouncedUpdateAllPanels();
     }
 
-    function resetCodex() {
+    function resetUnitCategoryBoard() {
         clearProgressState();
         toggleHighlight(null);
         syncCartVisibility();
@@ -963,21 +951,21 @@
             if (delta <= 0) continue;
             processed.set(uid, need);
             getToolNeed(uid).forEach(toolId => {
-                if (DEDUCT_EXCLUDED_COST_IDS.has(toolId)) return;
+                if (DEDUCT_LIST_EXCLUDED_COST_IDS.has(toolId)) return;
                 const next = isOneTime(unitMap.get(toolId)) ? Math.min((reqMap.get(toolId) || 0) + 1, 1) : (reqMap.get(toolId) || 0) + 1;
                 reqMap.set(toolId, next);
                 if (!inQueue.has(toolId)) { queue.push(toolId); inQueue.add(toolId); }
             });
             unitMap.get(uid)?.parsedRecipe?.forEach(child => {
-                if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_EXCLUDED_COST_IDS.has(child.id)) return;
-                if (!unitMap.has(child.id) && !DEDUCT_UNIT_BOARD_IDS.has(child.id)) return;
+                if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_LIST_EXCLUDED_COST_IDS.has(child.id)) return;
+                if (!unitMap.has(child.id) && !DEDUCT_LIST_BOARD_IDS.has(child.id)) return;
                 const next = isOneTime(unitMap.get(child.id)) ? Math.min((reqMap.get(child.id) || 0) + child.qty * delta, 1) : (reqMap.get(child.id) || 0) + child.qty * delta;
                 reqMap.set(child.id, next);
                 if (!inQueue.has(child.id)) { queue.push(child.id); inQueue.add(child.id); }
             });
         }
         const base = {};
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             base[atom] = Math.max(0, reqMap.get(uid) || 0);
         });
@@ -992,7 +980,7 @@
         if (!unitMap.has(uid)) return false;
         const single = new Map([[uid, qty]]);
         const base = calculateDeductListBaseRequirementsFrom(single);
-        return DEDUCT_UNIT_BOARD_ATOMS.some(atom => (base[atom] || 0) > 0);
+        return DEDUCT_LIST_BOARD_ATOMS.some(atom => (base[atom] || 0) > 0);
     }
 
     function calculateDeductListCoverage(base = calculateDeductListBaseRequirements()) {
@@ -1002,15 +990,15 @@
             map.set(uid, (map.get(uid) || 0) + qty);
         };
         const expandOwnedUnit = (uid, qty, path) => {
-            if (!uid || qty <= 0 || path.has(uid) || DEDUCT_EXCLUDED_COST_IDS.has(uid)) return;
+            if (!uid || qty <= 0 || path.has(uid) || DEDUCT_LIST_EXCLUDED_COST_IDS.has(uid)) return;
             path.add(uid);
             try {
-                if (DEDUCT_UNIT_BOARD_IDS.has(uid)) addCoverage(ownedCoverage, uid, qty);
+                if (DEDUCT_LIST_BOARD_IDS.has(uid)) addCoverage(ownedCoverage, uid, qty);
                 const unit = unitMap.get(uid);
                 if (!unit) return;
                 getToolNeed(uid).forEach(toolId => expandOwnedUnit(toolId, 1, path));
                 unit.parsedRecipe?.forEach(child => {
-                    if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_EXCLUDED_COST_IDS.has(child.id)) return;
+                    if (!child.id || isToolRequirement(uid, child.id) || DEDUCT_LIST_EXCLUDED_COST_IDS.has(child.id)) return;
                     expandOwnedUnit(child.id, child.qty * qty, path);
                 });
             } finally {
@@ -1018,7 +1006,7 @@
             }
         };
         ownedMagic.forEach((qty, uid) => {
-            const atom = DEDUCT_UNIT_ATOM_HASH[uid];
+            const atom = DEDUCT_LIST_ATOM_HASH[uid];
             if (!atom) return;
             const effective = Math.min(normalizeOwnedMagicQty(qty), Math.max(0, base[atom] || 0));
             if (effective > 0) expandOwnedUnit(uid, effective, new Set());
@@ -1030,54 +1018,37 @@
         const base = calculateDeductListBaseRequirements();
         const ownedCoverage = calculateDeductListCoverage(base);
         const remaining = {};
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             remaining[atom] = Math.max(0, (base[atom] || 0) - (ownedCoverage.get(uid) || 0));
         });
         return { base, remaining };
     }
 
-    function getDeductLinkedCompletedUnits() {
-        const linked = new Map();
-        const base = calculateDeductListBaseRequirements();
-        const ownedCoverage = calculateDeductListCoverage(base);
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
-            const uid = clean(atom);
-            if (!unitMap.has(uid) && !virtualUnitIds.has(uid)) return;
-            const maxNeed = Math.max(0, base[atom] || 0);
-            if (maxNeed <= 0) return;
-            const linkedQty = Math.min(maxNeed, Math.max(0, ownedCoverage.get(uid) || 0));
-            if (linkedQty > 0) linked.set(uid, linkedQty);
-        });
-        return linked;
-    }
-
-    function getEffectiveCompletedUnits() {
-        const merged = new Map(completedUnits);
-        getDeductLinkedCompletedUnits().forEach((qty, uid) => {
-            merged.set(uid, (merged.get(uid) || 0) + qty);
-        });
-        return merged;
+    function renderDeductListBoardSlots(boardId, renderSlot) {
+        const board = getEl(boardId);
+        if (!board) return false;
+        board.innerHTML = DEDUCT_LIST_BOARD_ATOMS.map(renderSlot).join('');
+        return true;
     }
 
     function renderDeductUnitBoard() {
-        const board = getEl('deductUnitBoardDashboard'); if (!board) return;
-        board.innerHTML = DEDUCT_UNIT_BOARD_ATOMS
-            .map(a => `<div class="cost-slot is-magic-slot" id="deduct-vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name">${a}</div></div>`)
-            .join('');
+        renderDeductListBoardSlots('deductUnitBoardDashboard', atom =>
+            `<div class="cost-slot is-magic-slot" id="deduct-vslot-${clean(atom)}"><div class="cost-val"></div><div class="cost-name">${atom}</div></div>`
+        );
     }
 
     function renderDeductOwnedBoard() {
-        const board = getEl('deductOwnedDashboard'); if (!board) return;
-        board.innerHTML = DEDUCT_UNIT_BOARD_ATOMS.map(atom => {
+        const rendered = renderDeductListBoardSlots('deductOwnedDashboard', atom => {
             const uid = clean(atom);
             if (_ownedInputMode === 'manual') {
                 return `<div class="cost-slot inventory-slot inventory-slot-manual is-magic-slot" id="deduct-owned-slot-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 수동 입력"><input type="text" inputmode="numeric" pattern="[0-9]*" class="owned-manual-input" id="deduct-owned-input-${uid}" data-magic-id="${uid}" aria-label="${atom} 보유량 입력"><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></div>`;
             }
             return `<button type="button" class="cost-slot inventory-slot is-magic-slot" id="deduct-owned-slot-${uid}" data-action="increaseOwnedMagic" data-magic-id="${uid}" aria-label="${atom} 보유량 증가"><div class="owned-main-val"></div><div class="owned-needed-badge"></div><div class="cost-name">${atom}</div></button>`;
-        }).join('');
+        });
+        if (!rendered) return;
         updateOwnedInputModeUI();
-        updateDeductOwnedBoard(calculateDeductListRequirements());
+        deductListBoardRules.updateOwnedBoard(deductListBoardRules.calculateRequirements());
     }
 
     function updateDeductListEssence() {
@@ -1098,7 +1069,7 @@
     }
 
     function updateDeductUnitBoard(state = calculateDeductListRequirements()) {
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const slot = getEl(`deduct-vslot-${clean(atom)}`);
             const valueEl = slot?.querySelector('.cost-val');
             if (!slot || !valueEl) return;
@@ -1111,7 +1082,7 @@
 
     function updateDeductOwnedBoard(state = calculateDeductListRequirements()) {
         const showCompletedOwned = activeUnits.size === 0 && completedTargets.size > 0 && completedOwnedMagic.size > 0;
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             const slot = getEl(`deduct-owned-slot-${uid}`);
             if (!slot) return;
@@ -1143,7 +1114,7 @@
             slot.classList.toggle('owned-over', isOver);
             slot.classList.toggle('partial', baseNeed > 0 && owned > 0 && owned < baseNeed);
             slot.classList.toggle('covered', baseNeed > 0 && owned === baseNeed);
-            const step = DEDUCT_OWNED_STEP_BY_ID.get(uid) || 1;
+            const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
             const guide = showCompletedOwned ? '완료 당시 보유 수량' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소`);
             slot.setAttribute('aria-label', `${atom} 보유 ${owned}, 남은 필요 ${remainingNeed}. ${guide}`);
             slot.removeAttribute('title');
@@ -1165,24 +1136,25 @@
         if (mode !== 'auto' && mode !== 'manual') return;
         if (_ownedInputMode === mode) { updateOwnedInputModeUI(); return; }
         _ownedInputMode = mode;
-        renderDeductOwnedBoard();
+        deductListBoardRules.renderOwnedBoard();
         saveNexusState();
     }
 
     function setOwnedMagicQty(rawUid, qty) {
         const uid = normalizeSavedId(rawUid);
-        if (!DEDUCT_UNIT_BOARD_IDS.has(uid)) return;
+        if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const next = normalizeOwnedMagicQty(qty);
         if (next > 0) ownedMagic.set(uid, next); else ownedMagic.delete(uid);
+        deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
         triggerHaptic();
         debouncedUpdateAllPanels();
     }
 
     function changeOwnedMagicQty(rawUid, direction) {
         const uid = normalizeSavedId(rawUid);
-        if (!DEDUCT_UNIT_BOARD_IDS.has(uid)) return;
+        if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const current = ownedMagic.get(uid) || 0;
-        const step = DEDUCT_OWNED_STEP_BY_ID.get(uid) || 1;
+        const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
         setOwnedMagicQty(uid, current + (direction * step));
     }
 
@@ -1196,12 +1168,12 @@
 
     function completeOwnedGroup(group) {
         if (!group) return;
-        const state = calculateDeductListRequirements();
+        const state = deductListBoardRules.calculateRequirements();
         let changed = false;
-        DEDUCT_UNIT_BOARD_ATOMS.forEach(atom => {
+        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
             const unit = unitMap.get(uid);
-            const isTargetGroup = group === 'all' ? !DEDUCT_AUTO_COMPLETE_IDS.has(uid) : unit?.grade === group;
+            const isTargetGroup = group === 'all' ? true : unit?.grade === group;
             if (!isTargetGroup) return;
             const need = Math.max(0, state.base?.[atom] || 0);
             if (need <= 0) return;
@@ -1211,7 +1183,7 @@
                 changed = true;
             }
         });
-        const completedByGroup = group === 'all' && completeReadyTargets(calculateDeductListRequirements());
+        const completedByGroup = deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
         if (changed || completedByGroup) {
             triggerHaptic();
             debouncedUpdateAllPanels();
@@ -1221,7 +1193,7 @@
     }
 
     function updateEssence() {
-        let tE = getEssenceCount(activeUnits), cE = getEssenceCount(getEffectiveCompletedUnits()), totalEssence = 0;
+        let tE = getEssenceCount(activeUnits), cE = getEssenceCount(completedUnits), totalEssence = 0;
 
         const hybridKey = SYSTEM_CONFIG.essence.mapping["혼종"] || "혼종";
         const hybridWeight = SYSTEM_CONFIG.policy.hybridWeight || 3;
@@ -1284,9 +1256,8 @@
         };
 
         let activePath = new Set(), compPath = new Set();
-        const effectiveCompletedUnits = getEffectiveCompletedUnits();
         activeUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, tMap, activePath));
-        effectiveCompletedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
+        completedUnits.forEach((c, k) => c > 0 && flattenUnitToAtoms(k, c, cMap, compPath));
 
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
@@ -1309,8 +1280,8 @@
 
 
     // ── 07. 체크리스트 보드 ────────────────────────────────────────────────
-    function renderDeductionBoard() {
-        if (_isDeductionBoardRendered) return;
+    function renderChecklistBoard() {
+        if (_isChecklistBoardRendered) return;
         const boardEl = getEl('deductionBoard');
         if (!boardEl) return;
         const renderSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
@@ -1319,24 +1290,24 @@
         const allUnits = Array.from(unitMap.values());
         const specialSlots = COMBO_SLOT_RAWS.map(k => renderSlot(k, k, '코스트')).join('');
         const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForChecklist) && !COMBO_SLOT_SET.has(u.id)).map(u => renderSlot(u.id, u.name, u.grade)).join('');
-        const autoSlots = SPECIAL_RENDER_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => renderSlot(e.id, e.raw, '코스트')).join('');
+        const autoSlots = CHECKLIST_RENDER_SLOT_LIST.filter(e => !COMBO_SLOT_SET.has(e.id)).map(e => renderSlot(e.id, e.raw, '코스트')).join('');
 
         const _exIds = new Set((SYSTEM_CONFIG.policy.hideCompletedExcludeGroups || []).map(t => titleToGridId[t]).filter(Boolean));
 
         boardEl.innerHTML = `<div id="deduct-empty-msg" class="empty-msg" style="display:none;"></div><div id="deduct-slot-pool" style="display:none;">${specialSlots}${unitSlots}${autoSlots}</div>` + GROUP_DEFS.map(g => getGrp(g.id, g.pid, g.title, g.resetLevel, g.isCol, g.alwaysShow, g.alwaysOpen, g.resetLabel)).join('');
         boardEl.dataset.excludeGridIds = JSON.stringify([..._exIds]);
-        _isDeductionBoardRendered = true;
+        _isChecklistBoardRendered = true;
     }
 
-    function ensureDeductionBoardRendered(calcResult) {
-        if (!_isDeductionBoardRendered) renderDeductionBoard();
-        if (!_isDeductionBoardRendered) return false;
-        updateDeductionBoard(calcResult || _lastCalcResult || calculateDeductedRequirements());
+    function ensureChecklistBoardRendered(calcResult) {
+        if (!_isChecklistBoardRendered) renderChecklistBoard();
+        if (!_isChecklistBoardRendered) return false;
+        checklistBoardRules.updateBoard(calcResult || _lastCalcResult || checklistBoardRules.calculateRequirements());
         updateEmptyMsg();
         return true;
     }
 
-    function wrapDeductGridPages(grid, pageSize) {
+    function wrapChecklistGridPages(grid, pageSize) {
         if (!grid) return;
         const items = Array.from(grid.children).filter(el =>
             el.classList.contains('deduct-slot') ||
@@ -1355,10 +1326,9 @@
         grid.appendChild(frag);
     }
 
-    function updateDeductionBoard(calcResult) {
-        if (!_isDeductionBoardRendered) return;
-        const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || calculateDeductedRequirements();
-        const effectiveCompletedUnits = getEffectiveCompletedUnits();
+    function updateChecklistBoard(calcResult) {
+        if (!_isChecklistBoardRendered) return;
+        const { reqMap, baseMap, reasonMap, specialReq, baseSpecialReq, specialReason } = calcResult || checklistBoardRules.calculateRequirements();
         const mergedSlots = new Set();
 
         const getReasonParentNeed = (info) => {
@@ -1380,7 +1350,7 @@
                 baseQty: getReasonBaseQty(rId, info),
                 displayQty: info?.depth === 0 ? 0 : getReasonBaseQty(rId, info)
             }));
-            let remainingCompleted = Math.max(0, effectiveCompletedUnits.get(slotId) || 0);
+            let remainingCompleted = Math.max(0, completedUnits.get(slotId) || 0);
             entries
                 .filter(entry => entry.baseQty > 0)
                 .sort((a, b) => a.baseQty - b.baseQty || a.index - b.index)
@@ -1479,8 +1449,8 @@
             const isMergedSlot = isTarget && !isSpecialCost && mergedSlots.has(id);
             
             let needed = isSpecialCost ? (specialReq[id]||0) : (reqMap.get(id)||0);
-            if (isMergedSlot) needed = Math.max(0, (baseMap.get(id)||0) - (effectiveCompletedUnits.get(id)||0));
-            else if (isTarget && !isSpecialCost) needed = Math.max(0, (activeUnits.get(id)||1) - (effectiveCompletedUnits.get(id)||0));
+            if (isMergedSlot) needed = Math.max(0, (baseMap.get(id)||0) - (completedUnits.get(id)||0));
+            else if (isTarget && !isSpecialCost) needed = Math.max(0, (activeUnits.get(id)||1) - (completedUnits.get(id)||0));
             if (isCompletedTarget) needed = 0;
             
             let baseNeeded = isSpecialCost ? (baseSpecialReq[id]||0) :
@@ -1573,8 +1543,8 @@
                 if (isInactive) cWrap.innerHTML = '';
                 else if (isAutoApply) cWrap.innerHTML = `<span class="auto-complete-label">자동 완료됨</span>`;
                 else if (!isCompleted) {
-                    const bs = CLEAN_CRAFT_BATCH[id] || 1;
-                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">필요</span></div><div class="craft-wrap-right">${(needed > bs || (bs > 1 && needed > 0)) ? `<button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="${bs}">+ ${bs}개 완료</button>` : needed > 1 ? `<button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1">+ 1개 완료</button>` : ''}<button type="button" class="btn-complete" data-action="completeUnit" data-uid="${id}">전체완료</button></div>`;
+                    const bs = CHECKLIST_CRAFT_BATCH_BY_ID[id] || 1;
+                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">필요</span></div><div class="craft-wrap-right">${(needed > bs || (bs > 1 && needed > 0)) ? `<button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="${bs}">+ ${bs}개 완료</button>` : needed > 1 ? `<button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1">+ 1개 완료</button>` : ''}<button type="button" class="btn-complete" data-action="completeChecklistUnit" data-uid="${id}">전체완료</button></div>`;
                 } else cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">0</span><span class="req-label">필요</span></div><div class="craft-wrap-right"><span class="complete-done-label">완료됨</span></div>`;
             }
 
@@ -1655,7 +1625,7 @@
         };
 
         COMBO_SLOT_RAWS.filter(k => !topFixedSet.has(k)).forEach(k => processSlot(k));
-        AUTO_COMPLETE_IDS.filter(id => !topFixedSet.has(id)).forEach(id => processSlot(id));
+        CHECKLIST_AUTO_COMPLETE_IDS.filter(id => !topFixedSet.has(id)).forEach(id => processSlot(id));
         
         topFixedRows.forEach(row => {
             row.forEach(uid => processSlot(uid, true));
@@ -1685,7 +1655,7 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        Object.values(grids).forEach(g => wrapDeductGridPages(g, 9));
+        Object.values(grids).forEach(g => wrapChecklistGridPages(g, 9));
 
         Object.values(grids).forEach(g => {
             if (!g) return;
@@ -1804,9 +1774,6 @@
             `</div></div>`;
     }
 
-    function buildUnitCard(item, idx) { return buildCard(item, idx, '', true); }
-
-    function buildFavCard(item, idx, categoryKey) { return buildCard(item, idx, `fav-${categoryKey}-`, true); }
 
     function buildPagerPages(htmlItems, pageSize, pageClass) {
         if (!Array.isArray(htmlItems) || htmlItems.length === 0) return '';
@@ -1818,7 +1785,7 @@
         return html;
     }
 
-    function getCodexSort(a, b) {
+    function getUnitCategorySort(a, b) {
         return (SYSTEM_CONFIG.sorting.order[b.name] || 0) - (SYSTEM_CONFIG.sorting.order[a.name] || 0) ||
             (isOneTime(a) ? -1 : isOneTime(b) ? 1 : 0) ||
             getGradeIndex(b.grade) - getGradeIndex(a.grade) ||
@@ -1826,7 +1793,7 @@
             a.name.localeCompare(b.name);
     }
 
-    function getCodexVisibleItems() {
+    function getUnitCategoryVisibleItems() {
         const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
         return Array.from(unitMap.values()).filter(u =>
             (getGradeIndex(u.grade) >= minGradeIdx || isSearchAllowed(u.id)) && !isHiddenUnit(u.id)
@@ -1834,7 +1801,7 @@
     }
 
     function getFavoriteItems() {
-        return getCodexVisibleItems().filter(u => _favorites.has(u.id)).sort(getCodexSort);
+        return getUnitCategoryVisibleItems().filter(u => _favorites.has(u.id)).sort(getUnitCategorySort);
     }
 
     function buildFavoriteSection(categoryKey) {
@@ -1842,7 +1809,7 @@
         if (favItems.length > 0) {
             return `<div class="codex-fav-section">` +
                 `<div class="codex-fav-header"><span class="codex-fav-title">⭐ 즐겨찾기</span></div>` +
-                `<div class="codex-fav-grid">${buildPagerPages(favItems.map((item, idx) => buildFavCard(item, idx, categoryKey)), 3, 'codex-page codex-fav-page')}</div>` +
+                `<div class="codex-fav-grid">${buildPagerPages(favItems.map((item, idx) => buildCard(item, idx, `fav-${categoryKey}-`, true)), 3, 'codex-page codex-fav-page')}</div>` +
                 `<div class="codex-fav-divider"></div>` +
                 `</div>`;
         }
@@ -1852,7 +1819,7 @@
             `</div>`;
     }
 
-    function initAllTabContents() {
+    function renderUnitCategoryBoard() {
         const tc = getEl('tabContent'); if (!tc) return;
         const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
         const favSet = new Set(_favorites);
@@ -1862,22 +1829,22 @@
                 u.category === cat.key &&
                 !isHiddenUnit(u.id) &&
                 !favSet.has(u.id)
-            ).sort(getCodexSort);
+            ).sort(getUnitCategorySort);
             const bodyHtml = !items.length
                 ? `<div class="codex-empty-msg">즐겨찾기를 제외하고 표시할 유닛이 없습니다.</div>`
-                : buildPagerPages(items.map((item, idx) => buildUnitCard(item, idx)), 9, 'codex-page codex-category-page');
+                : buildPagerPages(items.map((item, idx) => buildCard(item, idx, '', true)), 9, 'codex-page codex-category-page');
             return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel">${buildFavoriteSection(cat.key)}<div class="codex-category-grid">${bodyHtml}</div></div>`;
         }).join('');
         _isTabContentInitialized = true;
     }
 
-    function renderCurrentTabContent() {
-        if (!_isTabContentInitialized) initAllTabContents();
+    function updateUnitCategoryBoard() {
+        if (!_isTabContentInitialized) unitCategoryBoard.render();
         SYSTEM_CONFIG.tabs.forEach((c, i) => getEl(`cat-group-${c.key}`)?.classList.toggle('is-visible', i === _activeTabIdx));
-        updateTabContentUI();
+        unitCategoryBoard.updateSelection();
     }
 
-    function updateTabContentUI() {
+    function updateUnitCategoryBoardSelection() {
         document.querySelectorAll('.unit-card[data-uid]').forEach(card => {
             const uid = card.dataset.uid, item = unitMap.get(uid);
             if (!item) return;
@@ -1908,9 +1875,9 @@
         saveFavorites();
         triggerHaptic();
         _isTabContentInitialized = false;
-        initAllTabContents();
-        renderCurrentTabContent();
-        updateTabsUI();
+        unitCategoryBoard.render();
+        unitCategoryBoard.update();
+        unitCategoryBoard.updateTabs();
     }
 
     function renderPresetButtons() {
@@ -1948,10 +1915,11 @@
         });
     }
 
-    function toggleUnitSelection(id, forceQty) {
+    function toggleUnitCategorySelection(id, forceQty) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isHiddenUnit(id)) return;
         if (activeUnits.has(id)) activeUnits.delete(id);
         else setActiveUnitQty(id, forceQty || pausedUnits.get(id) || 1);
+        if (_currentViewMode === 'deductlist') deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
         debouncedUpdateAllPanels();
     }
 
@@ -1973,8 +1941,8 @@
     function selectTab(idx) {
         hideRecipeTooltip();
         _activeTabIdx = Math.max(0, Math.min(parseInt(idx, 10) || 0, SYSTEM_CONFIG.tabs.length - 1));
-        updateTabsUI();
-        renderCurrentTabContent();
+        unitCategoryBoard.updateTabs();
+        unitCategoryBoard.update();
     }
 
 
@@ -2094,13 +2062,14 @@
         if (mode === 'deduct') {
             layout.classList.add('view-deduct');
             btnDeduct?.classList.add('active');
-            ensureDeductionBoardRendered(_lastCalcResult);
+            checklistBoardRules.ensureRendered(_lastCalcResult);
         } else if (mode === 'deductlist') {
             btnDeductList?.classList.add('active');
-            renderDeductOwnedBoard();
-            const deductListState = calculateDeductListRequirements();
-            updateDeductUnitBoard(deductListState);
-            updateDeductOwnedBoard(deductListState);
+            deductListBoardRules.renderOwnedBoard();
+            let deductListState = deductListBoardRules.calculateRequirements();
+            if (deductListBoardRules.completeReadyTargets(deductListState)) deductListState = deductListBoardRules.calculateRequirements();
+            deductListBoardRules.updateUnitBoard(deductListState);
+            deductListBoardRules.updateOwnedBoard(deductListState);
             updateCartUI();
         } else {
             layout.classList.add('view-codex');
@@ -2134,7 +2103,7 @@
             const multiplier = event?.shiftKey ? APP_INTERNAL.accelShiftMultiplier : Math.floor(++_touchHoldCount / APP_INTERNAL.accelStepUnit) + 1;
             const accelDelta = delta * multiplier;
             const current = activeUnits.get(id) || 0;
-            if (current === 0 && accelDelta > 0) toggleUnitSelection(id, accelDelta);
+            if (current === 0 && accelDelta > 0) unitCategoryBoard.toggleSelection(id, accelDelta);
             else setUnitQty(id, current + accelDelta);
         };
         const scheduleSmartRepeat = () => {
@@ -2253,7 +2222,7 @@
 
         let multi = 1;
         if (isDeduction) {
-            const { reqMap, baseMap, specialReq } = _lastCalcResult || calculateDeductedRequirements();
+            const { reqMap, baseMap, specialReq } = _lastCalcResult || checklistBoardRules.calculateRequirements();
             if (COMBO_SLOT_SET.has(id)) {
                 multi = specialReq[id] || 0;
             } else if (activeUnits.has(id)) {
@@ -2274,6 +2243,35 @@
         getEl('recipeTooltip')?.classList.remove('active');
     }
 
+
+
+    // ── 10-1. 보드별 규칙 묶음 ───────────────────────────────────────────────
+    const checklistBoardRules = Object.freeze({
+        calculateRequirements: calculateChecklistBoardRequirements,
+        clampCompleted: clampCompletedUnits,
+        ensureRendered: ensureChecklistBoardRendered,
+        updateBoard: updateChecklistBoard,
+        completeUnit: completeChecklistUnit
+    });
+
+    const deductListBoardRules = Object.freeze({
+        calculateRequirements: calculateDeductListRequirements,
+        completeReadyTargets: completeDeductListReadyTargets,
+        renderUnitBoard: renderDeductUnitBoard,
+        renderOwnedBoard: renderDeductOwnedBoard,
+        updateUnitBoard: updateDeductUnitBoard,
+        updateOwnedBoard: updateDeductOwnedBoard
+    });
+
+    const unitCategoryBoard = Object.freeze({
+        renderTabs,
+        updateTabs: updateTabsUI,
+        render: renderUnitCategoryBoard,
+        update: updateUnitCategoryBoard,
+        updateSelection: updateUnitCategoryBoardSelection,
+        toggleSelection: toggleUnitCategorySelection,
+        reset: resetUnitCategoryBoard
+    });
 
     // ── 11. 이벤트 바인딩 ─────────────────────────────────────────────────
     // 11-1. 반복 입력 종료
@@ -2328,13 +2326,13 @@
                 debouncedUpdateAllPanels();
                 break;
             case 'restoreAllCompleted': restoreAllCompleted(); break;
-            case 'resetCodex': resetCodex(); break;
+            case 'resetCodex': unitCategoryBoard.reset(); break;
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
             case 'toggleSelectAllTab': toggleSelectAllTab(); break;
             case 'pauseCartItem': e.stopPropagation(); if (uid) pauseCartUnit(uid); break;
             case 'clearCartItems': e.stopPropagation(); clearCartItems(); break;
             case 'toggleFavorite': toggleFavorite(uid, e); break;
-            case 'toggleUnit': toggleUnitSelection(uid, 1); break;
+            case 'toggleUnit': unitCategoryBoard.toggleSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
             case 'toggleGroup':
                 const grp = actionEl.closest('.deduct-group'), gridEl = getEl(actionEl.dataset.gridId), icon = actionEl.querySelector('.grp-toggle-icon');
@@ -2343,8 +2341,8 @@
                     else { grp.classList.add('collapsed'); if (gridEl) gridEl.style.display = 'none'; if (icon) icon.style.transform = 'rotate(-90deg)'; }
                 }
                 break;
-            case 'addComplete': e.stopPropagation(); completeUnit(uid, parseInt(actionEl.dataset.batch || 1, 10)); break;
-            case 'completeUnit': e.stopPropagation(); completeUnit(uid); break;
+            case 'addComplete': e.stopPropagation(); checklistBoardRules.completeUnit(uid, parseInt(actionEl.dataset.batch || 1, 10)); break;
+            case 'completeChecklistUnit': e.stopPropagation(); checklistBoardRules.completeUnit(uid); break;
             case 'switchCartTab': setCartTab(actionEl.dataset.tab || 'active'); updateCartUI(); break;
             case 'toggleCartCollapse': toggleCartCollapse(); break;
             case 'restoreUnit': e.stopPropagation(); restoreUnit(uid); break;
@@ -2413,7 +2411,7 @@
             UNIT_DATABASE.forEach(kArr => unitMap.set(clean(kArr[0]), { id: clean(kArr[0]), name: kArr[0], grade: kArr[1] || SYSTEM_CONFIG.grades.order[0], category: kArr[2] || SYSTEM_CONFIG.tabs[0].key, recipe: kArr[3], cost: kArr[4] }));
             pruneFavorites();
 
-            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); renderDeductUnitBoard(); renderDeductOwnedBoard(); renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
+            initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); deductListBoardRules.renderUnitBoard(); deductListBoardRules.renderOwnedBoard(); unitCategoryBoard.renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
             updateHideCompletedBtn();
             _cartCollapsed = false;
             syncCartVisibility();
