@@ -112,10 +112,7 @@
     const CHECKLIST_FORCE_AUTO_COMPLETE_IDS = makeCleanSet(["갓오타", "메시브"]);
     const DEDUCT_LIST_DELAYED_AUTO_COMPLETE_IDS = makeCleanSet(["유물"]);
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.dashboardAtoms.map(a => [clean(a), a]));
-    const resolveDashboardAtom = (id) => ATOM_HASH[clean(id)] || null;
-    const DASHBOARD_BOARD_SLOTS = Object.freeze([...SYSTEM_CONFIG.dashboardAtoms]);
     const DEDUCT_LIST_BOARD_ATOMS = Object.freeze([...SYSTEM_CONFIG.dashboardAtoms]);
-    const DEDUCT_LIST_BOARD_SLOTS = Object.freeze([...DEDUCT_LIST_BOARD_ATOMS]);
     const DEDUCT_LIST_ATOM_HASH = Object.fromEntries(DEDUCT_LIST_BOARD_ATOMS.map(a => [clean(a), a]));
     const DEDUCT_LIST_BOARD_IDS = new Set(DEDUCT_LIST_BOARD_ATOMS.map(clean));
     const DEDUCT_LIST_OWNED_STEP_BY_ID = new Map([[clean("자동포탑"), 5]]);
@@ -848,18 +845,7 @@
         });
     }
 
-    function consumeOwnedForBase(base) {
-        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
-            const need = normalizeOwnedMagicQty(base?.[atom] || 0);
-            if (need <= 0) return;
-            const uid = clean(atom);
-            const remain = Math.max(0, (ownedMagic.get(uid) || 0) - need);
-            if (remain > 0) ownedMagic.set(uid, remain);
-            else ownedMagic.delete(uid);
-        });
-    }
-
-    function isDeductListBaseCoveredByOwned(base, coverageMap = calculateDeductListCoverage(base)) {
+    function isDeductListBaseCoveredByOwned(base, coverageMap = calculateDeductListCoverage()) {
         let hasRequirement = false;
         for (const atom of DEDUCT_LIST_BOARD_ATOMS) {
             const uid = clean(atom);
@@ -891,14 +877,10 @@
         });
     }
 
-    function isDeductListWholeBaseCovered(base) {
-        return isDeductListBaseCoveredByOwned(base, calculateDeductListCoverage(base));
-    }
-
     function completeDeductListAllActiveTargetsIfCovered() {
         if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
         const fullBase = calculateDeductListBaseRequirementsFrom(activeUnits);
-        if (!isDeductListWholeBaseCovered(fullBase)) return false;
+        if (!isDeductListBaseCoveredByOwned(fullBase)) return false;
         const targets = Array.from(activeUnits.entries());
         targets.forEach(([uid, qty]) => {
             if (!activeUnits.has(uid)) return;
@@ -913,7 +895,7 @@
 
     function completeDeductListCoveredTargets() {
         if (_currentViewMode !== 'deductlist' || activeUnits.size === 0) return false;
-        const coverageBudget = calculateDeductListCoverage(calculateDeductListBaseRequirements());
+        const coverageBudget = calculateDeductListCoverage();
         const targets = [];
         Array.from(activeUnits.entries()).forEach(([uid, qty]) => {
             if (!activeUnits.has(uid)) return;
@@ -1082,7 +1064,7 @@
         return DEDUCT_LIST_BOARD_ATOMS.some(atom => (base[atom] || 0) > 0);
     }
 
-    function calculateDeductListCoverage(base = calculateDeductListBaseRequirements()) {
+    function calculateDeductListCoverage() {
         const ownedCoverage = new Map();
         const addCoverage = (map, uid, qty) => {
             if (!uid || qty <= 0) return;
@@ -1114,7 +1096,7 @@
 
     function calculateDeductListRequirements() {
         const base = calculateDeductListBaseRequirements();
-        const ownedCoverage = calculateDeductListCoverage(base);
+        const ownedCoverage = calculateDeductListCoverage();
         const remaining = {};
         DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
@@ -1123,20 +1105,15 @@
         return { base, remaining };
     }
 
-    function renderDeductListBoardSlots(boardId, renderSlot) {
+    function renderBoardSlots(boardId, slots, renderSlot) {
         const board = getEl(boardId);
         if (!board) return false;
-        board.innerHTML = DEDUCT_LIST_BOARD_SLOTS.map(renderSlot).join('');
+        board.innerHTML = slots.map(renderSlot).join('');
         return true;
     }
 
-    function renderDeductUnitBoard() {
-        renderDashboardAtoms();
-    }
-
     function renderDeductOwnedBoard() {
-        const rendered = renderDeductListBoardSlots('deductOwnedDashboard', atom => {
-            if (!atom) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
+        const rendered = renderBoardSlots('deductOwnedDashboard', DEDUCT_LIST_BOARD_ATOMS, atom => {
             const uid = clean(atom);
             const gradeName = getDeductAtomGrade(uid);
             const skinClass = getDeductGradeSkinClass(uid);
@@ -1148,10 +1125,6 @@
         if (!rendered) return;
         updateOwnedInputModeUI();
         deductListBoardRules.updateOwnedBoard(deductListBoardRules.calculateRequirements());
-    }
-
-    function updateDeductUnitBoard(state = calculateDeductListRequirements()) {
-        updateMagicDashboard(state);
     }
 
     function updateDeductOwnedBoard(state = calculateDeductListRequirements()) {
@@ -1224,19 +1197,20 @@
         saveNexusState();
     }
 
-    function hasActiveDeductListNeedForOwned(rawUid) {
+    function getDeductListNeedForOwned(rawUid, { includeCompleted = false } = {}) {
         const uid = normalizeSavedId(rawUid);
         const atom = DEDUCT_LIST_ATOM_HASH[uid];
-        if (!atom) return false;
+        if (!atom) return 0;
         const state = deductListBoardRules.calculateRequirements();
-        return Math.max(0, state.base?.[atom] || 0) > 0;
+        const activeNeed = Math.max(0, state.base?.[atom] || 0);
+        return activeNeed + (includeCompleted ? (completedOwnedMagic.get(uid) || 0) : 0);
     }
 
     function setOwnedMagicQty(rawUid, qty, options = {}) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const next = normalizeOwnedMagicQty(qty);
-        const canApplyPositive = options.allowAnyOwned || (options.allowCompletedNeed ? hasDisplayedDeductListNeedForOwned(uid) : hasActiveDeductListNeedForOwned(uid));
+        const canApplyPositive = options.allowAnyOwned || getDeductListNeedForOwned(uid, { includeCompleted: !!options.allowCompletedNeed }) > 0;
         if (next > 0 && !canApplyPositive) {
             updateOwnedInputModeUI();
             return;
@@ -1250,14 +1224,6 @@
         debouncedUpdateAllPanels();
     }
 
-    function getDisplayedDeductListNeedForOwned(rawUid) {
-        const uid = normalizeSavedId(rawUid);
-        const atom = DEDUCT_LIST_ATOM_HASH[uid];
-        if (!atom) return 0;
-        const state = deductListBoardRules.calculateRequirements();
-        return Math.max(0, state.base?.[atom] || 0) + (completedOwnedMagic.get(uid) || 0);
-    }
-
     function changeOwnedMagicQty(rawUid, direction, options = {}) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
@@ -1267,7 +1233,7 @@
         const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
         const clickDetail = Number(options.clickDetail || 1);
         if (direction > 0) {
-            const displayedNeed = getDisplayedDeductListNeedForOwned(uid);
+            const displayedNeed = getDeductListNeedForOwned(uid, { includeCompleted: true });
             if (displayedNeed <= 0) {
                 setOwnedMagicQty(uid, current + step, { allowAnyOwned: true });
                 return;
@@ -1286,16 +1252,6 @@
             return;
         }
         setOwnedMagicQty(uid, current + (direction * step), { allowAnyOwned: true });
-    }
-
-    function hasDisplayedDeductListNeedForOwned(rawUid) {
-        const uid = normalizeSavedId(rawUid);
-        const atom = DEDUCT_LIST_ATOM_HASH[uid];
-        if (!atom) return false;
-        const state = deductListBoardRules.calculateRequirements();
-        const activeBaseNeed = Math.max(0, state.base?.[atom] || 0);
-        const completedOwned = completedOwnedMagic.get(uid) || 0;
-        return activeBaseNeed + completedOwned > 0;
     }
 
     function resetDeductOwned() {
@@ -1321,15 +1277,11 @@
         debouncedUpdateAllPanels();
     }
 
-    function completeOwnedGroup(group) {
-        if (!group) return;
+    function completeOwnedAll() {
         const state = deductListBoardRules.calculateRequirements();
         let changed = false;
         DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
             const uid = clean(atom);
-            const unit = unitMap.get(uid);
-            const isTargetGroup = group === 'all' ? true : unit?.grade === group;
-            if (!isTargetGroup) return;
             const need = Math.max(0, state.base?.[atom] || 0);
             if (need <= 0) return;
             const current = ownedMagic.get(uid) || 0;
@@ -1338,11 +1290,9 @@
                 changed = true;
             }
         });
-        if (group === 'all' && activeUnits.size > 0) _deductListOwnedInputTriggered = true;
-        const completedByGroup = group === 'all'
-            ? completeDeductListAllActiveTargetsIfCovered()
-            : deductListBoardRules.completeReadyTargets(deductListBoardRules.calculateRequirements());
-        if (changed || completedByGroup) {
+        if (activeUnits.size > 0) _deductListOwnedInputTriggered = true;
+        const completedByAll = completeDeductListAllActiveTargetsIfCovered();
+        if (changed || completedByAll) {
             triggerHaptic();
             debouncedUpdateAllPanels();
         } else {
@@ -1370,11 +1320,9 @@
     }
 
     function renderDashboardAtoms() {
-        let db = getEl('magicDashboard'); if (!db) return;
-        db.innerHTML = DASHBOARD_BOARD_SLOTS.map(a => {
-            if (!a) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
-            return `<div class="cost-slot is-magic-slot" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`;
-        }).join('');
+        renderBoardSlots('magicDashboard', SYSTEM_CONFIG.dashboardAtoms, a =>
+            `<div class="cost-slot is-magic-slot" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`
+        );
     }
 
     function updateMagicDashboard(deductListState = null) {
@@ -2438,9 +2386,9 @@
     const deductListBoardRules = Object.freeze({
         calculateRequirements: calculateDeductListRequirements,
         completeReadyTargets: completeDeductListReadyTargets,
-        renderUnitBoard: renderDeductUnitBoard,
+        renderUnitBoard: renderDashboardAtoms,
         renderOwnedBoard: renderDeductOwnedBoard,
-        updateUnitBoard: updateDeductUnitBoard,
+        updateUnitBoard: updateMagicDashboard,
         updateOwnedBoard: updateDeductOwnedBoard
     });
 
@@ -2479,7 +2427,7 @@
             case 'switchMainView': switchLayout(actionEl.dataset.view); break;
             case 'switchOwnedInputMode': switchOwnedInputMode(actionEl.dataset.mode); break;
             case 'resetDeductOwned': resetDeductOwned(); break;
-            case 'completeOwnedGroup': completeOwnedGroup(actionEl.dataset.gradeGroup); break;
+            case 'completeOwnedAll': completeOwnedAll(); break;
             case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1, { clickDetail: e.detail || 1 }); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];

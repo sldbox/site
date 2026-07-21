@@ -13,13 +13,13 @@
     <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
         // [00] 빌드/캐시 버전과 파일별 자산 버전
-        window.NEXUS_BUILD_VERSION = "nex-2607210000";
-        window.APP_VERSION = "nex-2607210000";
+        window.NEXUS_BUILD_VERSION = "nex-2607211700";
+        window.APP_VERSION = "nex-2607211700";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "nex-2607210000",
-            "config.js": "nex-2607210000",
-            "style.css": "nex-2607210000",
-            "data.js": "nex-2607210000"
+            "app.js": "nex-2607211700",
+            "config.js": "nex-2607211700",
+            "style.css": "nex-2607211700",
+            "data.js": "nex-2607211700"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -161,12 +161,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=nex-2607210000" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607210000">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=nex-2607210000">
+    <link rel="icon" href="./icon.png?v=nex-2607211700" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607211700">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=nex-2607211700">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607210000">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607211700">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="히든조합표, 체크리스트, 정수계산, 을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -311,14 +311,8 @@
                                 <button type="button" id="btnOwnedModeManual" class="owned-mode-btn" data-action="switchOwnedInputMode" data-mode="manual" aria-pressed="false">수동 입력</button>
                             </div>
                             <button type="button" id="btnOwnedReset" class="owned-reset-btn" data-action="resetDeductOwned">초기화</button>
+                            <button type="button" id="btnOwnedCompleteAll" class="owned-reset-btn" data-action="completeOwnedAll">전체완료</button>
                         </div>
-                    </div>
-                    <div class="deduct-grade-actions" id="deductGradeActions" aria-label="등급 완료">
-                        <button type="button" class="deduct-grade-btn grade-all" data-action="completeOwnedGroup" data-grade-group="all">전체 완료</button>
-                        <button type="button" class="deduct-grade-btn grade-magic" data-action="completeOwnedGroup" data-grade-group="매직">매직 완료</button>
-                        <button type="button" class="deduct-grade-btn grade-rare" data-action="completeOwnedGroup" data-grade-group="레어">레어 완료</button>
-                        <button type="button" class="deduct-grade-btn grade-epic" data-action="completeOwnedGroup" data-grade-group="에픽">에픽 완료</button>
-                        <button type="button" class="deduct-grade-btn grade-unique" data-action="completeOwnedGroup" data-grade-group="유니크">유니크 완료</button>
                     </div>
                     <div class="panel-section cost-section pc-cost-body">
                         <div id="deductOwnedDashboard" class="magic-grid deduct-owned-grid"></div>
