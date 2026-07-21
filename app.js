@@ -1149,7 +1149,7 @@
             const ownedText = displayOwned > 0 || displayBaseNeed > 0 ? String(displayOwned) : '';
             const isOver = displayOwned > displayBaseNeed && displayOwned > 0;
             const isExact = displayBaseNeed > 0 && displayOwned === displayBaseNeed;
-            const needBadgeText = isOver ? '초과' : (isExact ? '완료' : (displayRemainingNeed > 0 ? String(displayRemainingNeed) : ''));
+            const needBadgeText = isOver ? '초과' : (displayRemainingNeed > 0 ? String(displayRemainingNeed) : '');
             if (valueEl) valueEl.textContent = ownedText;
             if (needBadge) {
                 needBadge.textContent = needBadgeText;
@@ -1158,8 +1158,8 @@
             if (inputEl && document.activeElement !== inputEl) {
                 inputEl.value = ownedText;
             }
-            if (slot.tagName === 'BUTTON') slot.disabled = false;
-            if (inputEl) inputEl.disabled = false;
+            if (slot.tagName === 'BUTTON') slot.disabled = isInactiveSlot;
+            if (inputEl) inputEl.disabled = isInactiveSlot;
             const isEmptySlot = isInactiveSlot || (ownedText === '' && needBadgeText === '');
             slot.classList.toggle('is-empty', isEmptySlot);
             slot.classList.toggle('is-inactive', isInactiveSlot);
@@ -1172,7 +1172,7 @@
             slot.classList.toggle('partial', displayBaseNeed > 0 && displayOwned > 0 && displayOwned < displayBaseNeed);
             slot.classList.toggle('covered', displayBaseNeed > 0 && displayOwned === displayBaseNeed);
             const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
-            const guide = isInactiveSlot ? (_ownedInputMode === 'manual' ? '필요 없는 코스트지만 숫자 입력 시 초과로 표시' : `필요 없는 코스트지만 클릭하면 보유량 ${step} 초과 입력`) : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소, 완료 상태는 더블클릭 시 초과 입력`);
+            const guide = isInactiveSlot ? '필요수량 0인 빈칸은 입력할 수 없음' : (_ownedInputMode === 'manual' ? '숫자로 보유량을 직접 입력' : `클릭하면 보유량 ${step} 증가, 우클릭하면 ${step} 감소`);
             slot.setAttribute('aria-label', `${atom} 보유 ${displayOwned}, 남은 필요 ${displayRemainingNeed}. ${guide}`);
             slot.removeAttribute('title');
         });
@@ -1210,7 +1210,7 @@
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const next = normalizeOwnedMagicQty(qty);
-        const canApplyPositive = options.allowAnyOwned || getDeductListNeedForOwned(uid, { includeCompleted: !!options.allowCompletedNeed }) > 0;
+        const canApplyPositive = getDeductListNeedForOwned(uid, { includeCompleted: !!options.allowCompletedNeed }) > 0;
         if (next > 0 && !canApplyPositive) {
             updateOwnedInputModeUI();
             return;
@@ -1224,18 +1224,17 @@
         debouncedUpdateAllPanels();
     }
 
-    function changeOwnedMagicQty(rawUid, direction, options = {}) {
+    function changeOwnedMagicQty(rawUid, direction) {
         const uid = normalizeSavedId(rawUid);
         if (!DEDUCT_LIST_BOARD_IDS.has(uid)) return;
         const current = ownedMagic.get(uid) || 0;
         const completedOwned = completedOwnedMagic.get(uid) || 0;
         const displayedOwned = current + completedOwned;
         const step = DEDUCT_LIST_OWNED_STEP_BY_ID.get(uid) || 1;
-        const clickDetail = Number(options.clickDetail || 1);
         if (direction > 0) {
             const displayedNeed = getDeductListNeedForOwned(uid, { includeCompleted: true });
             if (displayedNeed <= 0) {
-                setOwnedMagicQty(uid, current + step, { allowAnyOwned: true });
+                updateOwnedInputModeUI();
                 return;
             }
             if (displayedOwned > displayedNeed) {
@@ -1243,15 +1242,14 @@
                 return;
             }
             if (displayedOwned === displayedNeed) {
-                if (clickDetail >= 2) setOwnedMagicQty(uid, current + step, { allowCompletedNeed: true });
-                else updateOwnedInputModeUI();
+                setOwnedMagicQty(uid, current + step, { allowCompletedNeed: true });
                 return;
             }
             const nextDisplayed = Math.min(displayedNeed, displayedOwned + step);
             setOwnedMagicQty(uid, Math.max(0, nextDisplayed - completedOwned), { allowCompletedNeed: true });
             return;
         }
-        setOwnedMagicQty(uid, current + (direction * step), { allowAnyOwned: true });
+        setOwnedMagicQty(uid, current + (direction * step), { allowCompletedNeed: true });
     }
 
     function resetDeductOwned() {
@@ -2428,7 +2426,7 @@
             case 'switchOwnedInputMode': switchOwnedInputMode(actionEl.dataset.mode); break;
             case 'resetDeductOwned': resetDeductOwned(); break;
             case 'completeOwnedAll': completeOwnedAll(); break;
-            case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1, { clickDetail: e.detail || 1 }); break;
+            case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
                 if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
@@ -2507,15 +2505,15 @@
 
     document.addEventListener('input', e => {
         const input = e.target.closest('.owned-manual-input');
-        if (!input) return;
+        if (!input || input.disabled) return;
         const numericValue = input.value.replace(/\D/g, '');
         if (input.value !== numericValue) input.value = numericValue;
-        setOwnedMagicQty(input.dataset.magicId, numericValue, { allowAnyOwned: true });
+        setOwnedMagicQty(input.dataset.magicId, numericValue, { allowCompletedNeed: true });
     });
 
     document.addEventListener('contextmenu', e => {
         const slot = e.target.closest('[data-action="increaseOwnedMagic"]');
-        if (!slot) return;
+        if (!slot || slot.disabled) return;
         e.preventDefault();
         changeOwnedMagicQty(slot.dataset.magicId, -1);
     });
