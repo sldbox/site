@@ -697,9 +697,8 @@
         updateTimer = requestAnimationFrame(() => {
             const { calcResult, deductListState } = getStableCalculationState();
             _lastCalcResult = calcResult;
-            updateMagicDashboard();
-            updateEssence();
             deductListBoardRules.updateUnitBoard(deductListState);
+            updateEssence();
             deductListBoardRules.updateOwnedBoard(deductListState);
             unitCategoryBoard.updateTabs();
             unitCategoryBoard.updateSelection();
@@ -1132,13 +1131,7 @@
     }
 
     function renderDeductUnitBoard() {
-        renderDeductListBoardSlots('deductUnitBoardDashboard', atom => {
-            if (!atom) return `<div class="cost-slot board-slot-empty" aria-hidden="true"></div>`;
-            const uid = clean(atom);
-            const gradeName = getDeductAtomGrade(uid);
-            const skinClass = getDeductGradeSkinClass(uid);
-            return `<div class="cost-slot is-magic-slot ${skinClass}" id="deduct-vslot-${uid}" data-cost-grade="${gradeName}"><div class="cost-val"></div><div class="cost-name">${atom}</div></div>`;
-        });
+        renderDashboardAtoms();
     }
 
     function renderDeductOwnedBoard() {
@@ -1157,33 +1150,8 @@
         deductListBoardRules.updateOwnedBoard(deductListBoardRules.calculateRequirements());
     }
 
-    function updateDeductListEssence() {
-        const essence = getEssenceCount(activeUnits);
-        let totalEssence = 0;
-        const hybridKey = SYSTEM_CONFIG.essence.mapping["혼종"] || "혼종";
-        const hybridWeight = SYSTEM_CONFIG.policy.hybridWeight || 3;
-        SYSTEM_CONFIG.essence.display.forEach(d => {
-            const value = Math.max(0, essence[d.name] || 0);
-            const el = getEl(`deduct-val-essence-${d.id}`);
-            if (el) el.textContent = value > 0 ? String(value) : '';
-            getEl(`deduct-slot-essence-${d.id}`)?.classList.toggle('active', value > 0);
-            totalEssence += value * (d.name === hybridKey ? hybridWeight : 1);
-        });
-        const totalEl = getEl('deduct-val-total-essence');
-        if (totalEl) totalEl.textContent = totalEssence > 0 ? String(totalEssence) : '';
-        getEl('deduct-slot-total-essence')?.classList.toggle('active', totalEssence > 0);
-    }
-
     function updateDeductUnitBoard(state = calculateDeductListRequirements()) {
-        DEDUCT_LIST_BOARD_ATOMS.forEach(atom => {
-            const slot = getEl(`deduct-vslot-${clean(atom)}`);
-            const valueEl = slot?.querySelector('.cost-val');
-            if (!slot || !valueEl) return;
-            const remaining = Math.max(0, state.remaining?.[atom] || 0);
-            valueEl.textContent = remaining > 0 ? String(remaining) : '';
-            slot.classList.toggle('active', remaining > 0);
-        });
-        updateDeductListEssence();
+        updateMagicDashboard(state);
     }
 
     function updateDeductOwnedBoard(state = calculateDeductListRequirements()) {
@@ -1409,12 +1377,14 @@
         }).join('');
     }
 
-    function updateMagicDashboard() {
-        const boardValues = calculateDeductListBaseRequirementsFrom(activeUnits);
+    function updateMagicDashboard(deductListState = null) {
+        const boardValues = _currentViewMode === 'deductlist'
+            ? (deductListState || deductListBoardRules.calculateRequirements()).remaining
+            : calculateDeductListBaseRequirementsFrom(activeUnits);
         SYSTEM_CONFIG.dashboardAtoms.forEach(a => {
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
             if (!container || !e || !nEl) return;
-            const value = Math.max(0, boardValues[a] || 0);
+            const value = Math.max(0, boardValues?.[a] || 0);
             if (value > 0) {
                 if (e.innerText !== String(value)) e.innerText = String(value);
                 nEl.style.display = 'block';
@@ -2116,10 +2086,9 @@
     }
 
     function syncCartVisibility() {
-        [getEl('cartCollapseBtn'), getEl('deductCartCollapseBtn')].forEach(btn => {
-            if (btn) btn.textContent = _cartCollapsed ? '▶' : '▼';
-        });
-        [getEl('cartTabBar'), getEl('cartListArea'), getEl('deductCartTabBar'), getEl('deductCartListArea')].forEach(el => {
+        const collapseBtn = getEl('cartCollapseBtn');
+        if (collapseBtn) collapseBtn.textContent = _cartCollapsed ? '▶' : '▼';
+        [getEl('cartTabBar'), getEl('cartListArea')].forEach(el => {
             if (el) el.style.display = _cartCollapsed ? 'none' : '';
         });
     }
@@ -2250,7 +2219,6 @@
 
     function updateCartUI() {
         renderCartPanel('cartTabBar', 'cartListArea', 'ci');
-        renderCartPanel('deductCartTabBar', 'deductCartListArea', 'dli');
     }
 
 
@@ -2261,29 +2229,32 @@
         hideRecipeTooltip();
         if (mode !== 'codex' && mode !== 'deduct' && mode !== 'deductlist') mode = 'codex';
         const layout = getEl('mainLayout');
-        const deductLayout = getEl('deductListLayout');
         if (!layout) return;
         _currentViewMode = mode;
-        layout.classList.remove('view-codex', 'view-deduct');
+        layout.hidden = false;
+        layout.classList.remove('view-codex', 'view-deduct', 'view-deductlist');
         const btnCodex = getEl('btnViewCodex'), btnDeduct = getEl('btnViewDeduct'), btnDeductList = getEl('btnViewDeductList');
+        const checklistView = getEl('checklistRightView'), deductListView = getEl('deductListRightView');
         [btnCodex, btnDeduct, btnDeductList].forEach(btn => btn?.classList.remove('active'));
-        if (deductLayout) deductLayout.hidden = mode !== 'deductlist';
-        layout.hidden = mode === 'deductlist';
+        if (checklistView) checklistView.hidden = mode === 'deductlist';
+        if (deductListView) deductListView.hidden = mode !== 'deductlist';
         if (mode === 'deduct') {
             layout.classList.add('view-deduct');
             btnDeduct?.classList.add('active');
             checklistBoardRules.ensureRendered(_lastCalcResult);
         } else if (mode === 'deductlist') {
+            layout.classList.add('view-deductlist');
             btnDeductList?.classList.add('active');
             deductListBoardRules.renderOwnedBoard();
             let deductListState = deductListBoardRules.calculateRequirements();
             if (deductListBoardRules.completeReadyTargets(deductListState)) deductListState = deductListBoardRules.calculateRequirements();
-            deductListBoardRules.updateUnitBoard(deductListState);
+            updateMagicDashboard(deductListState);
             deductListBoardRules.updateOwnedBoard(deductListState);
             updateCartUI();
         } else {
             layout.classList.add('view-codex');
             btnCodex?.classList.add('active');
+            updateMagicDashboard();
         }
     }
 
