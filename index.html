@@ -13,13 +13,13 @@
     <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
         // [00] 빌드/캐시 버전과 파일별 자산 버전
-        window.NEXUS_BUILD_VERSION = "nex-2607212100(5)";
-        window.APP_VERSION = "nex-2607212100(5)";
+        window.NEXUS_BUILD_VERSION = "nex-2607220000";
+        window.APP_VERSION = "nex-2607220000";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "nex-2607212100(5)",
-            "config.js": "nex-2607212100(5)",
-            "style.css": "nex-2607212100(5)",
-            "data.js": "nex-2607212100(5)"
+            "app.js": "nex-2607220000",
+            "config.js": "nex-2607220000",
+            "style.css": "nex-2607220000",
+            "data.js": "nex-2607220000"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -161,12 +161,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=nex-2607212100(5)" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607212100(5)">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=nex-2607212100(5)">
+    <link rel="icon" href="./icon.png?v=nex-2607220000" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607220000">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=nex-2607220000">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607212100(5)">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=nex-2607220000">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="히든조합표, 체크리스트, 정수계산, 을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -253,21 +253,12 @@
         </aside>
         <section class="left-rail-scroll" id="leftRailScroll" aria-label="코스트 보드 및 장바구니">
             <main class="panel-cost hud-panel" id="panelCost">
-                <div class="panel-header ph-compact pc-cost-header">
-                    <div class="ph-title ph-title-accent">코스트 보드</div>
-                </div>
                 <div class="panel-section cost-section pc-cost-body">
                     <div id="magicDashboard" class="magic-grid"></div>
                 </div>
             </main>
             <aside class="panel-cart hud-panel" id="panelCart">
                 <div class="panel-section cart-section pc-cart-body" id="cartSection">
-                    <div class="cart-header" data-action="toggleCartCollapse">
-                        <span class="cart-title">장바구니</span>
-                        <div class="cart-header-actions">
-                            <span id="cartCollapseBtn" class="cart-collapse-btn">▼</span>
-                        </div>
-                    </div>
                     <div id="cartTabBar" class="cart-tab-bar"></div>
                     <div id="cartListArea" class="cart-list-area"></div>
                 </div>
@@ -303,15 +294,12 @@
             </div>
             <div id="deductListRightView" class="right-view right-view-deductlist" hidden>
                 <section class="deduct-owned-panel" id="deductOwnedPanel">
-                    <div class="panel-header ph-compact deduct-list-panel-header panel-header-with-actions">
-                        <div class="ph-title ph-title-accent">차감 보드</div>
-                        <div class="owned-header-actions">
-                            <div class="owned-mode-toggle" role="group" aria-label="차감 보드 입력 방식">
-                                <button type="button" id="btnOwnedModeAuto" class="owned-mode-btn active" data-action="switchOwnedInputMode" data-mode="auto" aria-pressed="true">자동 입력</button>
-                                <button type="button" id="btnOwnedModeManual" class="owned-mode-btn" data-action="switchOwnedInputMode" data-mode="manual" aria-pressed="false">수동 입력</button>
-                            </div>
+                    <div class="panel-header ph-compact deduct-list-panel-header">
+                        <div class="owned-header-actions" role="group" aria-label="차감 보드 입력 및 완료 제어">
+                            <button type="button" id="btnOwnedModeAuto" class="owned-mode-btn active" data-action="switchOwnedInputMode" data-mode="auto" aria-pressed="true">자동 입력</button>
+                            <button type="button" id="btnOwnedModeManual" class="owned-mode-btn" data-action="switchOwnedInputMode" data-mode="manual" aria-pressed="false">수동 입력</button>
+                            <button type="button" id="btnOwnedCompleteAll" class="owned-reset-btn" data-action="completeOwnedAll">전체 완료</button>
                             <button type="button" id="btnOwnedReset" class="owned-reset-btn" data-action="resetDeductOwned">초기화</button>
-                            <button type="button" id="btnOwnedCompleteAll" class="owned-reset-btn" data-action="completeOwnedAll">전체완료</button>
                         </div>
                     </div>
                     <div class="panel-section cost-section pc-cost-body">

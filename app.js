@@ -195,16 +195,15 @@
     // ── 01-4. 선택·완료·화면 상태 ──────────────────────────────────────────
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'codex', _currentHighlight = null, _hideCompleted = false;
-    let _cartTab = 'active', _cartCollapsed = false, _isTabContentInitialized = false, _isChecklistBoardRendered = false;
+    let _cartTab = 'active', _isTabContentInitialized = false, _isChecklistBoardRendered = false;
     let _ownedInputMode = 'auto';
     let _deductListOwnedInputTriggered = false;
     const ownedMagic = new Map(), completedOwnedMagic = new Map();
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
-    let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
+    let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _activePresetGroup = '일반 프리셋', _restoreAllCooldown = false;
     let _restoreAllPendingTimer = null;
     let _lastCalcResult = null;
     let _fontRepeatTimer = null, _fontRepeatDelayTimer = null, _swipeTimer = null, _titleVersionTimer = null;
-    let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
 
     // ── 02-1. DOM·등급·검색 공통 유틸 ──────────────────────────────────────
@@ -287,10 +286,7 @@
         completedOwnedMagic.clear();
         _deductListOwnedInputTriggered = false;
         if (clearPresets) _presetUsed.clear();
-        if (resetCart) {
-            _cartTab = 'active';
-            _cartCollapsed = false;
-        }
+        if (resetCart) _cartTab = 'active';
     }
     // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
     function sanitizeRuntimeState() {
@@ -323,7 +319,6 @@
         });
         syncCompletedOwnedMagicFromTargets();
         if (!isValidCartTab(_cartTab)) _cartTab = 'active';
-        _cartCollapsed = false;
     }
 
     function splitRecipe(recipeStr) {
@@ -430,8 +425,6 @@
                 const uid = normalizeSavedId(k);
                 if (DEDUCT_LIST_BOARD_IDS.has(uid)) setOwnedMapValue(completedOwnedMagic, uid, v);
             });
-            _cartCollapsed = false;
-
             sanitizeRuntimeState();
         } catch(e) {
             clearProgressState({ resetCart: false });
@@ -945,7 +938,6 @@
         _restoreAllPendingTimer = setTimeout(() => {
             _restoreAllPendingTimer = null;
             clearProgressState();
-            syncCartVisibility();
             updatePresetBtns();
             triggerHaptic();
             debouncedUpdateAllPanels();
@@ -986,7 +978,6 @@
     function resetUnitCategoryBoard() {
         clearProgressState();
         toggleHighlight(null);
-        syncCartVisibility();
         updatePresetBtns();
         debouncedUpdateAllPanels();
     }
@@ -1959,31 +1950,52 @@
         unitCategoryBoard.updateTabs();
     }
 
+    function getPresetGroup(preset) {
+        return preset?.group || '일반 프리셋';
+    }
+
+    function isVisiblePreset(preset) {
+        return !(preset?.hidden === true || preset?.hidden === '비활성');
+    }
+
+    function buildPresetButton(preset, idx) {
+        const colorKey = PRESET_COLOR_MAP[preset.배경색] || 'red';
+        const textKey = PRESET_COLOR_MAP[preset.글씨색];
+        let styleStr = `--btn-color:var(--preset-color-${colorKey})`;
+        if (textKey === 'white') styleStr += `;--btn-text-override:#ffffff`;
+        else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
+        else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
+        else if (isBrightColor(preset.배경색)) styleStr += ';--btn-text-override:#111111';
+        return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${idx}" style="${styleStr}">${preset.icon ? `<span class="gohaeng-icon">${preset.icon}</span>` : ''}<span class="gohaeng-label">${preset.label}</span></button>`;
+    }
+
     function renderPresetButtons() {
         const tabBar = getEl('presetInlineTabBar'), btnList = getEl('presetInlineBtnList'), wrap = getEl('presetInlineWrap');
         if (!tabBar || !btnList || !wrap) return;
-        if (!SYSTEM_CONFIG.presets.length) { wrap.style.display = 'none'; return; }
 
-        const groups = [...new Set(SYSTEM_CONFIG.presets.filter(p => !(p.hidden === true || p.hidden === '비활성')).map(p => p.group || '일반 프리셋'))];
-        if (!groups.includes(_presetTab)) _presetTab = groups[0];
+        const visiblePresets = SYSTEM_CONFIG.presets
+            .map((preset, idx) => ({ preset, idx }))
+            .filter(({ preset }) => isVisiblePreset(preset));
+        const groups = [...new Set(visiblePresets.map(({ preset }) => getPresetGroup(preset)))];
+        if (!groups.length) {
+            tabBar.innerHTML = '';
+            btnList.innerHTML = '';
+            wrap.style.display = 'none';
+            return;
+        }
 
-        tabBar.style.display = groups.length > 1 ? 'flex' : 'none';
-        tabBar.innerHTML = groups.map(g => `<button type="button" class="preset-inline-tab-btn${g === _presetTab ? ' active' : ''}" data-action="switchPresetTab" data-tab="${g}">${g}</button>`).join('');
+        if (!groups.includes(_activePresetGroup)) _activePresetGroup = groups[0];
+        const hasMultipleGroups = groups.length > 1;
+        tabBar.hidden = !hasMultipleGroups;
+        tabBar.innerHTML = hasMultipleGroups
+            ? groups.map(group => `<button type="button" class="preset-inline-tab-btn${group === _activePresetGroup ? ' active' : ''}" data-action="switchPresetGroup" data-preset-group="${group}">${group}</button>`).join('')
+            : '';
+        btnList.innerHTML = visiblePresets
+            .filter(({ preset }) => getPresetGroup(preset) === _activePresetGroup)
+            .map(({ preset, idx }) => buildPresetButton(preset, idx))
+            .join('');
 
-        btnList.innerHTML = SYSTEM_CONFIG.presets.map((p, i) => {
-            const isHidden = p.hidden === true || p.hidden === '비활성';
-            if (isHidden || (p.group || '일반 프리셋') !== _presetTab) return '';
-            const colorKey = PRESET_COLOR_MAP[p.배경색] || 'red';
-            const textKey = PRESET_COLOR_MAP[p.글씨색];
-            let styleStr = `--btn-color:var(--preset-color-${colorKey})`;
-            if (textKey === 'white') styleStr += `;--btn-text-override:#ffffff`;
-            else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
-            else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
-            else if (isBrightColor(p.배경색)) styleStr += ';--btn-text-override:#111111';
-            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
-        }).join('');
-
-        wrap.style.display = '';
+        wrap.style.display = btnList.children.length ? '' : 'none';
         updatePresetBtns();
     }
 
@@ -2026,19 +2038,6 @@
 
 
     // ── 09. 장바구니 ──────────────────────────────────────────────────────
-    function toggleCartCollapse() {
-        _cartCollapsed = !_cartCollapsed;
-        syncCartVisibility();
-    }
-
-    function syncCartVisibility() {
-        const collapseBtn = getEl('cartCollapseBtn');
-        if (collapseBtn) collapseBtn.textContent = _cartCollapsed ? '▶' : '▼';
-        [getEl('cartTabBar'), getEl('cartListArea')].forEach(el => {
-            if (el) el.style.display = _cartCollapsed ? 'none' : '';
-        });
-    }
-
     function pauseCartUnit(uid) {
         if (!activeUnits.has(uid) || !unitMap.has(uid)) return;
         const qty = activeUnits.get(uid) || 1;
@@ -2124,10 +2123,7 @@
         const tabBar = getEl(tabBarId);
         if (tabBar) {
             tabBar.innerHTML = getCartTabDefinitions().map(tab => `<button type="button" class="cart-tab-btn ${_cartTab === tab.key ? 'active' : ''}" data-action="switchCartTab" data-tab="${tab.key}">${tab.label} <span class="cart-tab-cnt ${tab.countClass}">${tab.count}</span></button>`).join('');
-            tabBar.style.display = _cartCollapsed ? 'none' : '';
         }
-        cartListArea.style.display = _cartCollapsed ? 'none' : '';
-        if (_cartCollapsed) return;
 
         if (_cartTab === 'active') {
             if (activeUnits.size === 0) {
@@ -2427,6 +2423,10 @@
             case 'resetDeductOwned': resetDeductOwned(); break;
             case 'completeOwnedAll': completeOwnedAll(); break;
             case 'increaseOwnedMagic': changeOwnedMagicQty(actionEl.dataset.magicId, 1); break;
+            case 'switchPresetGroup':
+                _activePresetGroup = actionEl.dataset.presetGroup || _activePresetGroup;
+                renderPresetButtons();
+                break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
                 if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
@@ -2446,7 +2446,6 @@
                 }, APP_INTERNAL.appVersionDisplayMs);
                 break;
             }
-            case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
             case 'toggleHideCompleted':
                 _hideCompleted = !_hideCompleted;
                 updateHideCompletedBtn();
@@ -2476,7 +2475,6 @@
             case 'addComplete': e.stopPropagation(); checklistBoardRules.completeUnit(uid, parseInt(actionEl.dataset.batch || 1, 10)); break;
             case 'completeChecklistUnit': e.stopPropagation(); checklistBoardRules.completeUnit(uid); break;
             case 'switchCartTab': setCartTab(actionEl.dataset.tab || 'active'); updateCartUI(); break;
-            case 'toggleCartCollapse': toggleCartCollapse(); break;
             case 'restoreUnit': e.stopPropagation(); restoreUnit(uid); break;
             case 'restorePausedUnit': e.stopPropagation(); restorePausedUnit(uid); break;
             case 'resetGroup': e.stopPropagation(); resetGroupCompleted(parseInt(actionEl.dataset.level, 10)); break;
@@ -2551,8 +2549,6 @@
 
             initializeCacheEngine(); loadNexusState(); loadFontScale(); renderDashboardAtoms(); deductListBoardRules.renderUnitBoard(); deductListBoardRules.renderOwnedBoard(); unitCategoryBoard.renderTabs(); selectTab(0); debouncedUpdateAllPanels(); setupSearchEngine(); setupInitialView(); renderPresetButtons();
             updateHideCompletedBtn();
-            _cartCollapsed = false;
-            syncCartVisibility();
             requestAnimationFrame(() => {
                 debouncedUpdateAllPanels();
             });
