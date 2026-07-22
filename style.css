@@ -174,9 +174,9 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 /* ── 08. 도감 카드 ────────────────────────────────────────────────────── */
 .cat-group{display:none;flex-direction:column;gap:0;}
 .cat-group.is-visible{display:flex;flex-direction:column;gap:0;padding:4px 2px;}
-.codex-category-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.codex-category-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:1fr;align-items:stretch;gap:6px;}
 .codex-empty-msg{grid-column:1/-1;text-align:center;padding:30px;color:var(--text-sub);font-weight:bold;font-size:1rem;}
-.unit-card{background:var(--card-bg);border:1px solid rgba(255,255,255,0.09);border-radius:10px;cursor:pointer;transition:all 0.22s cubic-bezier(0.2,0.8,0.2,1);display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 3px 11px rgba(0,0,0,0.88),inset 0 1px 0 rgba(255,255,255,0.022);min-height:0;}
+.unit-card{background:var(--card-bg);border:1px solid rgba(255,255,255,0.09);border-radius:10px;cursor:pointer;transition:all 0.22s cubic-bezier(0.2,0.8,0.2,1);display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 3px 11px rgba(0,0,0,0.88),inset 0 1px 0 rgba(255,255,255,0.022);min-height:0;height:100%;}
 .unit-card:hover{background:var(--card-hover);transform:translateY(-2px) scale(1.006);box-shadow:0 9px 28px rgba(22,24,36,0.82),0 0 0 1px rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.11);z-index:10;}
 .unit-card.active{background:linear-gradient(145deg,rgba(10,18,28,0.85),rgba(5,5,5,1));border-color:rgba(56,189,248,0.48);box-shadow:0 8px 30px rgba(22,24,36,0.82),inset 0 0 50px rgba(56,189,248,0.20),0 0 12px rgba(56,189,248,0.38),inset 0 1px 0 rgba(255,255,255,0.1);transform:translateY(-2px);}
 
@@ -195,7 +195,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .codex-fav-section{margin-bottom:4px;}
 .codex-fav-header{display:flex;align-items:center;gap:8px;padding:8px 4px 6px;}
 .codex-fav-title{font-size:calc(0.82rem * var(--fs-scale));font-weight:900;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.35);letter-spacing:0.3px;}
-.codex-fav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 0 8px;}
+.codex-fav-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:1fr;align-items:stretch;gap:6px;padding:0 0 8px;}
 .codex-page,.deduct-page{display:contents;}
 .codex-fav-divider{height:1px;background:linear-gradient(to right,transparent,rgba(251,191,36,0.25),transparent);margin:4px 0 10px;}
 .codex-fav-empty{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px;background:rgba(251,191,36,0.04);border:1px dashed rgba(251,191,36,0.2);border-radius:10px;}
@@ -360,8 +360,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-group-title:hover{color:var(--g);}
 .deduct-group.collapsed .deduct-group-title{margin-bottom:0;}
 .grp-title-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.deduct-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
-#grid-basic-hidden.deduct-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.deduct-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:1fr;justify-content:stretch;align-items:stretch;gap:8px;}
 #grid-basic-hidden .d-slot-main{flex:1;padding:12px 10px 6px;gap:4px;justify-content:center;}
 #grid-basic-hidden .d-reason-wrap{flex-shrink:0;padding:5px 8px;gap:4px;}
 #grid-basic-hidden .d-reason-tag{font-size:calc(0.63rem * var(--fs-scale));padding:2px 6px;}
@@ -375,7 +374,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 .empty-msg{text-align:center;padding:30px 20px;color:var(--text-sub);font-weight:bold;width:100%;display:none;line-height:1.6;font-size:calc(0.95rem * var(--fs-scale));}
 
-.deduct-slot{background:rgba(16,16,18,0.98);border:1px solid rgba(255,255,255,0.12);border-top-color:rgba(255,255,255,0.18);border-radius:10px;display:none;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 10px rgba(0,0,0,0.70),inset 0 1px 0 rgba(255,255,255,0.04);width:100%;min-height:120px;transition:all 0.28s cubic-bezier(0.4,0,0.2,1);cursor:default;}
+.deduct-slot{background:rgba(16,16,18,0.98);border:1px solid rgba(255,255,255,0.12);border-top-color:rgba(255,255,255,0.18);border-radius:10px;display:none;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 10px rgba(0,0,0,0.70),inset 0 1px 0 rgba(255,255,255,0.04);width:100%;height:100%;min-height:120px;transition:all 0.28s cubic-bezier(0.4,0,0.2,1);cursor:default;}
 .deduct-slot.is-visible{display:flex;}
 
 /* 11-1. 하이라이트 상태 */
@@ -488,7 +487,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     html,body{overflow:hidden;height:100%;margin:0;padding:0;}
     .main-layout{display:grid;gap:10px;padding:calc(var(--gh-h) + 10px) 14px 14px;width:100%;max-width:100%;margin:0 auto;grid-template-columns:minmax(260px,3fr) minmax(0,7fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);transition:grid-template-columns 0.45s cubic-bezier(0.4,0,0.2,1);}
     .panel-left,.panel-right{grid-column:2;grid-row:1 / 3;min-height:0;overflow:hidden;}
-    .codex-category-grid,.codex-fav-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+    .codex-category-grid,.codex-fav-grid{grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;}
     .panel-left,.panel-right{display:flex;flex-direction:column;transition:opacity 0.35s, transform 0.4s cubic-bezier(0.4,0,0.2,1);}
     .main-layout.view-deduct .panel-left,.main-layout.view-codex .panel-right{display:none;}
     .panel-cost{grid-column:1;grid-row:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
@@ -524,7 +523,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 /* 14-3. PC 세로·피벗 */
 @media (min-width:1025px) and (max-aspect-ratio:11/10) {
     .codex-category-grid,.codex-fav-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
-    .deduct-grid,#grid-basic-hidden.deduct-grid{grid-template-columns:repeat(auto-fill,220px);justify-content:start;align-items:start;}
+    .deduct-grid,#grid-basic-hidden.deduct-grid{grid-template-columns:repeat(4,minmax(0,1fr));justify-content:stretch;align-items:stretch;}
     .magic-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;height:auto;flex:none;}
     .cost-slot{aspect-ratio:unset;min-height:62px;}
 }
@@ -537,48 +536,38 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
     .gh-title{font-size:0.94rem;letter-spacing:1.2px;}
     .gh-creator-line{gap:4px;font-size:0.56rem;}
     .gh-nav-btn{padding:6px 10px;}
-    .codex-category-grid,.codex-fav-grid,.deduct-grid,#grid-basic-hidden.deduct-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .codex-category-grid,.codex-fav-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .deduct-grid,#grid-basic-hidden.deduct-grid{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch;align-items:stretch;}
     .magic-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;height:auto;flex:none;}
     .cost-slot{aspect-ratio:unset;min-height:58px;}
 }
 
 
-/* 14-5. 모바일 스와이프 공통 */
+/* 14-5. 모바일 그리드 공통 */
 @media (max-width: 767px),
        (max-width:950px) and (max-height:520px) and (orientation:landscape) {
-    .codex-category-grid,.deduct-grid,#grid-basic-hidden.deduct-grid{
+    .codex-category-grid,.codex-fav-grid{
         display:grid;
-        grid-template-columns:none;
-        grid-template-rows:repeat(3,auto);
-        grid-auto-flow:column;
-        grid-auto-columns:100%;
-        overflow-x:auto;
-        overflow-y:hidden;
+        grid-template-columns:repeat(1,minmax(0,1fr));
+        align-items:stretch;
         gap:6px;
         max-width:100%;
         min-width:0;
+        overflow:visible;
         padding:8px 1px 10px;
-        scroll-padding-top:8px;
-        scroll-snap-type:x mandatory;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:none;
+        scroll-snap-type:none;
     }
-    .codex-fav-grid{
+    .deduct-grid,#grid-basic-hidden.deduct-grid{
         display:grid;
-        grid-template-columns:none;
-        grid-template-rows:repeat(1,auto);
-        grid-auto-flow:column;
-        grid-auto-columns:100%;
-        overflow-x:auto;
-        overflow-y:hidden;
+        grid-template-columns:repeat(1,minmax(0,1fr));
+        justify-content:stretch;
+        align-items:stretch;
         gap:6px;
         max-width:100%;
         min-width:0;
+        overflow:visible;
         padding:8px 1px 10px;
-        scroll-padding-top:8px;
-        scroll-snap-type:x mandatory;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:none;
+        scroll-snap-type:none;
     }
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
@@ -587,11 +576,6 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
         width:100%;
         min-width:0;
         scroll-snap-align:none;
-    }
-    .codex-category-grid .unit-card:nth-child(3n+1),
-    .deduct-grid .deduct-slot:nth-child(3n+1),
-    .codex-fav-grid .unit-card{
-        scroll-snap-align:start;
     }
     .deduct-grid .deduct-slot.is-visible{display:flex;}
 }
@@ -641,32 +625,30 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 /* 14-8. 터치 태블릿 */
 @media (hover:none) and (pointer:coarse) and (min-width:768px) and (max-width:1366px) and (min-height:600px) {
-    .codex-category-grid,.deduct-grid,#grid-basic-hidden.deduct-grid,.codex-fav-grid{
-        display:grid;
-        grid-template-columns:none;
-        grid-template-rows:repeat(1,auto);
-        grid-auto-flow:column;
-        grid-auto-columns:100%;
-        max-width:100%;
-        min-width:0;
-        overflow-x:auto;
-        overflow-y:hidden;
-        gap:10px;
-        padding:8px 1px 10px;
-        scroll-padding-top:8px;
-        scroll-snap-type:x mandatory;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:none;
-    }
-    .codex-page,.deduct-page{
+    .codex-category-grid,.codex-fav-grid{
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
-        gap:6px;
+        align-items:stretch;
+        max-width:100%;
         min-width:0;
-        scroll-snap-align:start;
+        overflow:visible;
+        gap:10px;
+        padding:8px 1px 10px;
+        scroll-snap-type:none;
     }
-    .codex-category-page,.deduct-page{grid-template-rows:repeat(3,auto);}
-    .codex-fav-page{grid-template-rows:repeat(1,auto);}
+    .deduct-grid,#grid-basic-hidden.deduct-grid{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        justify-content:stretch;
+        align-items:stretch;
+        max-width:100%;
+        min-width:0;
+        overflow:visible;
+        gap:10px;
+        padding:8px 1px 10px;
+        scroll-snap-type:none;
+    }
+    .codex-page,.deduct-page{display:contents;}
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
     .deduct-grid .deduct-slot{

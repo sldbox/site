@@ -28,7 +28,7 @@
             oneTimeMinGrade: "슈퍼히든",
             hiddenGroupMinGrade: "히든",
             minGradeForChecklist: "레어",
-            hideCompletedExcludeGroups: ["최종 목표", "기본 재료"],
+            hideCompletedExcludeGroups: ["최종 목표"],
             restoreAllBtn: {
                 idBtn: "btnRestoreAll",
                 idLabel: "btnRestoreAllLabel",
@@ -63,7 +63,7 @@
             { id: 'group-target',       pid: 'grid-target',       title: '최종 목표', resetLevel: 5, isCol: false, alwaysShow: false, alwaysOpen: true,  resetLabel: '최종 복구' },
             { id: 'group-special',      pid: 'grid-special',      title: '직속 재료', resetLevel: 4, isCol: false, alwaysShow: false, alwaysOpen: true,  resetLabel: '직속 복구' },
             { id: 'group-upper-hidden', pid: 'grid-upper-hidden', title: '히든 재료', resetLevel: 3, isCol: true,  alwaysShow: false, alwaysOpen: false, resetLabel: '히든 복구' },
-            { id: 'group-basic-hidden', pid: 'grid-basic-hidden', title: '기본 재료', resetLevel: 2, isCol: true,  alwaysShow: true,  alwaysOpen: false, resetLabel: '기본 복구' }
+            { id: 'group-basic-hidden', pid: 'grid-basic-hidden', title: '기본 재료', resetLevel: 2, isCol: true,  alwaysShow: false, alwaysOpen: false, resetLabel: '기본 복구' }
         ],
         dashboardAtoms: [
             "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
@@ -118,7 +118,7 @@
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
     const unitMap = new Map(), activeUnits = new Map(), pausedUnits = new Map(), completedUnits = new Map(), depCache = new Map();
-    const completedTargets = new Map(), _unitNativeLevels = new Map();
+    const completedTargets = new Map(), _unitNativeLevels = new Map(), _unitRestoreLevels = new Map();
     const _depVisiting = new Set();
     const PRESET_COLOR_MAP = {
         '빨강':'red', '주황':'orange', '노랑':'yellow', '연두':'lime',
@@ -759,27 +759,27 @@
         }, APP_INTERNAL.restoreAllPendingDelay);
     }
 
+    function resetCompletedMaterialsByLevel(level) {
+        const uidsToReset = [];
+        completedUnits.forEach((_, uid) => {
+            if (activeUnits.has(uid)) return;
+            const restoreLevel = _unitRestoreLevels.get(uid) || 0;
+            if (restoreLevel > 0 && restoreLevel <= level) uidsToReset.push(uid);
+        });
+        uidsToReset.forEach(uid => completedUnits.delete(uid));
+    }
+
     function resetGroupCompleted(level) {
         if (level >= 5) {
             completedTargets.forEach((qty, uid) => {
-                deleteCompletedRecipe(uid, qty);
-                completedUnits.delete(uid);
                 setActiveUnitQty(uid, qty);
             });
             completedTargets.clear();
+            completedUnits.clear();
             _cartTab = 'active';
             _presetUsed.clear(); updatePresetBtns();
         } else {
-            const uidsToReset = [];
-            completedUnits.forEach((_, uid) => {
-                if (activeUnits.has(uid)) return;
-                let nativeLvl = _unitNativeLevels.get(uid) || 1;
-                if (nativeLvl <= level) {
-                    uidsToReset.push(uid);
-                }
-            });
-            
-            uidsToReset.forEach(uid => completedUnits.delete(uid));
+            resetCompletedMaterialsByLevel(level);
         }
         toggleHighlight(null); debouncedUpdateAllPanels();
     }
@@ -991,6 +991,13 @@
             upperHidden: getEl('grid-upper-hidden'),
             basicHidden: getEl('grid-basic-hidden')
         };
+        const restoreLevelsByGridId = {
+            'grid-basic-hidden': 2,
+            'grid-upper-hidden': 3,
+            'grid-special': 4,
+            'grid-target': 5
+        };
+        _unitRestoreLevels.clear();
 
         const exactDepths = new Map();
         let queue = [];
@@ -1174,7 +1181,11 @@
             tGrid = upgradedGrid || nativeGrid;
             if (!tGrid) return null;
 
-            let hideT = _hideCompleted && isCompleted && !excludeGridIds.includes(tGrid?.id || '');
+            const gridId = tGrid?.id || '';
+            _unitRestoreLevels.set(id, restoreLevelsByGridId[gridId] || 0);
+            const keepCompletedVisible = excludeGridIds.includes(gridId);
+            const hideCompletedMaterial = isCompleted && !keepCompletedVisible;
+            const hideT = hideCompletedMaterial || (_hideCompleted && isCompleted && !keepCompletedVisible);
             if (tGrid) {
                 if (!hideT) {
                     slotEl.classList.add('is-visible');
@@ -1240,8 +1251,9 @@
 
             const badge = getEl(`grp-count-${g.id}`);
             if (!badge) return;
-            const total = slots.length;
-            const done = slots.filter(el => el.classList.contains('is-completed')).length;
+            const countBase = excludeGridIds.includes(g.id) ? slots : visibleSlots;
+            const total = countBase.length;
+            const done = countBase.filter(el => el.classList.contains('is-completed')).length;
             badge.textContent = total > 0 ? `${done} / ${total}` : '';
         });
 
