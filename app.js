@@ -245,20 +245,23 @@
     };
     // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
     function sanitizeRuntimeState() {
-        const normalizeMap = (map, allowAutoCost = false) => {
+        const normalizeMap = (map, { allowAutoCost = false, keepCompletedQty = false } = {}) => {
             for (const [rawUid, rawQty] of [...map.entries()]) {
                 const uid = normalizeSavedId(rawUid);
                 const qty = parseInt(rawQty, 10);
                 map.delete(rawUid);
                 if (!Number.isFinite(qty) || qty <= 0) continue;
-                if (unitMap.has(uid)) setPositiveMapValue(map, uid, qty);
+                if (unitMap.has(uid)) {
+                    if (keepCompletedQty) map.set(uid, qty);
+                    else setPositiveMapValue(map, uid, qty);
+                }
                 else if (allowAutoCost && AUTO_COST_SLOT_SET.has(uid)) map.set(uid, qty);
             }
         };
         normalizeMap(activeUnits);
         normalizeMap(pausedUnits);
         normalizeMap(completedTargets);
-        normalizeMap(completedUnits, true);
+        normalizeMap(completedUnits, { allowAutoCost: true, keepCompletedQty: true });
         activeUnits.forEach((_, uid) => pausedUnits.delete(uid));
         completedTargets.forEach((_, uid) => {
             activeUnits.delete(uid);
@@ -681,8 +684,9 @@
             const requestedQty = amount !== undefined ? parseInt(amount, 10) : reqVal;
             const processQty = requestedQty === 10 && reqVal < 10 ? 0 : Math.min(requestedQty, reqVal);
             if (processQty > 0) {
+                const prevCompleted = completedUnits.get(uid) || 0;
                 deleteCompletedRecipe(uid, processQty);
-                const newComp = (completedUnits.get(uid) || 0) + processQty;
+                const newComp = Math.max(prevCompleted, completedUnits.get(uid) || 0) + processQty;
                 completedUnits.set(uid, newComp);
 
                 if (isPureTarget) {
@@ -1269,7 +1273,7 @@
         const isEmpty = activeUnits.size === 0 && completedTargets.size === 0;
         if (isEmpty) {
             msg.style.display = 'block';
-            msg.innerHTML = `<div class="empty-msg-enhanced"><div class="empty-arrow">↑</div><div class="empty-main">유닛도감에서 목표 유닛을 선택해 보세요</div><div class="empty-sub">상단 <b class="empty-emphasis">유닛도감</b> 탭 → 종족 선택 → 카드 클릭<br>프리셋 버튼으로 빠르게 시작할 수도 있습니다</div></div>`;
+            msg.innerHTML = `<div class="empty-msg-enhanced"><div class="empty-main">유닛도감에서 유닛을 선택하세요</div></div>`;
         } else {
             msg.style.display = 'none';
         }
