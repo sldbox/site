@@ -207,14 +207,29 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .unit-card:not(.active) .uc-name-row{opacity:0.8;text-shadow:none;}
 .unit-card:not(.active)[data-grade="슈퍼히든"] .uc-name-row{opacity:1;}
 .unit-card.active .uc-name-row{color:#fff;opacity:1;text-shadow:0 0 9px var(--g-glow),0 2px 4px var(--ts-deep);}
-.uc-essence-row{margin-top:5px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;line-height:1.15;text-align:center;word-break:keep-all;}
-.uc-essence-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border:1px solid rgba(255,255,255,0.16);border-radius:4px;background:rgba(0,0,0,0.35);font-size:calc(0.68rem * var(--fs-scale));font-weight:900;letter-spacing:-0.25px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03);}
+.uc-essence-row{margin-top:5px;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1.15;text-align:center;word-break:keep-all;}
+.uc-essence-summary{display:inline-flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;max-width:100%;padding:0;border:0;background:transparent;color:inherit;font-family:inherit;line-height:1.15;cursor:pointer;}
+.uc-essence-summary .uc-essence-chip{pointer-events:none;cursor:inherit;}
+.uc-essence-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border:1px solid rgba(255,255,255,0.16);border-radius:4px;background:rgba(0,0,0,0.35);font-size:calc(0.68rem * var(--fs-scale));font-weight:900;letter-spacing:-0.25px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03);font-family:inherit;line-height:1.15;cursor:pointer;}
+.uc-essence-summary:hover .uc-essence-chip,.tooltip-essence-tab:hover{filter:brightness(1.16);transform:translateY(-1px);}
+.uc-essence-summary:focus-visible,.tooltip-essence-tab:focus-visible{outline:2px solid rgba(56,189,248,0.85);outline-offset:2px;}
 .uc-essence-label{opacity:0.82;}
 .uc-essence-value{font-family:var(--font-mono);font-weight:900;padding-left:1px;color:#fff;}
 .uc-essence-coral{border-color:rgba(255,107,107,0.48);background:rgba(255,107,107,0.10);color:#fecaca;}
 .uc-essence-aiur{border-color:rgba(252,211,77,0.48);background:rgba(252,211,77,0.10);color:#fde68a;}
 .uc-essence-zerus{border-color:rgba(192,132,252,0.48);background:rgba(192,132,252,0.10);color:#e9d5ff;}
 .unit-card.active .uc-essence-chip{box-shadow:0 0 8px rgba(56,189,248,0.13),inset 0 0 0 1px rgba(255,255,255,0.04);}
+.tooltip-header-essence{gap:8px;justify-content:center;text-align:center;}
+.essence-tooltip-title{display:block;width:100%;font-weight:900;color:var(--text);}
+.tooltip-essence-tabs{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:8px 0 7px;}
+.tooltip-essence-tab{transition:filter 0.15s,transform 0.15s,border-color 0.15s,box-shadow 0.15s;}
+.tooltip-essence-tab.active{border-color:rgba(56,189,248,0.82);box-shadow:0 0 10px rgba(56,189,248,0.28),inset 0 0 0 1px rgba(255,255,255,0.08);color:#fff;}
+.essence-breakdown-body{gap:5px;}
+.essence-unit-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.08);border-radius:7px;}
+.essence-unit-main{display:inline-flex;align-items:center;gap:7px;min-width:0;}
+.essence-unit-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(0.84rem * var(--fs-scale));font-weight:900;line-height:1.25;}
+.essence-unit-basis{flex:0 0 auto;margin-left:auto;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-sub);font-size:calc(0.68rem * var(--fs-scale));font-weight:900;line-height:1.15;letter-spacing:-0.2px;}
+.essence-unit-basis.is-hybrid{background:rgba(192,132,252,0.16);border-color:rgba(192,132,252,0.42);color:#e9d5ff;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);}
 .uc-recipe-area{flex:1;min-height:0;overflow:hidden;}
 .uc-ctrl-area{display:flex;align-items:center;justify-content:center;padding-top:4px;margin-top:auto;flex-shrink:0;min-height:30px;}
 .unit-card:not(.active) .uc-ctrl-area{visibility:hidden;pointer-events:none;}

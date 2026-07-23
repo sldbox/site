@@ -540,6 +540,28 @@
         return counts;
     }
 
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+
+    function collectEssenceContributors(uid, targetEssence, list, visited) {
+        if (!uid || visited.has(uid)) return;
+        visited.add(uid);
+        const u = unitMap.get(uid);
+        if (!u) return;
+        const hiddenGradeIdx = getGradeIndex(SYSTEM_CONFIG.policy.hiddenGroupMinGrade || "히든");
+        const unitEssence = SYSTEM_CONFIG.essence.mapping[u.category];
+        const isHybridShare = unitEssence === '혼종' && ['코랄', '아이어', '제루스'].includes(targetEssence);
+        if (getGradeIndex(u.grade) >= hiddenGradeIdx && (unitEssence === targetEssence || isHybridShare)) {
+            list.push({ unit: u, basis: isHybridShare ? '혼종 · 3 번 조합' : '일반 · 1 번 조합', basisType: isHybridShare ? 'hybrid' : 'normal' });
+        }
+        u.parsedRecipe?.forEach(pr => pr.id && collectEssenceContributors(pr.id, targetEssence, list, visited));
+    }
+
+    function getEssenceContributors(uid, targetEssence) {
+        const list = [];
+        collectEssenceContributors(uid, targetEssence, list, new Set());
+        return list;
+    }
+
     function calculateDeductedRequirements() {
         let reqMap = new Map(), baseMap = new Map(), reasonMap = new Map();
         let autoCostReq = {}, baseAutoCostReq = {}, autoCostReason = {};
@@ -1408,7 +1430,7 @@
 
     function starBtnHtml(id) {
         const isFav = _favorites.has(id);
-        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" title="${isFav ? '즐겨찾기 해제' : '즐겨찾기 등록'}" aria-label="즐겨찾기">${isFav ? '★' : '☆'}</button>`;
+        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-label="즐겨찾기">${isFav ? '★' : '☆'}</button>`;
     }
 
     function buildCardControl(item, prefix, isRestricted, isOT) {
@@ -1418,16 +1440,21 @@
         return `<div class="uc-ctrl-area uc-ctrl-area-reserved" aria-hidden="true"><div class="smart-stepper smart-stepper-placeholder"><button type="button" disabled>-</button><div class="ss-val">-</div><button type="button" disabled>+</button></div></div>`;
     }
 
-    function getUnitCodexEssenceText(item) {
-        if (!item?.id) return '';
+    function getUnitEssenceParts(item) {
+        if (!item?.id) return [];
         const counts = getEssenceCount(new Map([[item.id, 1]]));
         const hybrid = Math.max(0, counts['혼종'] || 0);
-        const parts = [
+        return [
             ['coral', '코랄', Math.max(0, (counts['코랄'] || 0) + hybrid)],
             ['aiur', '아이어', Math.max(0, (counts['아이어'] || 0) + hybrid)],
             ['zerus', '제루스', Math.max(0, (counts['제루스'] || 0) + hybrid)]
         ].filter(([, , value]) => value > 0);
-        return parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('');
+    }
+
+    function getUnitCodexEssenceText(item) {
+        const parts = getUnitEssenceParts(item);
+        if (!parts.length) return '';
+        return `<button type="button" class="uc-essence-summary" data-action="showEssenceBreakdown" data-uid="${item.id}" aria-label="${item.name} 정수정보 보기">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</button>`;
     }
 
     function buildCard(item, idx, prefix, showRecipe) {
@@ -1542,7 +1569,7 @@
             const uid = btn.dataset.uid, isFav = _favorites.has(uid);
             btn.classList.toggle('is-fav', isFav);
             btn.textContent = isFav ? '★' : '☆';
-            btn.title = isFav ? '즐겨찾기 해제' : '즐겨찾기 등록';
+            btn.removeAttribute('title');
         });
     }
 
@@ -1579,7 +1606,7 @@
             else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
             else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
             else if (isBrightColor(p.배경색)) styleStr += ';--btn-text-override:#111111';
-            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" title="${p.tooltip || p.label}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
+            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
         }).join('');
 
         wrap.style.display = '';
@@ -1589,7 +1616,7 @@
     function updatePresetBtns() {
         SYSTEM_CONFIG.presets.forEach((p, i) => {
             const btn = document.querySelector(`[data-action="runPreset"][data-preset-idx="${i}"]`), used = p.oneTime && _presetUsed.get(i);
-            if (btn) { btn.disabled = !!used; btn.classList.toggle('gohaeng-used', !!used); btn.title = used ? '초기화 버튼으로 재활성화됩니다' : (p.tooltip || p.label); }
+            if (btn) { btn.disabled = !!used; btn.classList.toggle('gohaeng-used', !!used); btn.removeAttribute('title'); }
         });
     }
 
@@ -1875,6 +1902,36 @@
         });
     }
 
+    function showEssenceBreakdown(id, essenceName, event) {
+        event?.stopPropagation();
+        const u = unitMap.get(id), tt = getEl('recipeTooltip');
+        if (!u || !tt) return;
+        const parts = getUnitEssenceParts(u);
+        if (!parts.length) return;
+        const selected = parts.some(([, name]) => name === essenceName) ? essenceName : parts[0][1];
+        const contributors = getEssenceContributors(id, selected);
+        const isClickInside = event ? (event.target.closest('#recipeTooltip') !== null) : false;
+        tt.innerHTML = `
+            <div class="tooltip-header tooltip-header-essence">
+                <span class="essence-tooltip-title">${escapeHtml(u.name)}</span>
+            </div>
+            <div class="tooltip-essence-tabs">
+                ${parts.map(([partId, name, value]) => `<button type="button" class="uc-essence-chip uc-essence-${partId} tooltip-essence-tab${name === selected ? ' active' : ''}" data-action="showEssenceBreakdown" data-uid="${id}" data-essence="${name}" aria-pressed="${name === selected}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></button>`).join('')}
+            </div>
+            <div class="tooltip-body essence-breakdown-body">
+                ${contributors.length > 0 ? contributors.map(({ unit: cu, basis, basisType }) => `
+                    <div class="essence-unit-row">
+                        <span class="essence-unit-main">
+                            <span class="gtag grade-${cu.grade}">${escapeHtml(cu.grade)}</span>
+                            <span class="essence-unit-name" style="color:${SYSTEM_CONFIG.grades.colors[cu.grade] || 'var(--text)'};">${escapeHtml(cu.name)}</span>
+                        </span>
+                        <span class="essence-unit-basis ${basisType === 'hybrid' ? 'is-hybrid' : 'is-normal'}">${escapeHtml(basis)}</span>
+                    </div>`).join('') : '<div class="recipe-empty-msg">표시할 구성 유닛이 없습니다.</div>'}
+            </div>
+            <div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
+        showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
+    }
+
     function showExcludedTooltip(id, event) {
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
         
@@ -2008,6 +2065,7 @@
             case 'restorePausedUnit': e.stopPropagation(); restorePausedUnit(uid); break;
             case 'resetGroup': e.stopPropagation(); resetGroupCompleted(parseInt(actionEl.dataset.level, 10)); break;
             case 'showExcludedTooltip': e.stopPropagation(); showExcludedTooltip(uid, e); break;
+            case 'showEssenceBreakdown': e.stopPropagation(); showEssenceBreakdown(uid, actionEl.dataset.essence, e); break;
             case 'showRecipeTooltip': e.stopPropagation(); showRecipeTooltip(uid, e, actionEl.dataset.isDeduction === 'true'); break;
         }
     });
