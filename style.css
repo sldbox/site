@@ -559,31 +559,42 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 }
 
 
-/* 14-5. 모바일 그리드 공통 */
+/* 14-5. 모바일 스와이프 공통 */
 @media (max-width: 767px),
        (max-width:950px) and (max-height:520px) and (orientation:landscape) {
-    .codex-category-grid,.codex-fav-grid{
+    .codex-category-grid,.deduct-grid,#grid-basic-hidden.deduct-grid{
         display:grid;
-        grid-template-columns:repeat(1,minmax(0,1fr));
-        align-items:stretch;
+        grid-template-columns:none;
+        grid-template-rows:repeat(3,auto);
+        grid-auto-flow:column;
+        grid-auto-columns:100%;
+        overflow-x:auto;
+        overflow-y:hidden;
         gap:6px;
         max-width:100%;
         min-width:0;
-        overflow:visible;
         padding:8px 1px 10px;
-        scroll-snap-type:none;
+        scroll-padding-top:8px;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
     }
-    .deduct-grid,#grid-basic-hidden.deduct-grid{
+    .codex-fav-grid{
         display:grid;
-        grid-template-columns:repeat(1,minmax(0,1fr));
-        justify-content:stretch;
-        align-items:stretch;
+        grid-template-columns:none;
+        grid-template-rows:repeat(1,auto);
+        grid-auto-flow:column;
+        grid-auto-columns:100%;
+        overflow-x:auto;
+        overflow-y:hidden;
         gap:6px;
         max-width:100%;
         min-width:0;
-        overflow:visible;
-        padding:8px 0 0;
-        scroll-snap-type:none;
+        padding:8px 1px 10px;
+        scroll-padding-top:8px;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
     }
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
@@ -592,6 +603,11 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
         width:100%;
         min-width:0;
         scroll-snap-align:none;
+    }
+    .codex-category-grid .unit-card:nth-child(3n+1),
+    .deduct-grid .deduct-slot:nth-child(3n+1),
+    .codex-fav-grid .unit-card{
+        scroll-snap-align:start;
     }
     .deduct-grid .deduct-slot.is-visible{display:flex;}
 }
@@ -643,30 +659,32 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 /* 14-8. 터치 태블릿 */
 @media (hover:none) and (pointer:coarse) and (min-width:768px) and (max-width:1366px) and (min-height:600px) {
-    .codex-category-grid,.codex-fav-grid{
+    .codex-category-grid,.deduct-grid,#grid-basic-hidden.deduct-grid,.codex-fav-grid{
         display:grid;
-        grid-template-columns:repeat(3,minmax(0,1fr));
-        align-items:stretch;
+        grid-template-columns:none;
+        grid-template-rows:repeat(1,auto);
+        grid-auto-flow:column;
+        grid-auto-columns:100%;
         max-width:100%;
         min-width:0;
-        overflow:visible;
+        overflow-x:auto;
+        overflow-y:hidden;
         gap:10px;
         padding:8px 1px 10px;
-        scroll-snap-type:none;
+        scroll-padding-top:8px;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
     }
-    .deduct-grid,#grid-basic-hidden.deduct-grid{
+    .codex-page,.deduct-page{
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
-        justify-content:stretch;
-        align-items:stretch;
-        max-width:100%;
+        gap:6px;
         min-width:0;
-        overflow:visible;
-        gap:10px;
-        padding:8px 0 0;
-        scroll-snap-type:none;
+        scroll-snap-align:start;
     }
-    .codex-page,.deduct-page{display:contents;}
+    .codex-category-page,.deduct-page{grid-template-rows:repeat(3,auto);}
+    .codex-fav-page{grid-template-rows:repeat(1,auto);}
     .codex-category-grid .unit-card,
     .codex-fav-grid .unit-card,
     .deduct-grid .deduct-slot{
