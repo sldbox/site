@@ -129,22 +129,38 @@
     const CLEAN_PRESET_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
         .map(([id, b]) => [clean(id), parseInt(b?.presetMaxQty, 10)])
         .filter(([, cap]) => Number.isFinite(cap) && cap > 0));
-    const BASIC_VISIBLE_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
-    const HIDDEN_MATERIAL_GRADES = new Set(["히든"]);
-    const isBasicMaterialGrade = (grade) => BASIC_VISIBLE_GRADES.has(grade);
-    const isHiddenMaterialGrade = (grade) => HIDDEN_MATERIAL_GRADES.has(grade);
-    const MATERIAL_REASON_META = Object.freeze({
-        direct: { suffix: '직속재료', tagClass: 'tag-mat' },
-        hidden: { suffix: '히든재료', tagClass: 'tag-hidden-mat' },
-        basic: { suffix: '기본재료', tagClass: 'tag-basic-mat' }
-    });
-    const getMaterialReasonMeta = (uid, isDirect) => {
-        if (isDirect) return MATERIAL_REASON_META.direct;
-        const grade = unitMap.get(uid)?.grade;
-        if (isHiddenMaterialGrade(grade)) return MATERIAL_REASON_META.hidden;
-        if (isBasicMaterialGrade(grade)) return MATERIAL_REASON_META.basic;
-        return MATERIAL_REASON_META.hidden;
+    const BASIC_CHECKLIST_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
+    const isBasicChecklistGrade = (grade) => BASIC_CHECKLIST_GRADES.has(grade);
+    const MATERIAL_REASON_LABEL = '재료';
+    const TOOL_REASON_LABEL_HTML = '<span class="tool-badge">[도구]</span>';
+    const REASON_GRADE_ORDER = ["슈퍼히든", "히든", "레전드", "헬", "유니크", "에픽", "레어", "매직"];
+    const REASON_GRADE_RANK = new Map(REASON_GRADE_ORDER.map((grade, index) => [grade, index]));
+    const DEFAULT_REASON_TAG_CLASS = 'tag-reason-default';
+    const getReasonGradeRank = (grade) => REASON_GRADE_RANK.get(grade) ?? REASON_GRADE_ORDER.length;
+    const getReasonTagClassByGrade = (grade) => SYSTEM_CONFIG.grades.order.includes(grade) ? `tag-grade-${grade}` : DEFAULT_REASON_TAG_CLASS;
+    const getChecklistReasonMeta = (parentUid) => {
+        const parentUnit = unitMap.get(parentUid);
+        const grade = parentUnit?.grade || '';
+        const name = parentUnit?.name || parentUid || '';
+        return { name, grade, gradeRank: getReasonGradeRank(grade), tagClass: getReasonTagClassByGrade(grade) };
     };
+    const createChecklistReasonInfo = (parentUid, centerHtml, { cond = '', depth = 1, reqQty = 1 } = {}) => {
+        const reasonMeta = getChecklistReasonMeta(parentUid);
+        const center = centerHtml(reasonMeta.name);
+        return {
+            text: center,
+            cond,
+            depth,
+            parentUid,
+            reqQty,
+            tagClass: reasonMeta.tagClass,
+            reasonGrade: reasonMeta.grade,
+            reasonGradeRank: reasonMeta.gradeRank,
+            reasonCenterHtml: center
+        };
+    };
+    const createMaterialReasonInfo = (parentUid, options = {}) => createChecklistReasonInfo(parentUid, name => `${escapeHtml(name)} ${MATERIAL_REASON_LABEL}`, options);
+    const createToolReasonInfo = (parentUid, options = {}) => createChecklistReasonInfo(parentUid, name => `${escapeHtml(name)} ${TOOL_REASON_LABEL_HTML}`, options);
     const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.map(e => e.id);
     const CLEAN_SPECIAL_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.specialConditions).map(([k, v]) => [clean(k), v]));
     const CLEAN_UNIT_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitConditions || {}).map(([k, v]) => [clean(k), v]));
@@ -624,7 +640,7 @@
             getToolNeed(uid).forEach(toolId => {
                 let cRoots = rootTracking.get(toolId) || new Map();
                 let isDirTarget = activeUnits.has(uid);
-                cRoots.set(`TOOL_${uid}`, { text: `${uData.name} <span class="tool-badge">[도구]</span>`, cond: '', depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: 1 });
+                cRoots.set(`TOOL_${uid}`, createToolReasonInfo(uid, { depth: isDirTarget ? 1 : 2, reqQty: 1 }));
                 rootTracking.set(toolId, cRoots);
             });
             
@@ -632,16 +648,14 @@
                 if (!child.id || isToolRequirement(uid, child.id) || (!unitMap.has(child.id) && !virtualUnitIds.has(child.id))) return;
                 let cRoots = rootTracking.get(child.id) || new Map();
                 let isDirTarget = activeUnits.has(uid);
-                const reasonMeta = getMaterialReasonMeta(child.id, isDirTarget);
-                cRoots.set(`MAT_${uid}`, { text: `${uData.name} ${reasonMeta.suffix}`, cond: child.cond, depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: child.qty, tagClass: reasonMeta.tagClass });
+                cRoots.set(`MAT_${uid}`, createMaterialReasonInfo(uid, { cond: child.cond, depth: isDirTarget ? 1 : 2, reqQty: child.qty }));
                 rootTracking.set(child.id, cRoots);
             });
             
             uData.parsedCost?.forEach(pc => {
                 if (AUTO_COST_SLOT_SET.has(pc.key) && (deficits.get(uid) || 0) > 0) {
                     let isDirTarget = activeUnits.has(uid);
-                    const reasonMeta = getMaterialReasonMeta(pc.key, isDirTarget);
-                    autoCostReason[pc.key].set(`AUTO_${uid}`, { text: `${uData.name} ${reasonMeta.suffix}`, cond: '', depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: pc.qty, tagClass: reasonMeta.tagClass });
+                    autoCostReason[pc.key].set(`AUTO_${uid}`, createMaterialReasonInfo(uid, { depth: isDirTarget ? 1 : 2, reqQty: pc.qty }));
                 }
             });
         });
@@ -1076,7 +1090,19 @@
                 .filter(entry => entry.info?.depth === 0 || entry.displayQty > 0)
                 .map(entry => [entry.rId, { ...entry.info, displayQty: entry.displayQty, _reasonOrder: entry.index }]);
         };
-        const getReasonTagClass = (info) => info?.depth === 0 ? 'tag-target' : (info?.tagClass || 'tag-mat');
+        const getReasonTagClass = (info) => info?.depth === 0 ? 'tag-target' : (info?.tagClass || DEFAULT_REASON_TAG_CLASS);
+        const isSplitReason = (info) => info?.depth !== 0 && !!info?.reasonCenterHtml;
+        const renderReasonTagContent = (info) => {
+            if (!isSplitReason(info)) {
+                const qtyText = info?.depth !== 0 && info?.displayQty > 0 ? ` <span class="d-reason-qty">· ${info.displayQty} 개</span>` : '';
+                return `${info.text}${qtyText}`;
+            }
+            return [
+                `<span class="d-reason-grade">${escapeHtml(info.reasonGrade || '')}</span>`,
+                `<span class="d-reason-main">${info.reasonCenterHtml}</span>`,
+                `<span class="d-reason-qty">${info.displayQty} 개</span>`
+            ].join('');
+        };
         
         const targetHighlight = _currentHighlight || null;
         const highlightDeps = targetHighlight ? getDependencies(targetHighlight) : null;
@@ -1191,15 +1217,16 @@
                         if (filtered.length > 0) allEntries = filtered;
                     }
                     if (allEntries.length > 0) {
-                        let sorted = allEntries.sort((a,b)=>(a[1].depth||0)-(b[1].depth||0) || (a[1]._reasonOrder||0)-(b[1]._reasonOrder||0));
+                        let sorted = allEntries.sort((a, b) =>
+                            (a[1].depth || 0) - (b[1].depth || 0) ||
+                            (a[1].reasonGradeRank ?? REASON_GRADE_ORDER.length) - (b[1].reasonGradeRank ?? REASON_GRADE_ORDER.length) ||
+                            (a[1]._reasonOrder || 0) - (b[1]._reasonOrder || 0)
+                        );
                         rCon.style.display = 'flex';
                         rCon.classList.toggle('is-target-only', sorted.every(([, i]) => i.depth === 0));
                         rCon.innerHTML = sorted.map(([rId,i]) => {
-                            let qtyText = '';
-                            if (i.depth !== 0 && i.displayQty > 0) {
-                                qtyText = ` <span class="d-reason-qty">· ${i.displayQty}개</span>`;
-                            }
-                            return `<span class="d-reason-tag ${getReasonTagClass(i)}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${i.text}${qtyText}</span>`;
+                            const splitTagClass = isSplitReason(i) ? ' is-split-reason' : '';
+                            return `<span class="d-reason-tag ${getReasonTagClass(i)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(i)}</span>`;
                         }).join('');
                     } else {
                         rCon.style.display = 'none';
@@ -1280,7 +1307,7 @@
             
             let nativeGrid = null;
             if (isHiddenGroup) nativeGrid = grids.upperHidden;
-            else if (isBasicMaterialGrade(uGrade)) nativeGrid = grids.basicHidden;
+            else if (isBasicChecklistGrade(uGrade)) nativeGrid = grids.basicHidden;
             tGrid = upgradedGrid || nativeGrid;
             if (!tGrid) return null;
 

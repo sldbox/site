@@ -421,17 +421,33 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .d-reason-wrap{display:none;flex-direction:column;flex-wrap:nowrap;gap:4px;padding:5px 10px;justify-content:flex-start;align-items:flex-start;background:rgba(0,0,0,0.60);border-bottom:1px solid rgba(255,255,255,0.07);}
 .d-reason-wrap.is-target-only{align-items:center;}
 .d-reason-tag{display:block;max-width:100%;font-size:calc(0.63rem * var(--fs-scale));font-weight:800;color:var(--text-sub);background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:5px;letter-spacing:-0.2px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);cursor:pointer;transition:all 0.17s;}
+.d-reason-tag.is-split-reason{display:grid;width:100%;box-sizing:border-box;grid-template-columns:minmax(42px,auto) minmax(0,1fr) minmax(34px,auto);align-items:center;column-gap:6px;}
+.d-reason-grade{text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.d-reason-main{text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.d-reason-tag.is-split-reason .d-reason-qty{text-align:right;min-width:0;white-space:nowrap;}
 .d-reason-tag:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:var(--g-border);box-shadow:0 0 8px var(--g-glow);transform:translateY(-1px);}
 
 /* 11-3. 타겟·재료 태그 */
 .tag-target{background:linear-gradient(135deg,rgba(239,68,68,0.28),rgba(220,38,38,0.12));border-color:rgba(239,68,68,0.55);color:#fca5a5;font-weight:900;box-shadow:0 0 8px rgba(239,68,68,0.18),inset 0 1px 0 rgba(255,255,255,0.08);text-shadow:0 1px 3px var(--ts-drop);}
 .tag-target:hover{background:linear-gradient(135deg,rgba(239,68,68,0.38),rgba(220,38,38,0.22));border-color:rgba(239,68,68,0.85);color:#fff;box-shadow:0 0 14px rgba(239,68,68,0.45),inset 0 1px 0 rgba(255,255,255,0.2);}
-.tag-mat{background:rgba(251,191,36,0.16);border-color:rgba(251,191,36,0.50);color:#fde068;font-weight:800;box-shadow:0 0 8px rgba(251,191,36,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
-.tag-mat:hover{background:rgba(251,191,36,0.26);border-color:rgba(251,191,36,0.78);color:#fff7ad;box-shadow:0 0 12px rgba(251,191,36,0.36),inset 0 1px 0 rgba(255,255,255,0.18);}
-.tag-hidden-mat{background:rgba(52,211,153,0.14);border-color:rgba(52,211,153,0.48);color:#86efac;font-weight:800;box-shadow:0 0 8px rgba(52,211,153,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
-.tag-hidden-mat:hover{background:rgba(52,211,153,0.24);border-color:rgba(52,211,153,0.76);color:#dcfce7;box-shadow:0 0 12px rgba(52,211,153,0.32),inset 0 1px 0 rgba(255,255,255,0.18);}
-.tag-basic-mat{background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.42);color:#bae6fd;font-weight:800;box-shadow:0 0 8px rgba(56,189,248,0.12),inset 0 1px 0 rgba(255,255,255,0.08);}
-.tag-basic-mat:hover{background:rgba(56,189,248,0.22);border-color:rgba(56,189,248,0.72);color:#f0f9ff;box-shadow:0 0 12px rgba(56,189,248,0.32),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-매직{background:rgba(147,197,253,0.14);border-color:rgba(147,197,253,0.50);color:#bfdbfe;font-weight:800;box-shadow:0 0 8px rgba(147,197,253,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-매직:hover{background:rgba(147,197,253,0.24);border-color:rgba(147,197,253,0.78);color:#eff6ff;box-shadow:0 0 12px rgba(147,197,253,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-레어{background:rgba(251,191,36,0.14);border-color:rgba(251,191,36,0.50);color:#fde68a;font-weight:800;box-shadow:0 0 8px rgba(251,191,36,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-레어:hover{background:rgba(251,191,36,0.24);border-color:rgba(251,191,36,0.78);color:#fffbeb;box-shadow:0 0 12px rgba(251,191,36,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-에픽{background:rgba(249,115,22,0.14);border-color:rgba(249,115,22,0.50);color:#fdba74;font-weight:800;box-shadow:0 0 8px rgba(249,115,22,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-에픽:hover{background:rgba(249,115,22,0.24);border-color:rgba(249,115,22,0.78);color:#fff7ed;box-shadow:0 0 12px rgba(249,115,22,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-유니크{background:rgba(239,68,68,0.14);border-color:rgba(239,68,68,0.50);color:#fca5a5;font-weight:800;box-shadow:0 0 8px rgba(239,68,68,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-유니크:hover{background:rgba(239,68,68,0.24);border-color:rgba(239,68,68,0.78);color:#fff1f2;box-shadow:0 0 12px rgba(239,68,68,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-헬{background:rgba(236,72,153,0.14);border-color:rgba(236,72,153,0.50);color:#f9a8d4;font-weight:800;box-shadow:0 0 8px rgba(236,72,153,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-헬:hover{background:rgba(236,72,153,0.24);border-color:rgba(236,72,153,0.78);color:#fdf2f8;box-shadow:0 0 12px rgba(236,72,153,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-레전드{background:rgba(192,132,252,0.16);border-color:rgba(192,132,252,0.52);color:#d8b4fe;font-weight:800;box-shadow:0 0 8px rgba(192,132,252,0.16),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-레전드:hover{background:rgba(192,132,252,0.26);border-color:rgba(192,132,252,0.82);color:#faf5ff;box-shadow:0 0 12px rgba(192,132,252,0.38),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-히든{background:rgba(52,211,153,0.14);border-color:rgba(52,211,153,0.50);color:#86efac;font-weight:800;box-shadow:0 0 8px rgba(52,211,153,0.14),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-grade-히든:hover{background:rgba(52,211,153,0.24);border-color:rgba(52,211,153,0.78);color:#dcfce7;box-shadow:0 0 12px rgba(52,211,153,0.34),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tag-grade-슈퍼히든{background:rgba(251,191,36,0.18);border-color:rgba(251,191,36,0.58);color:#fbbf24;font-weight:900;box-shadow:0 0 9px rgba(251,191,36,0.20),inset 0 1px 0 rgba(255,255,255,0.10);}
+.tag-grade-슈퍼히든:hover{background:rgba(251,191,36,0.30);border-color:rgba(251,191,36,0.86);color:#fff7ad;box-shadow:0 0 14px rgba(251,191,36,0.42),inset 0 1px 0 rgba(255,255,255,0.20);}
+.tag-reason-default{background:rgba(148,163,184,0.14);border-color:rgba(148,163,184,0.44);color:#cbd5e1;font-weight:800;box-shadow:0 0 8px rgba(148,163,184,0.12),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tag-reason-default:hover{background:rgba(148,163,184,0.24);border-color:rgba(148,163,184,0.72);color:#f8fafc;box-shadow:0 0 12px rgba(148,163,184,0.30),inset 0 1px 0 rgba(255,255,255,0.18);}
 
 .d-name-inline{display:inline-flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;transition:all 0.2s;}
 .d-name:hover .d-name-inline{text-shadow:0 0 8px var(--g-glow);}
