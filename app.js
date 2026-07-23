@@ -13,14 +13,6 @@
 
     // ── 00. 설정 및 정책 병합 ────────────────────────────────────────────────
     const USER_CONFIG = window.NEXUS_USER_CONFIG || {};
-    const PRIMARY_UNIT_GROUPS = Object.freeze({
-        "테바": ["비밀작전노바", "타이커스핀들레이", "마일스블레이즈루이스", "광부", "특공대레이너"],
-        "테메": ["테라트론", "해적주력함", "아우구스트그라드의자랑"],
-        "토바": ["아몬", "말라쉬", "테사다르"],
-        "토메": ["아둔의창", "정화자감시자", "탈다림모선", "셀렌디스"],
-        "저그중립": ["불새케리건", "초월체", "땅굴파괴자", "원시케리건", "데하카"],
-        "혼종": ["나루드", "아몬의젤나가피조물", "혼종종언자", "사라케리건"]
-    });
     const APP_DEFAULT_CONFIG = {
         policy: {
             maxUnitCapacity: 16,
@@ -102,6 +94,7 @@
     const SYSTEM_CONFIG = {
         ...APP_DEFAULT_CONFIG,
         tools: USER_CONFIG.tools || {},
+        primaryUnitGroups: USER_CONFIG.primaryUnitGroups || {},
         unitBehaviors: USER_CONFIG.unitBehaviors || {},
         oneTimeIds: USER_CONFIG.oneTimeIds || [],
         specialConditions: USER_CONFIG.specialConditions || {},
@@ -131,7 +124,7 @@
     const AUTO_COST_SLOT_RAWS = Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id]) => id);
     const AUTO_COST_RAW_MAP = Object.fromEntries(AUTO_COST_SLOT_RAWS.map(id => [clean(id), id]));
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
-    const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(PRIMARY_UNIT_GROUPS).flat());
+    const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(SYSTEM_CONFIG.primaryUnitGroups || {}).flat());
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
     const CLEAN_PRESET_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
         .map(([id, b]) => [clean(id), parseInt(b?.presetMaxQty, 10)])
