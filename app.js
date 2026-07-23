@@ -23,7 +23,6 @@
     });
     const APP_DEFAULT_CONFIG = {
         policy: {
-            hybridWeight: 3,
             maxUnitCapacity: 16,
             oneTimeMinGrade: "슈퍼히든",
             hiddenGroupMinGrade: "히든",
@@ -50,13 +49,7 @@
             { key: "저그중립", name: "저그중립" }, { key: "혼종", name: "혼종" }
         ],
         essence: {
-            mapping: { "테바": "코랄", "테메": "코랄", "토바": "아이어", "토메": "아이어", "저그중립": "제루스", "혼종": "혼종" },
-            display: [
-                { id: "coral", color: "#FF6B6B", name: "코랄" },
-                { id: "aiur", color: "var(--grade-rare)", name: "아이어" },
-                { id: "zerus", color: "var(--grade-legend)", name: "제루스" },
-                { id: "hybrid", color: "var(--grade-hidden)", name: "혼종" }
-            ]
+            mapping: { "테바": "코랄", "테메": "코랄", "토바": "아이어", "토메": "아이어", "저그중립": "제루스", "혼종": "혼종" }
         },
         sorting: { order: { "아몬": 100, "나루드": 97 } },
         groupDefs: [
@@ -69,12 +62,37 @@
             "전쟁광", "스파르타중대", "암흑광전사", "암흑파수기", "원시바퀴",
             "저격수", "코브라", "암흑고위기사", "암흑추적자", "변종가시지옥",
             "망치경호대", "공성파괴단", "암흑집정관", "암흑불멸자", "원시히드라리스크",
-            "땅거미지뢰", "자동포탑", "우르사돈암", "갓오타", "메시브"
+            "땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타", "메시브"
+        ],
+        dashboardSlots: [
+            { atoms: ["전쟁광"] },
+            { atoms: ["스파르타중대"] },
+            { atoms: ["암흑광전사"] },
+            { atoms: ["암흑파수기"] },
+            { atoms: ["원시바퀴"] },
+            { atoms: ["저격수"] },
+            { atoms: ["코브라"] },
+            { atoms: ["암흑고위기사"] },
+            { atoms: ["암흑추적자"] },
+            { atoms: ["변종가시지옥"] },
+            { atoms: ["망치경호대"] },
+            { atoms: ["공성파괴단"] },
+            { atoms: ["암흑집정관"] },
+            { atoms: ["암흑불멸자"] },
+            { atoms: ["원시히드라리스크"] },
+            { atoms: ["땅거미지뢰"] },
+            { atoms: ["자동포탑"] },
+            { atoms: ["우르사돈암"] },
+            { atoms: ["우르사돈수"] },
+            { atoms: ["갓오타", "메시브"] }
         ],
         storageKeys: window.NEXUS_STORAGE_KEYS || {
             saveData: "nexusSaveData",
             favorites: "nexusFavorites",
             fontScale: "nexusFontScale"
+        },
+        codex: {
+            visibleExceptionIds: []
         },
         search: {
             minGradeForSearch: "레전드",
@@ -89,6 +107,10 @@
         specialConditions: USER_CONFIG.specialConditions || {},
         unitConditions: USER_CONFIG.unitConditions || {},
         presets: USER_CONFIG.presets || [],
+        codex: {
+            ...APP_DEFAULT_CONFIG.codex,
+            ...(USER_CONFIG.codex || {})
+        },
         search: {
             ...APP_DEFAULT_CONFIG.search,
             ...(USER_CONFIG.search || {})
@@ -102,6 +124,7 @@
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
+    const CLEAN_CODEX_VISIBLE_EXCEPTION_IDS = makeCleanSet(SYSTEM_CONFIG.codex.visibleExceptionIds || []);
     const _behaviors = SYSTEM_CONFIG.unitBehaviors || {};
     const SPECIAL_RENDER_LIST = Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
     const AUTO_COST_SLOT_SET = new Set(Object.entries(_behaviors).filter(([, b]) => b.specialRender).map(([id]) => clean(id)));
@@ -115,6 +138,13 @@
     const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.map(e => e.id);
     const CLEAN_SPECIAL_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.specialConditions).map(([k, v]) => [clean(k), v]));
     const CLEAN_UNIT_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitConditions || {}).map(([k, v]) => [clean(k), v]));
+    const DASHBOARD_SLOT_DEFS = (Array.isArray(SYSTEM_CONFIG.dashboardSlots) && SYSTEM_CONFIG.dashboardSlots.length
+        ? SYSTEM_CONFIG.dashboardSlots
+        : (SYSTEM_CONFIG.dashboardAtoms || []).map(atom => ({ atoms: [atom] })))
+        .map(slot => ({
+            atoms: (Array.isArray(slot?.atoms) ? slot.atoms : [slot?.atom]).filter(Boolean)
+        }))
+        .filter(slot => slot.atoms.length > 0);
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
     const unitMap = new Map(), activeUnits = new Map(), pausedUnits = new Map(), completedUnits = new Map(), depCache = new Map();
@@ -193,9 +223,12 @@
     const virtualUnitIds = new Set(AUTO_COMPLETE_IDS);
     const isToolRequirement = (parent, child) => CLEAN_TOOLS_MAP[parent]?.includes(child);
     const getToolNeed = (parent) => CLEAN_TOOLS_MAP[parent] || [];
-    const isSpecialRender = (id) => SPECIAL_RENDER_LIST.some(e => e.id === id);
     const isRestrictedUnit = (id) => CLEAN_RESTRICTED_IDS.has(id);
     const getGradeIndex = (grade) => Math.max(SYSTEM_CONFIG.grades.order.indexOf(grade), -99);
+    const getCodexMinGradeIndex = () => getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
+    const isCodexVisibleException = (id) => CLEAN_CODEX_VISIBLE_EXCEPTION_IDS.has(clean(id));
+    const isCodexVisibleUnit = (u) => !!u && (getGradeIndex(u.grade) >= getCodexMinGradeIndex() || isCodexVisibleException(u.id));
+    const isSelectableCodexUnit = (u) => isCodexVisibleUnit(u) && !isRestrictedUnit(u.id);
     const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
     const getUnitId = (rawName) => clean(rawName);
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
@@ -411,10 +444,9 @@
     function findUnitFlexible(rawName) {
         let cleaned = clean(rawName);
         if (!cleaned) return null;
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || '레전드');
         let best = null, bestScore = -1;
         for (let [id, u] of unitMap) {
-            if (getGradeIndex(u.grade) < minGradeIdx) continue;
+            if (!isCodexVisibleUnit(u)) continue;
             if (id === cleaned) return u;
             if (id.includes(cleaned)) {
                 const score = 100 - id.indexOf(cleaned) * 10 - (id.length - cleaned.length);
@@ -803,9 +835,25 @@
     }
 
     function renderDashboardAtoms() {
-        renderBoardSlots('magicDashboard', SYSTEM_CONFIG.dashboardAtoms, a =>
-            `<div class="cost-slot ${AUTO_COST_SLOT_SET.has(clean(a)) ? 'is-skill-slot' : 'is-magic-slot'}" id="vslot-${clean(a)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(a)}">${a}</div></div>`
-        );
+        const buildSlotClassName = (atoms) => {
+            const toneClass = atoms.some(atom => AUTO_COST_SLOT_SET.has(clean(atom))) ? 'is-skill-slot' : 'is-magic-slot';
+            return `cost-slot ${toneClass}`;
+        };
+        const renderSlot = (slot) => {
+            const atoms = slot.atoms || [];
+            if (atoms.length === 1) {
+                const atom = atoms[0];
+                return `<div class="${buildSlotClassName(atoms)}" id="vslot-${clean(atom)}"><div class="cost-val"></div><div class="cost-name" id="name-${clean(atom)}">${atom}</div></div>`;
+            }
+            const splitItems = atoms.map(atom => `
+                <div class="cost-split-item" id="vslot-${clean(atom)}">
+                    <div class="cost-val"></div>
+                    <div class="cost-name" id="name-${clean(atom)}">${atom}</div>
+                </div>
+            `).join('<div class="cost-split-divider" aria-hidden="true"></div>');
+            return `<div class="${buildSlotClassName(atoms)} is-split-slot" data-slot-atoms="${atoms.map(clean).join(',')}">${splitItems}</div>`;
+        };
+        renderBoardSlots('magicDashboard', DASHBOARD_SLOT_DEFS, renderSlot);
     }
 
     function updateMagicDashboard() {
@@ -852,14 +900,23 @@
             const container = getEl(`vslot-${clean(a)}`), e = container?.querySelector('.cost-val'), nEl = container?.querySelector('.cost-name');
             if (!container || !e || !nEl) return;
 
-            let fV = Math.max(0, tMap[a] - cMap[a]);
+            const fV = Math.max(0, tMap[a] - cMap[a]);
+            const splitParent = container.closest('.cost-slot.is-split-slot');
+            const isSplitItem = !!splitParent;
             if (fV > 0) {
                 if (e.innerText !== String(fV)) e.innerText = String(fV);
-                nEl.style.display = 'block'; container.classList.add('active');
+                nEl.style.display = 'block';
+                container.classList.add('active');
+                if (isSplitItem) return;
             } else {
                 if (e.innerHTML !== '') e.innerHTML = '';
-                nEl.style.display = 'block'; container.classList.remove('active');
+                nEl.style.display = 'block';
+                container.classList.remove('active');
             }
+        });
+
+        document.querySelectorAll('.cost-slot.is-split-slot').forEach(slot => {
+            slot.classList.toggle('has-active', !!slot.querySelector('.cost-split-item.active'));
         });
     }
 
@@ -1310,7 +1367,6 @@
 
     function updateTabsUI() {
         let aCats = new Set([...activeUnits.keys()].map(id => unitMap.get(id)?.category).filter(Boolean));
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
         SYSTEM_CONFIG.tabs.forEach((c, i) => {
             let btn = getEl(`tab-btn-${i}`), isActive = (i === _activeTabIdx), has = aCats.has(c.key);
             if (!btn) return;
@@ -1320,7 +1376,7 @@
         const selectAllBtn = getEl('btnSelectAllTab'), currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx];
         if (selectAllBtn && currentTab) {
             selectAllBtn.disabled = false;
-            const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && getGradeIndex(u.grade) >= minGradeIdx && !isRestrictedUnit(u.id));
+            const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && isSelectableCodexUnit(u));
             selectAllBtn.innerHTML = (catItems.length > 0 && catItems.every(item => activeUnits.has(item.id))) ? `<span class="btn-select-all-clear-label">✖ ${currentTab.name} 해제</span>` : `✔ ${currentTab.name} 선택`;
         }
     }
@@ -1352,8 +1408,9 @@
     function buildCard(item, idx, prefix, showRecipe) {
         const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item), isFav = _favorites.has(item.id);
         const isPrimaryUnit = CLEAN_PRIMARY_UNIT_IDS.has(item.id);
+        const isVisibleException = isCodexVisibleException(item.id);
         const essenceText = getUnitCodexEssenceText(item);
-        return `<div id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}${isFav ? ' is-fav-card' : ''}${showRecipe ? '' : ' no-recipe'}" data-grade="${item.grade}" style="${idx >= 0 ? `animation-delay:${idx*0.02}s;` : ''}${isRestricted ? 'pointer-events:auto;cursor:not-allowed;' : ''}" data-action="toggleUnit" data-uid="${item.id}">` +
+        return `<div id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}${isVisibleException ? ' is-codex-visible-exception' : ''}${isFav ? ' is-fav-card' : ''}${showRecipe ? '' : ' no-recipe'}" data-grade="${item.grade}" style="${idx >= 0 ? `animation-delay:${idx*0.02}s;` : ''}${isRestricted ? 'pointer-events:auto;cursor:not-allowed;' : ''}" data-action="toggleUnit" data-uid="${item.id}">` +
             `<div class="uc-card-inner">` +
             `${starBtnHtml(item.id)}` +
             `<div class="uc-head${showRecipe ? '' : ' uc-head-slim'}">` +
@@ -1391,8 +1448,7 @@
     }
 
     function getCodexVisibleItems() {
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
-        return Array.from(unitMap.values()).filter(u => getGradeIndex(u.grade) >= minGradeIdx);
+        return Array.from(unitMap.values()).filter(isCodexVisibleUnit);
     }
 
     function getFavoriteItems() {
@@ -1416,11 +1472,10 @@
 
     function initAllTabContents() {
         const tc = getEl('tabContent'); if (!tc) return;
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
         const favSet = new Set(_favorites);
         tc.innerHTML = SYSTEM_CONFIG.tabs.map(cat => {
             const items = Array.from(unitMap.values()).filter(u =>
-                getGradeIndex(u.grade) >= minGradeIdx &&
+                isCodexVisibleUnit(u) &&
                 u.category === cat.key &&
                 !favSet.has(u.id)
             ).sort(getCodexSort);
@@ -1444,11 +1499,15 @@
             if (!item) return;
             const isActive = activeUnits.has(uid);
             if (!isOneTime(item)) {
+                const isVisibleException = isCodexVisibleException(uid);
                 card.querySelectorAll('.ss-val').forEach(v => {
-                    const nv = isActive ? String(activeUnits.get(uid)) : '-';
+                    const nv = isActive ? String(activeUnits.get(uid)) : (isVisibleException ? '0' : '-');
                     if (v.innerText !== nv) v.innerText = nv;
                 });
-                card.querySelectorAll('.smart-stepper button').forEach(b => b.disabled = !isActive);
+                card.querySelectorAll('.smart-stepper button').forEach(b => {
+                    const delta = parseInt(b.dataset.delta, 10) || 0;
+                    b.disabled = !isActive && !(isVisibleException && delta > 0);
+                });
             }
             card.style.display = 'flex';
             card.classList.toggle('active', isActive);
@@ -1523,8 +1582,7 @@
 
     function toggleSelectAllTab() {
         const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx]; if (!currentTab) return;
-        const minGradeIdx = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
-        const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && getGradeIndex(u.grade) >= minGradeIdx && !isRestrictedUnit(u.id));
+        const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && isSelectableCodexUnit(u));
         if (!catItems.length) return;
         if (catItems.every(item => activeUnits.has(item.id))) catItems.forEach(item => activeUnits.delete(item.id));
         else catItems.forEach(item => !activeUnits.has(item.id) && setActiveUnitQty(item.id, pausedUnits.get(item.id) || 1));

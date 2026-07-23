@@ -127,7 +127,6 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .ph-compact{padding:7px 10px 6px;}
 .checklist-ph{display:none;justify-content:flex-end;position:relative;padding-left:10px;}
 .checklist-ph-btns{display:flex;align-items:center;position:static;transform:none;gap:8px;}
-.ph-title{font-family:var(--font-display);font-size:calc(var(--gh-h) * 0.28);font-weight:700;color:var(--text-sub);letter-spacing:0.8px;white-space:nowrap;}
 .ph-right{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;}
 .panel-body{flex:1;overflow-y:auto;min-height:0;padding:10px;scrollbar-width:none;-ms-overflow-style:none;}
 .panel-section{flex-shrink:0;}
@@ -219,6 +218,7 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .uc-recipe-area{flex:1;min-height:0;overflow:hidden;}
 .uc-ctrl-area{display:flex;align-items:center;justify-content:center;padding-top:4px;margin-top:auto;flex-shrink:0;min-height:30px;}
 .unit-card:not(.active) .uc-ctrl-area{visibility:hidden;pointer-events:none;}
+.unit-card.is-codex-visible-exception:not(.active) .uc-ctrl-area{visibility:visible;pointer-events:auto;}
 .unit-card.active .uc-ctrl-area{visibility:visible;}
 .uc-ctrl-area-reserved,.smart-stepper-placeholder{visibility:hidden;pointer-events:none;}
 
@@ -276,8 +276,10 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .cost-slot.is-magic-slot.active{background:linear-gradient(180deg,rgba(6,18,28,0.75),#0a0a0a);border-color:rgba(96,165,250,0.32);box-shadow:inset 0 0 25px rgba(96,165,250,0.08),0 0 15px rgba(96,165,250,0.1),inset 0 3px 18px rgba(0,0,0,0.95);}
 .cost-slot.is-magic-slot.active::before{background:linear-gradient(90deg,transparent,var(--grade-magic),transparent);box-shadow:0 0 7px var(--grade-magic);}
 .cost-slot.is-skill-slot{border-color:rgba(236,72,153,0.12);}
-.cost-slot.is-skill-slot.active{background:linear-gradient(180deg,rgba(24,6,14,0.75),#0a0a0a);border-color:rgba(236,72,153,0.32);box-shadow:inset 0 0 25px rgba(236,72,153,0.08),0 0 15px rgba(236,72,153,0.1),inset 0 3px 18px rgba(0,0,0,0.95);}
-.cost-slot.is-skill-slot.active::before{background:linear-gradient(90deg,transparent,var(--grade-hell),transparent);box-shadow:0 0 7px var(--grade-hell);}
+.cost-slot.is-skill-slot.active,
+.cost-slot.is-skill-slot.has-active{background:linear-gradient(180deg,rgba(24,6,14,0.75),#0a0a0a);border-color:rgba(236,72,153,0.32);box-shadow:inset 0 0 25px rgba(236,72,153,0.08),0 0 15px rgba(236,72,153,0.1),inset 0 3px 18px rgba(0,0,0,0.95);}
+.cost-slot.is-skill-slot.active::before,
+.cost-slot.is-skill-slot.has-active::before{background:linear-gradient(90deg,transparent,var(--grade-hell),transparent);box-shadow:0 0 7px var(--grade-hell);}
 
 .cost-val{font-family:var(--font-display);font-size:clamp(1.1rem,3.4vh,2.5rem);font-weight:900;color:transparent;line-height:1;transition:all 0.28s;width:100%;display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-height:clamp(28px,3.2vh,46px);padding:clamp(3px,0.8vh,6px);}
 .cost-val:empty::before{content:"0";visibility:hidden;}
@@ -286,6 +288,17 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .cost-slot.is-magic-slot.active .cost-val{color:#fff;text-shadow:0 0 16px rgba(96,165,250,0.58),0 2px 5px var(--ts-deep),0 0 7px var(--grade-magic);}
 .cost-slot.is-skill-slot.active .cost-val{color:#fff;text-shadow:0 0 16px rgba(236,72,153,0.58),0 2px 5px var(--ts-deep),0 0 7px var(--grade-hell);}
 .cost-name{font-size:clamp(0.72rem,1.3vh,0.92rem);color:rgba(255,255,255,0.75);font-weight:800;text-align:center;line-height:1.2;word-break:keep-all;width:100%;letter-spacing:-0.3px;padding:clamp(3px,0.5vh,5px) 3px;flex-shrink:0;background:none;border-top:none;display:block;}
+.cost-slot.is-split-slot{flex-direction:row;align-items:stretch;justify-content:stretch;gap:0;padding:0;}
+.cost-split-item{flex:1 1 50%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0;}
+.cost-split-item::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--grade-hell),transparent);opacity:0;transition:opacity 0.32s;box-shadow:0 0 7px var(--grade-hell);}
+.cost-split-item.active::before{opacity:0.72;}
+.cost-split-divider{width:1px;align-self:stretch;background:rgba(236,72,153,0.14);box-shadow:0 0 10px rgba(236,72,153,0.08);}
+.cost-slot.is-split-slot .cost-val{font-size:clamp(0.95rem,2.6vh,1.7rem);min-height:clamp(24px,2.7vh,38px);padding:clamp(2px,0.6vh,4px);}
+.cost-slot.is-split-slot .cost-name{font-size:clamp(0.62rem,1.05vh,0.78rem);padding:clamp(2px,0.45vh,4px) 2px;}
+.cost-slot.is-split-slot .cost-split-item.active .cost-val{opacity:1;color:#fff;text-shadow:0 0 16px rgba(236,72,153,0.58),0 2px 5px var(--ts-deep),0 0 7px var(--grade-hell);}
+.cost-slot.is-split-slot .cost-split-item.active .cost-name{opacity:1;color:rgba(255,255,255,0.84);}
+.cost-slot.is-split-slot .cost-split-item:not(.active) .cost-val{opacity:0;}
+.cost-slot.is-split-slot .cost-split-item:not(.active) .cost-name{opacity:0.22;color:var(--text-muted);}
 
 /* ── 10. 장바구니 ─────────────────────────────────────────────────────── */
 .cart-section{background:rgba(0,0,0,0.6);padding:0;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
@@ -417,9 +430,9 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 .deduct-slot.is-completed::after{content:"✓";position:absolute;top:50%;right:10px;transform:translateY(-50%);color:var(--grade-hidden);font-size:1rem;font-weight:900;opacity:0.60;pointer-events:none;z-index:3;}
 
 /* 11-4. 코스트 보드 슬롯 상태 */
-.cost-slot:not(.active)::before{display:none;}
-.cost-slot:not(.active) .cost-val{opacity:0;}
-.cost-slot:not(.active) .cost-name{opacity:0.22;color:var(--text-muted);}
+.cost-slot:not(.active):not(.has-active)::before{display:none;}
+.cost-slot:not(.active):not(.has-active) .cost-val{opacity:0;}
+.cost-slot:not(.active):not(.has-active) .cost-name{opacity:0.22;color:var(--text-muted);}
 
 /* 11-5. 전체 초기화 확인 상태 */
 .reset-btn-pending{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.46);color:#fde68a;text-shadow:0 0 8px rgba(251,191,36,0.28);animation:pendingPulse 0.6s ease-in-out infinite alternate;}
@@ -446,7 +459,6 @@ html,body,.panel-body,.cart-list-area,.codex-tabs,.codex-category-grid,.codex-fa
 
 .ci-onetime{font-family:var(--font-mono);font-size:0.82rem;color:var(--grade-super);padding:0 6px;}
 
-.ph-title-accent{font-size:calc(var(--gh-h) * 0.28);font-weight:900;color:var(--text);letter-spacing:0.5px;}
 #deductionBoard{padding:14px 4px 8px;}
 
 .tooltip-footer-close{display:block;color:var(--text-muted);font-size:calc(0.63rem * var(--fs-scale));}
