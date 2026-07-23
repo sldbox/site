@@ -17,11 +17,12 @@ window.NEXUS_USER_CONFIG = {
     },
 
     // ── 01. 유닛별 특수 동작 ───────────────────────────────────────────────
-    // specialRender: 자동 완료 슬롯 · batch: 1회 완료 수량
+    // specialRender: 자동 완료 슬롯 · batch: 1회 완료 수량 · presetMaxQty: 프리셋 추가 최대 수량
     unitBehaviors: {
         "갓오타": { specialRender: true, batch: 1 },
         "메시브": { specialRender: true, batch: 1 },
-        "자동포탑": { specialRender: true, batch: 5 }
+        "자동포탑": { specialRender: true, batch: 5 },
+        "자이언트플라워": { presetMaxQty: 3 }
     },
 
     // ── 02. 장바구니·프리셋 1개 제한 ───────────────────────────────────────

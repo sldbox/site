@@ -133,8 +133,25 @@
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
     const CLEAN_PRIMARY_UNIT_IDS = makeCleanSet(Object.values(PRIMARY_UNIT_GROUPS).flat());
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
-    const CLEAN_CRAFT_BATCH = Object.fromEntries(SPECIAL_RENDER_LIST.map(e => [e.id, e.batch]));
-    const BASIC_VISIBLE_GRADES = new Set(["레어", "에픽", "유니크", "헬"]);
+    const CLEAN_PRESET_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
+        .map(([id, b]) => [clean(id), parseInt(b?.presetMaxQty, 10)])
+        .filter(([, cap]) => Number.isFinite(cap) && cap > 0));
+    const BASIC_VISIBLE_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
+    const HIDDEN_MATERIAL_GRADES = new Set(["히든"]);
+    const isBasicMaterialGrade = (grade) => BASIC_VISIBLE_GRADES.has(grade);
+    const isHiddenMaterialGrade = (grade) => HIDDEN_MATERIAL_GRADES.has(grade);
+    const MATERIAL_REASON_META = Object.freeze({
+        direct: { suffix: '직속재료', tagClass: 'tag-mat' },
+        hidden: { suffix: '히든재료', tagClass: 'tag-hidden-mat' },
+        basic: { suffix: '기본재료', tagClass: 'tag-basic-mat' }
+    });
+    const getMaterialReasonMeta = (uid, isDirect) => {
+        if (isDirect) return MATERIAL_REASON_META.direct;
+        const grade = unitMap.get(uid)?.grade;
+        if (isHiddenMaterialGrade(grade)) return MATERIAL_REASON_META.hidden;
+        if (isBasicMaterialGrade(grade)) return MATERIAL_REASON_META.basic;
+        return MATERIAL_REASON_META.hidden;
+    };
     const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.map(e => e.id);
     const CLEAN_SPECIAL_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.specialConditions).map(([k, v]) => [clean(k), v]));
     const CLEAN_UNIT_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitConditions || {}).map(([k, v]) => [clean(k), v]));
@@ -214,6 +231,7 @@
     let _restoreAllPendingTimer = null;
     let _lastCalcResult = null;
     let _fontRepeatTimer = null, _fontRepeatDelayTimer = null, _swipeTimer = null, _titleVersionTimer = null;
+    let _isSwiping = false;
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
 
@@ -263,7 +281,15 @@
         (SYSTEM_CONFIG.sorting.order[b.name] || 0) - (SYSTEM_CONFIG.sorting.order[a.name] || 0) ||
         calculateTotalCostScore(b) - calculateTotalCostScore(a) ||
         (a.name || '').localeCompare(b.name || '');
-    const getUnitsFromMap = (map) => Array.from(map.keys()).map(uid => unitMap.get(uid)).filter(Boolean).sort(compareUnitForDisplay);
+    const compareUnitByChecklistPriority = (a, b) =>
+        getGradeIndex(b.grade) - getGradeIndex(a.grade) ||
+        (SYSTEM_CONFIG.sorting.order[b.name] || 0) - (SYSTEM_CONFIG.sorting.order[a.name] || 0) ||
+        a.name.localeCompare(b.name);
+    const compareUnitByGradeName = (a, b) =>
+        getGradeIndex(b.grade) - getGradeIndex(a.grade) ||
+        a.name.localeCompare(b.name);
+    const getUnitsFromIds = (ids) => Array.from(ids).map(uid => unitMap.get(uid)).filter(Boolean);
+    const getUnitsFromMap = (map) => getUnitsFromIds(map.keys()).sort(compareUnitForDisplay);
     const normalizeSavedId = (id) => typeof id === 'string' ? clean(id) : '';
     const applySearchFeedback = (input, message) => {
         if (!input) return;
@@ -354,11 +380,11 @@
                 u.cost.replace(/\//g, '+').split('+').forEach(p => {
                     const m = p.match(/(.+?)\[(\d+)\]/);
                     let cName = clean(m ? m[1].trim() : p.trim()), qty = m ? parseInt(m[2], 10) : 1;
-                    let type = 'atom', key = cName;
+                    let key = cName;
                     const spKey = AUTO_COMPLETE_IDS.find(k => k === cName || cName.includes(k));
-                    if (spKey) { type = 'autoCost'; key = spKey; }
+                    if (spKey) key = spKey;
                     else key = ATOM_HASH[getUnitId(cName)] || getUnitId(cName);
-                    u.parsedCost.push({ type, key, qty, name: u.name });
+                    u.parsedCost.push({ key, qty });
                 });
             }
             u.parsedRecipe = [];
@@ -467,8 +493,16 @@
             const match = findUnitFlexible(targetName);
             if (match) {
                 if (isRestrictedUnit(match.id)) { restrictedCount++; return; }
-                if (fromPreset && (preventStack || CLEAN_PRESET_NOSTACK.has(match.id)) && activeUnits.has(match.id)) { successCount++; return; }
-                setActiveUnitQty(match.id, qty, { add: true });
+                let addQty = qty;
+                if (fromPreset) {
+                    if ((preventStack || CLEAN_PRESET_NOSTACK.has(match.id)) && activeUnits.has(match.id)) { successCount++; return; }
+                    const presetCap = CLEAN_PRESET_QTY_CAPS[match.id] || 0;
+                    if (presetCap > 0) {
+                        addQty = Math.min(qty, Math.max(0, presetCap - (activeUnits.get(match.id) || 0)));
+                        if (addQty <= 0) { successCount++; return; }
+                    }
+                }
+                setActiveUnitQty(match.id, addQty, { add: true });
                 successCount++;
             }
         });
@@ -574,7 +608,7 @@
             
             getToolNeed(uid).forEach(toolId => {
                 let cRoots = rootTracking.get(toolId) || new Map();
-                let isDirTarget = activeUnits.has(uid) && !mergedActive.has(uid);
+                let isDirTarget = activeUnits.has(uid);
                 cRoots.set(`TOOL_${uid}`, { text: `${uData.name} <span class="tool-badge">[도구]</span>`, cond: '', depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: 1 });
                 rootTracking.set(toolId, cRoots);
             });
@@ -582,15 +616,17 @@
             uData.parsedRecipe?.forEach(child => {
                 if (!child.id || isToolRequirement(uid, child.id) || (!unitMap.has(child.id) && !virtualUnitIds.has(child.id))) return;
                 let cRoots = rootTracking.get(child.id) || new Map();
-                let isDirTarget = activeUnits.has(uid) && !mergedActive.has(uid);
-                cRoots.set(`MAT_${uid}`, { text: isDirTarget ? `${uData.name} 직속재료` : `${uData.name} 재료`, cond: child.cond, depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: child.qty });
+                let isDirTarget = activeUnits.has(uid);
+                const reasonMeta = getMaterialReasonMeta(child.id, isDirTarget);
+                cRoots.set(`MAT_${uid}`, { text: `${uData.name} ${reasonMeta.suffix}`, cond: child.cond, depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: child.qty, tagClass: reasonMeta.tagClass });
                 rootTracking.set(child.id, cRoots);
             });
             
             uData.parsedCost?.forEach(pc => {
                 if (AUTO_COST_SLOT_SET.has(pc.key) && (deficits.get(uid) || 0) > 0) {
-                    let isDirTarget = activeUnits.has(uid) && !mergedActive.has(uid);
-                    autoCostReason[pc.key].set(`AUTO_${uid}`, { text: isDirTarget ? `${uData.name} 직속재료` : `${uData.name} 재료`, cond: '', depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: pc.qty });
+                    let isDirTarget = activeUnits.has(uid);
+                    const reasonMeta = getMaterialReasonMeta(pc.key, isDirTarget);
+                    autoCostReason[pc.key].set(`AUTO_${uid}`, { text: `${uData.name} ${reasonMeta.suffix}`, cond: '', depth: isDirTarget ? 1 : 2, parentUid: uid, reqQty: pc.qty, tagClass: reasonMeta.tagClass });
                 }
             });
         });
@@ -675,17 +711,6 @@
             if (consume > 0) {
                 const newVal = Math.max(0, comp - consume);
                 if (newVal <= 0) completedUnits.delete(child.id); else completedUnits.set(child.id, newVal);
-            }
-        });
-        u.parsedCost?.forEach(pc => {
-            if (AUTO_COST_SLOT_SET.has(pc.key) && !SPECIAL_RENDER_LIST.some(e => e.id === pc.key)) {
-                const needed = pc.qty * multiplier;
-                const comp = completedUnits.get(pc.key) || 0;
-                const consume = Math.min(needed, comp);
-                if (consume > 0) {
-                    const newVal = Math.max(0, comp - consume);
-                    if (newVal <= 0) completedUnits.delete(pc.key); else completedUnits.set(pc.key, newVal);
-                }
             }
         });
     }
@@ -839,7 +864,7 @@
             const toneClass = atoms.some(atom => AUTO_COST_SLOT_SET.has(clean(atom))) ? 'is-skill-slot' : 'is-magic-slot';
             return `cost-slot ${toneClass}`;
         };
-        const renderSlot = (slot) => {
+        const renderDashboardSlot = (slot) => {
             const atoms = slot.atoms || [];
             if (atoms.length === 1) {
                 const atom = atoms[0];
@@ -853,7 +878,7 @@
             `).join('<div class="cost-split-divider" aria-hidden="true"></div>');
             return `<div class="${buildSlotClassName(atoms)} is-split-slot" data-slot-atoms="${atoms.map(clean).join(',')}">${splitItems}</div>`;
         };
-        renderBoardSlots('magicDashboard', DASHBOARD_SLOT_DEFS, renderSlot);
+        renderBoardSlots('magicDashboard', DASHBOARD_SLOT_DEFS, renderDashboardSlot);
     }
 
     function updateMagicDashboard() {
@@ -927,7 +952,7 @@
         const boardEl = getEl('deductionBoard');
         if (!boardEl) return;
         // 07-1. 슬롯·그룹 템플릿
-        const renderSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        const renderDeductSlot = (id, n, g) => `<div class="deduct-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-deduction="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="deduct-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
                 <div class="deduct-group-title" data-action="toggleGroup" data-grid-id="${pid}">
@@ -945,7 +970,7 @@
 
         const allUnits = Array.from(unitMap.values());
         // 07-2. 슬롯 유형별 HTML 생성
-        const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForChecklist) && !AUTO_COST_SLOT_SET.has(u.id)).map(u => renderSlot(u.id, u.name, u.grade)).join('');
+        const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForChecklist) && !AUTO_COST_SLOT_SET.has(u.id)).map(u => renderDeductSlot(u.id, u.name, u.grade)).join('');
 
         const _exIds = new Set((SYSTEM_CONFIG.policy.hideCompletedExcludeGroups || []).map(t => titleToGridId[t]).filter(Boolean));
 
@@ -1036,6 +1061,7 @@
                 .filter(entry => entry.info?.depth === 0 || entry.displayQty > 0)
                 .map(entry => [entry.rId, { ...entry.info, displayQty: entry.displayQty, _reasonOrder: entry.index }]);
         };
+        const getReasonTagClass = (info) => info?.depth === 0 ? 'tag-target' : (info?.tagClass || 'tag-mat');
         
         const targetHighlight = _currentHighlight || null;
         const highlightDeps = targetHighlight ? getDependencies(targetHighlight) : null;
@@ -1152,19 +1178,20 @@
                     if (allEntries.length > 0) {
                         let sorted = allEntries.sort((a,b)=>(a[1].depth||0)-(b[1].depth||0) || (a[1]._reasonOrder||0)-(b[1]._reasonOrder||0));
                         rCon.style.display = 'flex';
-                        rCon.style.justifyContent = 'flex-start';
+                        rCon.classList.toggle('is-target-only', sorted.every(([, i]) => i.depth === 0));
                         rCon.innerHTML = sorted.map(([rId,i]) => {
                             let qtyText = '';
                             if (i.depth !== 0 && i.displayQty > 0) {
                                 qtyText = ` <span class="d-reason-qty">· ${i.displayQty}개</span>`;
                             }
-                            return `<span class="d-reason-tag ${i.depth===0?'tag-target':i.depth===1?'tag-mat':''}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${i.text}${qtyText}</span>`;
+                            return `<span class="d-reason-tag ${getReasonTagClass(i)}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${i.text}${qtyText}</span>`;
                         }).join('');
                     } else {
                         rCon.style.display = 'none';
+                        rCon.classList.remove('is-target-only');
                         rCon.innerHTML = '';
                     }
-                } else { rCon.style.display='none'; rCon.innerHTML=''; }
+                } else { rCon.style.display='none'; rCon.classList.remove('is-target-only'); rCon.innerHTML=''; }
             }
 
             const cEl = slotEl.querySelector(`#d-cond-${id}`);
@@ -1238,7 +1265,7 @@
             
             let nativeGrid = null;
             if (isHiddenGroup) nativeGrid = grids.upperHidden;
-            else if (BASIC_VISIBLE_GRADES.has(uGrade)) nativeGrid = grids.basicHidden;
+            else if (isBasicMaterialGrade(uGrade)) nativeGrid = grids.basicHidden;
             tGrid = upgradedGrid || nativeGrid;
             if (!tGrid) return null;
 
@@ -1261,14 +1288,12 @@
             return tGrid;
         };
 
-        Array.from(activeUnits.keys()).map(uid => unitMap.get(uid)).filter(Boolean).sort((a, b) => getGradeIndex(b.grade) - getGradeIndex(a.grade) || (SYSTEM_CONFIG.sorting.order[b.name]||0) - (SYSTEM_CONFIG.sorting.order[a.name]||0) || a.name.localeCompare(b.name)).forEach(u => processSlot(u.id));
-        Array.from(completedTargets.keys()).map(uid => unitMap.get(uid)).filter(Boolean).sort((a, b) => getGradeIndex(b.grade) - getGradeIndex(a.grade) || a.name.localeCompare(b.name)).forEach(u => processSlot(u.id));
+        getUnitsFromIds(activeUnits.keys()).sort(compareUnitByChecklistPriority).forEach(u => processSlot(u.id));
+        getUnitsFromIds(completedTargets.keys()).sort(compareUnitByGradeName).forEach(u => processSlot(u.id));
 
-        Array.from(visibleMaterialIds)
-            .filter(uid => !AUTO_COST_SLOT_SET.has(uid) && !activeUnits.has(uid) && !completedTargets.has(uid))
-            .map(uid => unitMap.get(uid))
-            .filter(Boolean)
-            .sort((a, b) => getGradeIndex(b.grade) - getGradeIndex(a.grade) || (SYSTEM_CONFIG.sorting.order[b.name]||0) - (SYSTEM_CONFIG.sorting.order[a.name]||0) || a.name.localeCompare(b.name))
+        getUnitsFromIds(Array.from(visibleMaterialIds)
+            .filter(uid => !AUTO_COST_SLOT_SET.has(uid) && !activeUnits.has(uid) && !completedTargets.has(uid)))
+            .sort(compareUnitByChecklistPriority)
             .forEach(u => processSlot(u.id));
 
         [grids.target, grids.special, grids.upperHidden, grids.basicHidden].forEach(grid => {
@@ -1658,13 +1683,25 @@
 
     function restoreAllPausedUnits() {
         if (pausedUnits.size === 0) return;
-        Array.from(pausedUnits.keys()).forEach(uid => restorePausedUnit(uid));
+        const entries = Array.from(pausedUnits.entries()).filter(([uid]) => unitMap.has(uid));
+        pausedUnits.clear();
+        entries.forEach(([uid, qty]) => setActiveUnitQty(uid, qty));
+        triggerHaptic();
         debouncedUpdateAllPanels();
     }
 
     function restoreAllCompletedUnits() {
         if (completedTargets.size === 0) return;
-        Array.from(completedTargets.keys()).forEach(uid => restoreUnit(uid));
+        const entries = Array.from(completedTargets.entries());
+        completedTargets.clear();
+        entries.forEach(([uid, qty]) => {
+            if (!unitMap.has(uid)) return;
+            deleteCompletedRecipe(uid, qty || 1);
+            completedUnits.delete(uid);
+            if (!activeUnits.has(uid)) setActiveUnitQty(uid, qty || 1);
+        });
+        _cartTab = 'active';
+        triggerHaptic();
         debouncedUpdateAllPanels();
     }
 
@@ -1999,8 +2036,6 @@
     window.addEventListener('orientationchange', () => { hideRecipeTooltip(); placeChecklistControls(); });
     window.addEventListener('resize', () => { hideRecipeTooltip(); placeChecklistControls(); });
     // ── 12. 앱 초기화 ──────────────────────────────────────────────────────
-    let _isSwiping = false;
-
     function startNexusApp(){
         try {
             document.documentElement.lang = 'ko';
