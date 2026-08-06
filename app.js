@@ -922,7 +922,8 @@
         for (let [uid, rawQty] of [...completedUnits.entries()]) {
             const compQty = parseInt(rawQty, 10);
             const isInvenboardSlot = ALL_INVENBOARD_SLOT_SET.has(uid);
-            if (!Number.isFinite(compQty) || compQty <= 0 || (!unitMap.has(uid) && !isInvenboardSlot)) {
+            const isUnitSlot = unitMap.has(uid);
+            if (!Number.isFinite(compQty) || compQty <= 0 || (!isUnitSlot && !isInvenboardSlot)) {
                 completedUnits.delete(uid);
                 changed = true;
                 continue;
@@ -933,7 +934,7 @@
                 if (compQty > maxAllow) { completedUnits.set(uid, maxAllow); changed = true; }
                 continue;
             }
-            let maxAllow = isInvenboardSlot ? (costboardTotals.targetMap[getCostboardAtomRawName(uid)] || baseAutoCostReq[uid] || 0) : (baseMap.get(uid) || 0);
+            let maxAllow = isUnitSlot ? (baseMap.get(uid) || 0) : (costboardTotals.targetMap[getCostboardAtomRawName(uid)] || baseAutoCostReq[uid] || 0);
             if (compQty > maxAllow) {
                 if (maxAllow <= 0) completedUnits.delete(uid);
                 else completedUnits.set(uid, maxAllow);
