@@ -90,13 +90,7 @@
         storageKeys: window.NEXUS_STORAGE_KEYS || {
             saveData: "nexusSaveData",
             favorites: "nexusFavorites",
-            fontScale: "nexusFontScale",
-            profile: "gbd_dps_calculator:user_profile_auth"
-        },
-        profileLookup: {
-            previewDelayMs: 120,
-            timeoutMs: 12000,
-            endpoint: "https://script.google.com/macros/s/AKfycby1qmCsLPtDgj1I3TY7OSIkW8pKitfnwMUAKdLwBmXhf2ZeYYXkIiiG4THTPJ70Iqvg/exec"
+            fontScale: "nexusFontScale"
         },
         unitboard: {
             visibleExceptionIds: []
@@ -118,10 +112,6 @@
         storageKeys: {
             ...APP_DEFAULT_CONFIG.storageKeys,
             ...(USER_CONFIG.storageKeys || {})
-        },
-        profileLookup: {
-            ...APP_DEFAULT_CONFIG.profileLookup,
-            ...(USER_CONFIG.profileLookup || {})
         },
         unitboard: {
             ...APP_DEFAULT_CONFIG.unitboard,
@@ -235,25 +225,6 @@
     };
     const isBrightColor = (name) => ['노랑','연두','하늘','흰색','금색'].includes(name);
     const FAVORITES_KEY = SYSTEM_CONFIG.storageKeys?.favorites || 'nexusFavorites';
-    const NEXUS_PROFILE_RULES = Object.freeze({
-        prefix: '3-S2-1-',
-        creatorHandle: '3-S2-1-2461127',
-        digitsPattern: /^\d{6,8}$/,
-        revision: 1,
-        rotationMs: 5000,
-        transitionMs: 180,
-        invalidMessage: '뒷자리 숫자 6~8자리를 입력해 주세요.'
-    });
-    const nexusProfileState = {
-        memory: undefined,
-        lookup: null,
-        lookupTimer: null,
-        requestSeq: 0,
-        rotationTimer: null,
-        transitionTimer: null,
-        cache: new Map(),
-        pending: new Map()
-    };
     // ── 01-2. 내부 안전장치·조작 정책 ───────────────────────────────────────
     const APP_INTERNAL = {
         maxLoopQueue: 1000,
@@ -261,6 +232,9 @@
         searchFailFeedbackDelay: 1500,
         completeLockDelay: 300,
         appVersionDisplayMs: 1500,
+        titleMainDisplayMs: 5000,
+        titleCreatorDisplayMs: 3000,
+        titleTransitionMs: 180,
         accelInterval: 80,
         accelMinInterval: 20,
         accelDecreaseStep: 5,
@@ -310,7 +284,8 @@
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
     let _restoreAllPendingTimer = null;
     let _lastCalcResult = null;
-    let _fontRepeatTimer = null, _fontRepeatDelayTimer = null, _swipeTimer = null, _titleVersionTimer = null;
+    let _fontRepeatTimer = null, _fontRepeatDelayTimer = null, _swipeTimer = null;
+    let _titleRotationTimer = null, _titleTransitionTimer = null, _titleVersionTimer = null;
     let _isSwiping = false;
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
@@ -349,6 +324,65 @@
     };
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
     const getNexusVersion = () => window.APP_VERSION || window.NEXUS_BUILD_VERSION || '';
+    const NEXUS_TITLE_TEXT = Object.freeze({
+        main: '개복디 넥서스',
+        creator: '제작자 | 회장 · 3-S2-1-2461127'
+    });
+    const clearNexusTitleRotationTimers = () => {
+        clearTimeout(_titleRotationTimer);
+        clearTimeout(_titleTransitionTimer);
+        _titleRotationTimer = null;
+        _titleTransitionTimer = null;
+    };
+    const renderNexusTitleView = mode => {
+        const title = getEl('ghTitleText');
+        if (!title) return;
+        const text = mode === 'creator'
+            ? NEXUS_TITLE_TEXT.creator
+            : mode === 'version'
+                ? getNexusVersion()
+                : NEXUS_TITLE_TEXT.main;
+        title.dataset.titleView = mode;
+        title.classList.toggle('is-creator-view', mode === 'creator');
+        title.classList.toggle('is-version-view', mode === 'version');
+        title.textContent = text;
+        title.setAttribute('aria-label', `${text} · 앱 버전 보기`);
+    };
+    const scheduleNexusTitleRotation = mode => {
+        const delay = mode === 'creator' ? APP_INTERNAL.titleCreatorDisplayMs : APP_INTERNAL.titleMainDisplayMs;
+        _titleRotationTimer = setTimeout(() => {
+            const title = getEl('ghTitleText');
+            if (!title) return;
+            title.classList.add('is-transitioning');
+            _titleTransitionTimer = setTimeout(() => {
+                const nextMode = mode === 'creator' ? 'main' : 'creator';
+                renderNexusTitleView(nextMode);
+                title.classList.remove('is-transitioning');
+                scheduleNexusTitleRotation(nextMode);
+            }, APP_INTERNAL.titleTransitionMs);
+        }, delay);
+    };
+    const restartNexusTitleRotation = () => {
+        const title = getEl('ghTitleText');
+        if (!title) return;
+        clearNexusTitleRotationTimers();
+        title.classList.remove('is-transitioning');
+        renderNexusTitleView('main');
+        scheduleNexusTitleRotation('main');
+    };
+    const showNexusAppVersion = () => {
+        const title = getEl('ghTitleText');
+        const version = getNexusVersion();
+        if (!title || !version) return;
+        clearNexusTitleRotationTimers();
+        title.classList.remove('is-transitioning');
+        renderNexusTitleView('version');
+        clearTimeout(_titleVersionTimer);
+        _titleVersionTimer = setTimeout(() => {
+            _titleVersionTimer = null;
+            restartNexusTitleRotation();
+        }, APP_INTERNAL.appVersionDisplayMs);
+    };
     const getUnitQtyLimit = (uid) => {
         const u = unitMap.get(uid);
         if (!u) return 0;
@@ -419,349 +453,7 @@
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
 
-    // ── 02-2. 스타2 사용자 신원조회 ────────────────────────────────────────
-    function nexusProfileStorageKey() {
-        return SYSTEM_CONFIG.storageKeys?.profile || 'gbd_dps_calculator:user_profile_auth';
-    }
-    function nexusSc2HandleDigits(value) {
-        const text = String(value ?? '').trim().replace(/^3\s*-\s*S2\s*-\s*1\s*-/i, '');
-        return text.replace(/[^0-9]/g, '').slice(0, 8);
-    }
-    function normalizeNexusSc2Handle(value) {
-        const digits = nexusSc2HandleDigits(value);
-        return digits ? `${NEXUS_PROFILE_RULES.prefix}${digits}` : '';
-    }
-    function isValidNexusSc2Handle(value) {
-        return NEXUS_PROFILE_RULES.digitsPattern.test(nexusSc2HandleDigits(value));
-    }
-    function normalizeNexusSc2Nickname(value) {
-        let text = String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim();
-        return text ? text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24) : '';
-    }
-    function normalizeNexusUserProfile(value) {
-        const source = value && typeof value === 'object' ? value : {};
-        const verifiedAt = Number(source.verifiedAt) || Date.now();
-        if (source.guest === true || source.status === 'guest') return { handle: '', nickname: '게스트', status: 'guest', verifiedAt, source: 'guest' };
-        const handle = normalizeNexusSc2Handle(source.handle || source.sc2Handle || source.id || '');
-        const nickname = normalizeNexusSc2Nickname(source.nickname || source.name || source.displayName || '');
-        const lookupRevision = Math.max(0, Math.trunc(Number(source.lookupRevision) || 0));
-        if (!isValidNexusSc2Handle(handle) || !nickname) return null;
-        return { handle, nickname, status: 'verified', verifiedAt, source: 'donation-lookup-server', lookupRevision };
-    }
-    function isCurrentNexusProfileVerification(profile) {
-        return profile?.status === 'verified' && profile.lookupRevision === NEXUS_PROFILE_RULES.revision;
-    }
-    function readNexusUserProfile() {
-        if (nexusProfileState.memory !== undefined) return nexusProfileState.memory;
-        try { nexusProfileState.memory = normalizeNexusUserProfile(JSON.parse(localStorage.getItem(nexusProfileStorageKey()) || 'null')); }
-        catch (error) { nexusProfileState.memory = null; }
-        return nexusProfileState.memory;
-    }
-    function writeNexusUserProfile(profile) {
-        const normalized = normalizeNexusUserProfile({ ...profile, lookupRevision: NEXUS_PROFILE_RULES.revision });
-        if (!normalized) return null;
-        try {
-            localStorage.setItem(nexusProfileStorageKey(), JSON.stringify(normalized));
-            nexusProfileState.memory = normalized;
-            return normalized;
-        } catch (error) {
-            setNexusProfileStatus('프로필 저장에 실패했습니다. 브라우저 저장소를 확인해 주세요.', 'err');
-            return null;
-        }
-    }
-
-    function setNexusProfileStatus(message, type = 'muted') {
-        const status = getEl('nexusProfileStatus');
-        if (status) {
-            status.textContent = message;
-            status.dataset.status = type;
-        }
-    }
-    function setNexusProfileResult(nickname, handle = '') {
-        const result = getEl('nexusProfileResult');
-        const text = normalizeNexusSc2Nickname(nickname);
-        const creator = !!text && normalizeNexusSc2Handle(handle) === NEXUS_PROFILE_RULES.creatorHandle;
-        const nicknameView = getEl('nexusProfileNicknameView'), roleView = getEl('nexusProfileRoleView');
-        if (nicknameView) nicknameView.textContent = text || '인증 전';
-        if (roleView) roleView.textContent = creator ? '제작자' : '플레이어';
-        if (result) {
-            result.classList.toggle('is-empty', !text);
-            result.classList.toggle('is-creator', creator);
-        }
-    }
-    function setNexusProfileLookupBusy(busy) {
-        const input = getEl('nexusProfileHandleInput');
-        const submit = getEl('nexusProfileGateForm')?.querySelector('.nexus-profile-btn.is-primary');
-        if (input) input.setAttribute('aria-busy', busy ? 'true' : 'false');
-        if (submit) {
-            submit.disabled = !!busy;
-            submit.textContent = busy ? '조회 중...' : '시작하기';
-        }
-    }
-    function nexusUserProfileWelcomeText(profile) {
-        if (!profile) return '신원 확인 전';
-        if (profile.status === 'guest') return '어서오세요, 게스트 님';
-        if (!isCurrentNexusProfileVerification(profile)) return profile.handle === NEXUS_PROFILE_RULES.creatorHandle ? '제작자 확인 중' : '신원 정보 확인 중';
-        if (profile.handle === NEXUS_PROFILE_RULES.creatorHandle) return `제작자 ${profile.nickname} 님`;
-        return `어서오세요, ${profile.nickname} 님`;
-    }
-    function clearNexusProfileHeaderTimers() {
-        ['rotationTimer', 'transitionTimer'].forEach(key => {
-            if (nexusProfileState[key]) clearTimeout(nexusProfileState[key]);
-            nexusProfileState[key] = null;
-        });
-    }
-    function renderNexusUserProfileBadge(profile, showCreatorCredit = false) {
-        const badge = getEl('nexusUserProfileBadge');
-        const welcome = showCreatorCredit ? '제작자 | 회장' : (profile ? nexusUserProfileWelcomeText(profile) : '신원 확인 전');
-        const interactive = !showCreatorCredit && !!profile && (profile.status === 'guest' || isCurrentNexusProfileVerification(profile));
-        if (badge) {
-            [['is-empty', !profile], ['is-guest', profile?.status === 'guest' && !showCreatorCredit], ['is-creator', profile?.handle === NEXUS_PROFILE_RULES.creatorHandle], ['is-creator-credit', !!profile && showCreatorCredit], ['is-profile-trigger', interactive]]
-                .forEach(([name, active]) => badge.classList.toggle(name, !!active));
-            const attributes = { role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'aria-controls': 'nexusProfileGate' };
-            Object.entries(attributes).forEach(([name, value]) => interactive ? badge.setAttribute(name, value) : badge.removeAttribute(name));
-            badge.setAttribute('aria-label', interactive ? `${welcome} · 신원 정보 변경` : '사용자 신원 정보');
-        }
-        const handle = showCreatorCredit ? NEXUS_PROFILE_RULES.creatorHandle : (profile?.status === 'guest' ? '게스트 모드' : (profile?.handle || '핸들을 입력해 주세요'));
-        const welcomeView = getEl('nexusUserWelcomeView'), handleView = getEl('nexusUserHandleView');
-        if (welcomeView) welcomeView.textContent = welcome;
-        if (handleView) handleView.textContent = handle;
-    }
-    function startNexusProfileHeaderRotation(profile) {
-        clearNexusProfileHeaderTimers();
-        renderNexusUserProfileBadge(profile, false);
-        if (!profile || (profile.status === 'verified' && !isCurrentNexusProfileVerification(profile)) || profile.handle === NEXUS_PROFILE_RULES.creatorHandle) return;
-        let showCreatorCredit = false;
-        const rotate = () => {
-            const badge = getEl('nexusUserProfileBadge');
-            showCreatorCredit = !showCreatorCredit;
-            badge?.classList.add('is-transitioning');
-            nexusProfileState.transitionTimer = setTimeout(() => {
-                renderNexusUserProfileBadge(profile, showCreatorCredit);
-                badge?.classList.remove('is-transitioning');
-                nexusProfileState.transitionTimer = null;
-            }, NEXUS_PROFILE_RULES.transitionMs);
-            nexusProfileState.rotationTimer = setTimeout(rotate, NEXUS_PROFILE_RULES.rotationMs);
-        };
-        nexusProfileState.rotationTimer = setTimeout(rotate, NEXUS_PROFILE_RULES.rotationMs);
-    }
-    function syncNexusUserProfileBadge() {
-        const profile = readNexusUserProfile();
-        startNexusProfileHeaderRotation(profile);
-        return profile;
-    }
-
-    function fillNexusProfileGate(profile) {
-        const input = getEl('nexusProfileHandleInput');
-        const verifiedProfile = profile?.status === 'verified' ? profile : null;
-        const cachedProfile = isCurrentNexusProfileVerification(verifiedProfile) ? verifiedProfile : null;
-        if (input) input.value = verifiedProfile ? nexusSc2HandleDigits(verifiedProfile.handle) : '';
-        nexusProfileState.lookup = cachedProfile ? { handle: cachedProfile.handle, nickname: cachedProfile.nickname, source: 'local-profile' } : null;
-        if (cachedProfile) nexusProfileState.cache.set(cachedProfile.handle, nexusProfileState.lookup);
-        setNexusProfileLookupBusy(false);
-        setNexusProfileResult(cachedProfile?.nickname || '', verifiedProfile?.handle || '');
-        setNexusProfileStatus(cachedProfile ? '' : (verifiedProfile ? '저장된 인증 정보를 다시 확인합니다.' : '핸들을 인증하거나 닫기를 눌러 게스트로 이용하세요.'), cachedProfile ? 'ok' : 'muted');
-    }
-    function setNexusProfileGateOpen(open) {
-        const gate = getEl('nexusProfileGate');
-        if (!gate) return false;
-        gate.classList.toggle('is-open', !!open);
-        gate.setAttribute('aria-hidden', open ? 'false' : 'true');
-        document.body.classList.toggle('nexus-profile-gate-open', !!open);
-        return true;
-    }
-    function openNexusProfileGate() {
-        const profile = readNexusUserProfile();
-        fillNexusProfileGate(profile);
-        setNexusProfileGateOpen(true);
-        if (profile?.status === 'verified' && !isCurrentNexusProfileVerification(profile)) queueNexusProfileLookupPreview();
-        setTimeout(() => getEl('nexusProfileHandleInput')?.focus(), 30);
-    }
-    function clearNexusProfileLookupTimer() {
-        if (nexusProfileState.lookupTimer) clearTimeout(nexusProfileState.lookupTimer);
-        nexusProfileState.lookupTimer = null;
-    }
-    function closeNexusProfileGate() {
-        const profile = readNexusUserProfile();
-        const digits = nexusSc2HandleDigits(getEl('nexusProfileHandleInput')?.value || '');
-        if (!profile && digits) {
-            setNexusProfileStatus('핸들을 비우고 닫으면 게스트로 이용할 수 있습니다.', 'warn');
-            return false;
-        }
-        if (!profile && !writeNexusUserProfile({ guest: true, status: 'guest', nickname: '게스트', verifiedAt: Date.now(), source: 'guest' })) return false;
-        clearNexusProfileLookupTimer();
-        nexusProfileState.requestSeq += 1;
-        if (!profile) syncNexusUserProfileBadge();
-        return setNexusProfileGateOpen(false);
-    }
-
-    async function lookupNexusSc2Nickname(handle) {
-        const normalizedHandle = normalizeNexusSc2Handle(handle);
-        if (!isValidNexusSc2Handle(normalizedHandle)) return { found: false, reason: 'invalid_handle', message: NEXUS_PROFILE_RULES.invalidMessage };
-        const cached = nexusProfileState.cache.get(normalizedHandle);
-        if (cached?.nickname) return { found: true, nickname: cached.nickname, source: cached.source || 'session-cache' };
-        const pending = nexusProfileState.pending.get(normalizedHandle);
-        if (pending) return pending;
-        const request = (async () => {
-            const endpoint = String(SYSTEM_CONFIG.profileLookup?.endpoint || '').trim();
-            if (!endpoint) return { found: false, reason: 'lookup_unavailable', message: '닉네임 조회 서버가 설정되지 않았습니다.' };
-            const controller = typeof AbortController === 'function' ? new AbortController() : null;
-            const timer = controller ? setTimeout(() => controller.abort(), Math.max(3000, Number(SYSTEM_CONFIG.profileLookup?.timeoutMs) || 12000)) : null;
-            try {
-                const url = new URL(endpoint);
-                url.searchParams.set('action', 'lookupNickname');
-                url.searchParams.set('handle', normalizedHandle);
-                const response = await fetch(url.href, { cache: 'no-store', credentials: 'omit', signal: controller?.signal, headers: { Accept: 'application/json' } });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const result = await response.json();
-                const nickname = normalizeNexusSc2Nickname(result?.nickname);
-                if (!result?.found || !nickname) return { found: false, reason: String(result?.reason || 'not_found'), message: String(result?.message || '핸들을 확인할 수 없습니다.') };
-                const resolved = { nickname, source: 'donation-lookup-server' };
-                nexusProfileState.cache.set(normalizedHandle, resolved);
-                return { found: true, ...resolved };
-            } catch (error) {
-                return { found: false, reason: 'lookup_error', message: error?.name === 'AbortError' ? '닉네임 조회 시간이 초과되었습니다. 다시 시도해 주세요.' : '닉네임 조회 중 오류가 발생했습니다. 다시 시도해 주세요.' };
-            } finally {
-                if (timer) clearTimeout(timer);
-            }
-        })();
-        nexusProfileState.pending.set(normalizedHandle, request);
-        try {
-            return await request;
-        } finally {
-            if (nexusProfileState.pending.get(normalizedHandle) === request) nexusProfileState.pending.delete(normalizedHandle);
-        }
-    }
-
-    async function runNexusProfileLookupPreview(handle) {
-        const normalizedHandle = normalizeNexusSc2Handle(handle);
-        const sequence = ++nexusProfileState.requestSeq;
-        if (!isValidNexusSc2Handle(normalizedHandle)) {
-            nexusProfileState.lookup = null;
-            setNexusProfileLookupBusy(false);
-            setNexusProfileResult('', normalizedHandle);
-            setNexusProfileStatus(NEXUS_PROFILE_RULES.invalidMessage, 'warn');
-            return null;
-        }
-        setNexusProfileLookupBusy(true);
-        setNexusProfileResult('', normalizedHandle);
-        setNexusProfileStatus(`${normalizedHandle} 인증서버 확인 중입니다.`, 'muted');
-        const result = await lookupNexusSc2Nickname(normalizedHandle);
-        if (sequence !== nexusProfileState.requestSeq || normalizeNexusSc2Handle(getEl('nexusProfileHandleInput')?.value || '') !== normalizedHandle) return null;
-        setNexusProfileLookupBusy(false);
-        if (result.found && result.nickname) {
-            nexusProfileState.lookup = { handle: normalizedHandle, nickname: result.nickname, source: result.source };
-            setNexusProfileResult(result.nickname, normalizedHandle);
-            setNexusProfileStatus('', 'ok');
-            return nexusProfileState.lookup;
-        }
-        nexusProfileState.lookup = null;
-        setNexusProfileResult('', normalizedHandle);
-        setNexusProfileStatus(result.message || '핸들을 확인할 수 없습니다.', 'err');
-        return null;
-    }
-
-    function queueNexusProfileLookupPreview() {
-        clearNexusProfileLookupTimer();
-        const handle = normalizeNexusSc2Handle(getEl('nexusProfileHandleInput')?.value || '');
-        nexusProfileState.lookup = null;
-        nexusProfileState.requestSeq += 1;
-        setNexusProfileLookupBusy(false);
-        setNexusProfileResult('', handle);
-        if (!handle) {
-            setNexusProfileStatus('핸들을 인증하거나 닫기를 눌러 게스트로 이용하세요.', 'muted');
-            return;
-        }
-        if (!isValidNexusSc2Handle(handle)) {
-            setNexusProfileStatus(NEXUS_PROFILE_RULES.invalidMessage, 'warn');
-            return;
-        }
-        const saved = readNexusUserProfile();
-        const cached = nexusProfileState.cache.get(handle) || (isCurrentNexusProfileVerification(saved) && saved.handle === handle ? { nickname: saved.nickname, source: 'local-profile' } : null);
-        if (cached?.nickname) {
-            nexusProfileState.cache.set(handle, cached);
-            nexusProfileState.lookup = { handle, nickname: cached.nickname, source: cached.source || 'session-cache' };
-            setNexusProfileResult(cached.nickname, handle);
-            setNexusProfileStatus('', 'ok');
-            return;
-        }
-        setNexusProfileStatus(`${handle} 입력됨 · 잠시 후 인증서버를 조회합니다.`, 'muted');
-        const delay = Math.max(0, Number(SYSTEM_CONFIG.profileLookup?.previewDelayMs) || 120);
-        nexusProfileState.lookupTimer = setTimeout(() => runNexusProfileLookupPreview(handle), delay);
-    }
-
-    async function submitNexusUserProfileGate(event) {
-        event?.preventDefault();
-        clearNexusProfileLookupTimer();
-        const input = getEl('nexusProfileHandleInput');
-        const handle = normalizeNexusSc2Handle(input?.value || '');
-        if (!isValidNexusSc2Handle(handle)) {
-            setNexusProfileStatus(NEXUS_PROFILE_RULES.invalidMessage, 'err');
-            input?.focus();
-            return false;
-        }
-        if (input) input.value = nexusSc2HandleDigits(handle);
-        const lookup = nexusProfileState.lookup?.handle === handle ? nexusProfileState.lookup : await runNexusProfileLookupPreview(handle);
-        const nickname = normalizeNexusSc2Nickname(lookup?.nickname);
-        if (!nickname) {
-            setNexusProfileStatus('닉네임 확인 후 시작할 수 있습니다. 다시 시도해 주세요.', 'err');
-            input?.focus();
-            return false;
-        }
-        if (!writeNexusUserProfile({ handle, nickname, verifiedAt: Date.now(), source: lookup.source })) return false;
-        syncNexusUserProfileBadge();
-        setNexusProfileStatus('', 'ok');
-        return setNexusProfileGateOpen(false);
-    }
-
-    function bindNexusUserProfileEvents() {
-        const form = getEl('nexusProfileGateForm');
-        form?.addEventListener('submit', submitNexusUserProfileGate);
-        const input = getEl('nexusProfileHandleInput');
-        if (input) {
-            input.addEventListener('input', () => {
-                const digits = nexusSc2HandleDigits(input.value);
-                if (input.value !== digits) input.value = digits;
-                queueNexusProfileLookupPreview();
-            });
-            input.addEventListener('blur', () => {
-                input.value = nexusSc2HandleDigits(input.value);
-                const handle = normalizeNexusSc2Handle(input.value);
-                if (handle && nexusProfileState.lookup?.handle !== handle) queueNexusProfileLookupPreview();
-            });
-        }
-        const closeButton = getEl('nexusProfileCloseBtn');
-        closeButton?.addEventListener('click', closeNexusProfileGate);
-        const badge = getEl('nexusUserProfileBadge');
-        if (badge) {
-            const openFromBadge = () => {
-                if (badge.classList.contains('is-profile-trigger')) openNexusProfileGate();
-            };
-            badge.addEventListener('click', openFromBadge);
-            badge.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                if (!badge.classList.contains('is-profile-trigger')) return;
-                event.preventDefault();
-                openFromBadge();
-            });
-        }
-        window.addEventListener('storage', event => {
-            if (event.key !== nexusProfileStorageKey()) return;
-            nexusProfileState.memory = undefined;
-            if (!syncNexusUserProfileBadge()) openNexusProfileGate();
-        });
-    }
-
-    async function initNexusUserProfileGate() {
-        const profile = syncNexusUserProfileBadge();
-        if (!profile) return openNexusProfileGate();
-        if (profile.status !== 'verified' || isCurrentNexusProfileVerification(profile)) return profile;
-        const result = await lookupNexusSc2Nickname(profile.handle);
-        if (result.found && result.nickname && writeNexusUserProfile({ handle: profile.handle, nickname: result.nickname, verifiedAt: Date.now(), source: result.source })) syncNexusUserProfileBadge();
-        return readNexusUserProfile();
-    }
-
-    // ── 02-3. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
+    // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
     const makeMapSignature = (map) => [...(map instanceof Map ? map : new Map(map || [])).entries()]
         .map(([uid, qty]) => [uid, Math.max(0, parseInt(qty, 10) || 0)]).filter(([, qty]) => qty > 0)
         .sort(([a], [b]) => String(a).localeCompare(String(b))).map(([uid, qty]) => `${uid}:${qty}`).join('|');
@@ -885,7 +577,7 @@
         return parts;
     }
 
-    // ── 02-4. 조합식 표시 생성 ─────────────────────────────────────────────
+    // ── 02-3. 조합식 표시 생성 ─────────────────────────────────────────────
     function formatRecipe(item, multi = 1, showSep = false) {
         if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
         let foundSpecialIds = [];
@@ -3210,21 +2902,7 @@
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
                 if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true, preset.preventStack === true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
                 break;
-            case 'showAppVersion': {
-                const titleRoot = actionEl.closest('.gh-logo-text') || actionEl;
-                const t = titleRoot.querySelector('#ghTitleText, .gh-title') || document.getElementById('ghTitleText') || document.querySelector('.gh-title');
-                const version = getNexusVersion();
-                if (!t || !version || t.dataset.versionShowing) return;
-                const original = t.textContent.trim() || '개복디 넥서스';
-                t.dataset.versionShowing = '1';
-                t.textContent = version;
-                clearTimeout(_titleVersionTimer);
-                _titleVersionTimer = setTimeout(() => {
-                    t.textContent = original;
-                    delete t.dataset.versionShowing;
-                }, APP_INTERNAL.appVersionDisplayMs);
-                break;
-            }
+            case 'showAppVersion': showNexusAppVersion(); break;
             case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
             case 'toggleHideCompleted':
                 _hideCompleted = !_hideCompleted;
@@ -3293,11 +2971,6 @@
             return;
         }
         if (e.key === 'Escape') {
-            if (getEl('nexusProfileGate')?.classList.contains('is-open')) {
-                e.preventDefault();
-                closeNexusProfileGate();
-                return;
-            }
             if (_currentHighlight) toggleHighlight(null);
             hideRecipeTooltip();
             const searchInp = getEl('unitSearchInput');
@@ -3324,8 +2997,7 @@
             setupSearchEngine();
             setupInitialView();
             renderPresetButtons();
-            bindNexusUserProfileEvents();
-            initNexusUserProfileGate();
+            restartNexusTitleRotation();
             updateHideCompletedBtn();
             requestAnimationFrame(() => {
                 debouncedUpdateAllPanels();
