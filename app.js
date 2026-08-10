@@ -1,25 +1,6 @@
-// ============================================================================
-// 넥서스 앱 실행 (app.js)
-// 00. 설정·정책 병합
-// 01. 런타임 상수·상태
-//    01-1 정규화·검색·렌더링 상수 / 01-2 내부 정책 / 01-3 부팅 전달 / 01-4 상태
-// 02. 공통 유틸·데이터
-//    02-1 DOM·등급·검색 유틸 / 02-2 상태 정리·조합 파싱 / 02-3 조합 표시
-// 03. 저장·검색·명령
-// 04. 계산 엔진 및 패널 갱신
-// 05. 완료·복구·초기화
-// 06. 코스트보드
-// 07. 히든보드 / 재료보드
-// 08. 도감·탭·즐겨찾기·프리셋
-// 09. 장바구니
-// 10. 화면·입력·툴팁·폰트
-// 11. 이벤트 바인딩
-// 12. 앱 초기화
-// ============================================================================
-
 (() => {
 
-    // ── 00. 설정 및 정책 병합 ────────────────────────────────────────────────
+    /* 설정 및 정책 병합 */
     const USER_CONFIG = window.NEXUS_USER_CONFIG || {};
     const APP_DEFAULT_CONFIG = {
         policy: {
@@ -123,7 +104,7 @@
         }
     };
 
-    // ── 01-1. 정규화·검색·렌더링 상수 ───────────────────────────────────────
+    /* 정규화·검색·렌더링 상수 */
     const IGNORE_PARSE_RECIPES = ["미발견", "없음", ""];
     const clean = (s) => s ? s.replace(/\s+/g, '').toLowerCase() : '';
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.costboardAtoms.map(a => [clean(a), a]));
@@ -225,7 +206,7 @@
     };
     const isBrightColor = (name) => ['노랑','연두','하늘','흰색','금색'].includes(name);
     const FAVORITES_KEY = SYSTEM_CONFIG.storageKeys?.favorites || 'nexusFavorites';
-    // ── 01-2. 내부 안전장치·조작 정책 ───────────────────────────────────────
+    /* 내부 안전장치·조작 정책 */
     const APP_INTERNAL = {
         maxLoopQueue: 1000,
         hapticDuration: 15,
@@ -258,7 +239,7 @@
         restoreAllPendingDelay: 2000
     };
 
-    // ── 01-3. 부팅 상태 전달 ────────────────────────────────────────────────
+    /* 부팅 상태 전달 */
     const markNexusAppReady = () => {
         if (typeof window.nexusMarkAppReady === 'function') {
             window.nexusMarkAppReady();
@@ -275,7 +256,7 @@
         try { alert("초기화 중 치명적인 오류가 발생했습니다.\n\n" + (error?.stack || error)); } catch(e) {}
     };
 
-    // ── 01-4. 선택·완료·화면 상태 ──────────────────────────────────────────
+    /* 선택·완료·화면 상태 */
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
     let _invenboardInputMode = 'auto', _isInvenboardSlotsExpanded = false;
@@ -290,7 +271,7 @@
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
 
-    // ── 02-1. DOM·등급·검색 공통 유틸 ──────────────────────────────────────
+    /* DOM·등급·검색 공통 유틸 */
     const getEl = (id) => document.getElementById(id);
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
     const isInsideRecipeTooltip = (event) => event?.target?.closest?.('#recipeTooltip') !== null;
@@ -325,9 +306,24 @@
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
     const getNexusVersion = () => window.APP_VERSION || window.NEXUS_BUILD_VERSION || '';
     const NEXUS_TITLE_TEXT = Object.freeze({
-        main: '개복디 넥서스',
-        creator: '제작자 | 회장 · 3-S2-1-2461127'
+        main: { value: '개복디 넥서스' },
+        creator: { label: '제작자', value: '회장 | 3-S2-1-2461127' }
     });
+    const getNexusTitleViewMeta = mode => {
+        if (mode === 'version') {
+            return { label: '버전정보', value: getNexusVersion() };
+        }
+        return NEXUS_TITLE_TEXT[mode] || NEXUS_TITLE_TEXT.main;
+    };
+    const buildNexusTitleHtml = (mode, { label, value }) => {
+        if (mode === 'main') {
+            return `<span class="gh-title-mainline">${escapeHtml(value)}</span>`;
+        }
+        return `<span class="gh-title-stack">
+            <span class="gh-title-label">${escapeHtml(label)}</span>
+            <span class="gh-title-main">${escapeHtml(value)}</span>
+        </span>`;
+    };
     const clearNexusTitleRotationTimers = () => {
         clearTimeout(_titleRotationTimer);
         clearTimeout(_titleTransitionTimer);
@@ -337,15 +333,12 @@
     const renderNexusTitleView = mode => {
         const title = getEl('ghTitleText');
         if (!title) return;
-        const text = mode === 'creator'
-            ? NEXUS_TITLE_TEXT.creator
-            : mode === 'version'
-                ? getNexusVersion()
-                : NEXUS_TITLE_TEXT.main;
+        const meta = getNexusTitleViewMeta(mode);
+        const text = meta.label ? `${meta.label} ${meta.value}` : meta.value;
         title.dataset.titleView = mode;
         title.classList.toggle('is-creator-view', mode === 'creator');
         title.classList.toggle('is-version-view', mode === 'version');
-        title.textContent = text;
+        title.innerHTML = buildNexusTitleHtml(mode, meta);
         title.setAttribute('aria-label', `${text} · 앱 버전 보기`);
     };
     const scheduleNexusTitleRotation = mode => {
@@ -453,7 +446,7 @@
         }, APP_INTERNAL.searchFailFeedbackDelay);
     };
 
-    // ── 02-2. 상태 정리·조합식 파싱·데이터 캐시 ────────────────────────────
+    /* 상태 정리·조합식 파싱·데이터 캐시 */
     const makeMapSignature = (map) => [...(map instanceof Map ? map : new Map(map || [])).entries()]
         .map(([uid, qty]) => [uid, Math.max(0, parseInt(qty, 10) || 0)]).filter(([, qty]) => qty > 0)
         .sort(([a], [b]) => String(a).localeCompare(String(b))).map(([uid, qty]) => `${uid}:${qty}`).join('|');
@@ -577,7 +570,7 @@
         return parts;
     }
 
-    // ── 02-3. 조합식 표시 생성 ─────────────────────────────────────────────
+    /* 조합식 표시 생성 */
     function formatRecipe(item, multi = 1, showSep = false) {
         if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
         let foundSpecialIds = [];
@@ -632,7 +625,7 @@
     }
 
 
-    // ── 03. 저장·검색·명령 ─────────────────────────────────────────────────
+    /* 저장·검색·명령 */
     function hydrateSavedUnitMap(entries, targetMap, options = {}) {
         if (!Array.isArray(entries)) return;
         entries.forEach(([rawUid, rawQty]) => writeRuntimeStateEntry(targetMap, rawUid, rawQty, options));
@@ -833,7 +826,7 @@
     }
 
 
-    // ── 04. 계산 엔진 및 패널 갱신 ─────────────────────────────────────────
+    /* 계산 엔진 및 패널 갱신 */
     function calcEssenceRecursiveFast(uid, counts, visited) {
         if (visited.has(uid)) return;
         visited.add(uid);
@@ -1035,7 +1028,7 @@
     }
 
 
-    // ── 05. 완료·복구·초기화 ───────────────────────────────────────────────
+    /* 완료·복구·초기화 */
     function subtractCompletedUnitQty(uid, qty) {
         const amount = Math.max(0, parseInt(qty, 10) || 0);
         if (amount <= 0) return;
@@ -1164,7 +1157,6 @@
         const cfg = SYSTEM_CONFIG.policy.restoreAllBtn;
         const btn = getEl(cfg.idBtn), label = getEl(cfg.idLabel);
 
-        // 확인 대기 중 재클릭하면 초기화를 취소한다.
         if (_restoreAllPendingTimer) {
             clearTimeout(_restoreAllPendingTimer);
             _restoreAllPendingTimer = null;
@@ -1173,7 +1165,6 @@
             return;
         }
 
-        // 첫 클릭 후 확인 대기를 거쳐 초기화를 실행한다.
         if (label) label.textContent = '취소하려면 다시 클릭';
         if (btn) { btn.classList.add('reset-btn-pending'); }
 
@@ -1226,7 +1217,7 @@
     }
 
 
-    // ── 06. 코스트보드 ─────────────────────────────────────────
+    /* 코스트보드 */
     function renderBoardSlots(boardId, atoms, slotTemplate) {
         const board = getEl(boardId);
         if (!board) return;
@@ -1316,14 +1307,13 @@
     }
 
 
-    // ── 07. 히든보드 ────────────────────────────────────────────────
+    /* 히든보드 */
     function renderHiddenboard() {
         if (_isHiddenboardRendered) return;
         const boardEl = getEl('boardContent');
         if (!boardEl) return;
         boardEl.classList.remove('invenboard-mode');
         _isInvenboardRendered = false;
-        // 07-1. 슬롯·그룹 템플릿
         const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
@@ -1341,7 +1331,6 @@
             </div>`;
 
         const allUnits = Array.from(unitMap.values());
-        // 07-2. 슬롯 유형별 HTML 생성
         const unitSlots = allUnits.filter(u => getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.minGradeForHiddenboard) && !AUTO_COST_SLOT_SET.has(u.id)).map(u => renderHiddenboardSlot(u.id, u.name, u.grade)).join('');
 
         const _exIds = new Set((SYSTEM_CONFIG.policy.hideCompletedExcludeGroups || []).map(t => titleToGridId[t]).filter(Boolean));
@@ -1876,7 +1865,6 @@
 
     function updateHiddenboard(calcResult) {
         if (!_isHiddenboardRendered) return;
-        // 07-3. 계산 결과·하이라이트 기준 수집
         const { reqMap, baseMap, reasonMap } = calcResult || calculateBoardRequirements();
         const mergedSlots = new Set();
 
@@ -1993,7 +1981,6 @@
             queue = nextQueue;
         }
 
-        // 07-4. 슬롯 배치 초기화
         _hiddenboardSlotElsByUid.forEach(el => {
             el.style.display = 'none'; el.classList.remove('is-visible','has-target','is-completed','highlighted-tree');
             if (pool && el.parentElement !== pool) pool.appendChild(el);
@@ -2006,10 +1993,8 @@
             return reasonEntriesCache.get(slotId);
         };
 
-        // 07-5. 실제 필요 슬롯 배치 준비
         const visibleMaterialIds = new Set([...baseMap.keys(), ...reqMap.keys()]);
 
-        // 07-6. 슬롯 수량·완료·강조 상태 반영
         const processSlot = (id) => {
             const slotEl = _hiddenboardSlotElsByUid.get(id); if (!slotEl) return null;
             
@@ -2187,7 +2172,6 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        // 07-7. 그룹 페이지·표시 상태 갱신
         Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9));
 
         Object.values(grids).forEach(g => {
@@ -2255,7 +2239,7 @@
     }
 
 
-    // ── 08. 도감·탭·즐겨찾기·프리셋 ───────────────────────────────────────
+    /* 도감·탭·즐겨찾기·프리셋 */
     function renderTabs() {
         const t = getEl('unitboardTabs');
         if (t) { t.innerHTML = SYSTEM_CONFIG.tabs.map((c, i) => `<button type="button" id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join(''); updateTabsUI(); }
@@ -2519,7 +2503,7 @@
     }
 
 
-    // ── 09. 장바구니 ──────────────────────────────────────────────────────
+    /* 장바구니 */
     function pauseCartUnit(uid) {
         if (!activeUnits.has(uid) || !unitMap.has(uid)) return;
         const qty = activeUnits.get(uid) || 1;
@@ -2654,7 +2638,7 @@
     }
 
 
-    // ── 10. 화면·입력·툴팁·폰트 ───────────────────────────────────────────
+    /* 화면·입력·툴팁·폰트 */
     function setupInitialView() { switchLayout('unitboard'); }
 
     function switchLayout(mode) {
@@ -2864,8 +2848,7 @@
     }
 
 
-    // ── 11. 이벤트 바인딩 ─────────────────────────────────────────────────
-    // 11-1. 반복 입력 종료
+    /* 이벤트 바인딩 */
     ['pointerup','pointercancel','touchend','touchcancel','mouseup','contextmenu'].forEach(evt => { document.addEventListener(evt, stopSmartChange); document.addEventListener(evt, stopFontHold); });
     
     document.addEventListener('visibilitychange', () => {
@@ -2875,7 +2858,6 @@
         }
     });
 
-    // 11-2. 클릭 이벤트 위임
     document.addEventListener('click', e => {
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
@@ -2956,14 +2938,12 @@
         setTimeout(() => input.select(), 0);
     });
 
-    // 11-3. 포인터 입력
     document.addEventListener('pointerdown', e => {
         const actionEl = e.target.closest('[data-action="smartChange"]');
         if (actionEl) { e.stopPropagation(); startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e); return; }
         if (e.target.closest('[data-action="increaseFont"]')) { e.preventDefault(); startFontHold(APP_INTERNAL.fontScaleStep); return; }
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
-    // 11-4. 키보드 접근성·단축 처리
     document.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('[data-action="showAppVersion"]')) {
             e.preventDefault();
@@ -2979,7 +2959,7 @@
     });
     window.addEventListener('orientationchange', () => { hideRecipeTooltip(); placeHiddenboardControls(); updateBoardHeader(); });
     window.addEventListener('resize', () => { hideRecipeTooltip(); placeHiddenboardControls(); updateBoardHeader(); });
-    // ── 12. 앱 초기화 ──────────────────────────────────────────────────────
+    /* 앱 초기화 */
     function startNexusApp(){
         try {
             document.documentElement.lang = 'ko';
@@ -3042,7 +3022,6 @@
                     sPager = null;
                 }, { passive: true });
             }
-            // 히든보드 카드 내부 스와이프는 페이지 이동을 우선한다.
             const dBoard = getEl('colRightPanel');
             if (dBoard) {
                 let dX0 = 0, dY0 = 0, dPager = false;
