@@ -22,7 +22,7 @@
     
     --grade-magic:#93c5fd; --grade-rare:#fcd34d; --grade-epic:#fb923c; --grade-unique:#f87171;
     --grade-hell:#f472b6; --grade-legend:#c084fc; --grade-hidden:#34d399; --grade-unique-hidden:#74FBC1; --grade-super:#fcd34d;
-    --grade-special:#fff;
+    --grade-skill-use:#fff;
     
     --text:#f0f2f8; --text-sub:#b8c4d8; --text-muted:#6a7a90;
     --clr-auto:#f472b6;
@@ -242,7 +242,7 @@ body .hiddenboard-ph-btns[hidden],body .invenboard-header-actions[hidden]{displa
 .grade-히든{border-color:rgba(52,211,153,0.95);color:#34d399;background:rgba(52,211,153,0.12);}
 .grade-고유히든{border-color:rgba(116,251,193,1);color:#74FBC1;background:rgba(116,251,193,0.14);}
 .grade-슈퍼히든{border-color:rgba(251,191,36,1);color:#fbbf24;background:rgba(251,191,36,0.14);}
-.grade-특수{border-color:rgba(255,255,255,0.92);color:var(--grade-special);background:rgba(255,255,255,0.12);}
+.grade-스킬사용{border-color:rgba(255,255,255,0.92);color:var(--grade-skill-use);background:rgba(255,255,255,0.12);}
 
 .recipe-badge{border:none;padding:1px 0;background:transparent;font-size:calc(0.75rem * var(--fs-scale));font-weight:800;display:flex;align-items:center;justify-content:space-between;width:100%;transition:color 0.18s;gap:4px;}
 .recipe-badge-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
