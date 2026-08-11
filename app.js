@@ -139,6 +139,7 @@
     const CLEAN_UNIT_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
         .map(([id, b]) => [clean(id), parseInt(b?.maxQty, 10)])
         .filter(([, cap]) => Number.isFinite(cap) && cap > 0));
+    const CLEAN_INVENBOARD_INSTANT_COMPLETE = new Set(Object.entries(_behaviors).filter(([, b]) => b.invenboardInstantComplete).map(([id]) => clean(id)));
     const BASIC_HIDDENBOARD_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
     const isBasicHiddenboardGrade = (grade) => BASIC_HIDDENBOARD_GRADES.has(grade);
     const MATERIAL_REASON_LABEL = '재료';
@@ -288,6 +289,7 @@
     const isUnitboardVisibleUnit = (u) => !!u && (getGradeIndex(u.grade) >= getUnitboardMinGradeIndex() || isUnitboardVisibleException(u.id));
     const isSelectableUnitboardUnit = (u) => isUnitboardVisibleUnit(u) && !isRestrictedUnit(u.id);
     const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
+    const isInvenboardInstantCompleteUnit = (uid) => CLEAN_INVENBOARD_INSTANT_COMPLETE.has(clean(uid));
     const getUnitId = (rawName) => clean(rawName);
     const getCostboardAtomRawName = (uid) => ATOM_HASH[uid] || INVENBOARD_EXPANSION_RAW_MAP[uid] || AUTO_COST_RAW_MAP[uid] || uid;
     const getCostboardSlotToneClass = (atoms) => atoms.some(atom => AUTO_COST_SLOT_SET.has(clean(atom))) ? 'is-skill-slot' : 'is-magic-slot';
@@ -793,6 +795,35 @@
         return targets;
     }
 
+    const isEssencePreset = (preset) => (preset?.group || '일반 프리셋') === '정수 프리셋';
+    let _essencePresetTargetIdCache = null;
+    const getEssencePresetTargetIds = () => {
+        if (_essencePresetTargetIdCache) return _essencePresetTargetIdCache;
+        const ids = new Set();
+        SYSTEM_CONFIG.presets.filter(isEssencePreset).forEach(preset => getPresetCommandTargets(preset).forEach((_, uid) => ids.add(uid)));
+        _essencePresetTargetIdCache = ids;
+        return ids;
+    };
+    const isTargetCoveredByHigherTarget = (uid, targets) => {
+        for (const higherUid of targets) {
+            if (higherUid !== uid && getDependencies(higherUid).has(uid)) return true;
+        }
+        return false;
+    };
+    function filterTopLevelEssenceTargets(targetMap) {
+        if (!(targetMap instanceof Map) || targetMap.size === 0) return false;
+        const essenceIds = getEssencePresetTargetIds();
+        const targets = [...targetMap.keys()].filter(uid => essenceIds.has(uid) && unitMap.has(uid));
+        const removeIds = targets.filter(uid => isTargetCoveredByHigherTarget(uid, targets));
+        removeIds.forEach(uid => targetMap.delete(uid));
+        return removeIds.length > 0;
+    }
+    function applyEssencePresetTopLevelFilter() {
+        const activeChanged = filterTopLevelEssenceTargets(activeUnits);
+        const pausedChanged = filterTopLevelEssenceTargets(pausedUnits);
+        return activeChanged || pausedChanged;
+    }
+
     function getCartPresetUnitQty(uid) {
         return Math.max(0, activeUnits.get(uid) || 0) + Math.max(0, pausedUnits.get(uid) || 0) + Math.max(0, completedTargets.get(uid) || 0);
     }
@@ -800,8 +831,10 @@
     function isPresetActiveInCart(preset) {
         const targets = getPresetCommandTargets(preset);
         if (targets.size === 0) return false;
+        const cartTargetIds = new Set([...activeUnits.keys(), ...pausedUnits.keys(), ...completedTargets.keys()].filter(uid => unitMap.has(uid)));
         for (const [uid, qty] of targets.entries()) {
-            if (getCartPresetUnitQty(uid) < qty) return false;
+            if (getCartPresetUnitQty(uid) >= qty) continue;
+            if (!isEssencePreset(preset) || !isTargetCoveredByHigherTarget(uid, cartTargetIds)) return false;
         }
         return true;
     }
@@ -1651,6 +1684,12 @@
             const remainingQty = Math.max(0, requiredQty - currentCompleted);
             if (remainingQty <= 0) continue;
 
+            if (isInvenboardInstantCompleteUnit(uid)) {
+                addCompletedMaterialUnit(uid, remainingQty, { trackInvenboard: true });
+                changed = true;
+                continue;
+            }
+
             const recipeReadyQty = getCompletedRecipeReadyQty(uid, remainingQty);
             if (recipeReadyQty > 0) {
                 deleteCompletedRecipe(uid, recipeReadyQty);
@@ -1684,13 +1723,14 @@
             const recipeReadyQty = getCompletedRecipeReadyQty(uid, activeQty);
             const directReadyQty = getDirectInvenboardReadyQty(uid, activeQty, available);
             const hasAutoCompletedCostOnly = unit.parsedCost?.length && unit.parsedCost.every(pc => AUTO_COST_SLOT_SET.has(pc.key) && !COSTBOARD_ATOM_ID_SET.has(pc.key));
+            const completeInstantly = isInvenboardInstantCompleteUnit(uid);
             const completeWithRecipe = recipeReadyQty >= activeQty;
-            const completeWithDirectAtoms = !getCompletedRecipeProgress(uid, 1).hasAnyCompleted && (directReadyQty >= activeQty || (hasAutoCompletedCostOnly && getDirectInvenboardAtomNeed(uid, 1).size === 0));
+            const completeWithDirectAtoms = completeInstantly || (!getCompletedRecipeProgress(uid, 1).hasAnyCompleted && (directReadyQty >= activeQty || (hasAutoCompletedCostOnly && getDirectInvenboardAtomNeed(uid, 1).size === 0)));
             if (!completeWithRecipe && !completeWithDirectAtoms) return;
 
             if (completeWithRecipe) {
                 deleteCompletedRecipe(uid, activeQty);
-            } else {
+            } else if (!completeInstantly) {
                 resetInvenboardOwnedForUnit(uid, activeQty);
                 consumeAvailableInvenboardAtoms(available, uid, activeQty);
             }
@@ -1944,26 +1984,42 @@
 
     function updateBoardPanel(calcResult) {
         updateBoardHeader();
+        let autoCompleted = false;
         if (_currentViewMode === 'hiddenboard') {
             if (!_isHiddenboardRendered) renderHiddenboard();
-            if (!_isHiddenboardRendered) return;
-            if (completeHiddenboardRecipeUnitsIfReady()) calcResult = calculateBoardRequirements();
+            if (!_isHiddenboardRendered) return autoCompleted;
+            if (completeHiddenboardRecipeUnitsIfReady()) {
+                calcResult = calculateBoardRequirements();
+                autoCompleted = true;
+            }
             updateHiddenboard(calcResult || _lastCalcResult || calculateBoardRequirements());
             updateEmptyMsg();
-            return;
+            return autoCompleted;
         }
         if (_currentViewMode === 'invenboard') {
             if (!_isInvenboardRendered) renderInvenboard();
-            if (completeInvenboardTargetsIfReady()) calcResult = calculateBoardRequirements();
+            if (completeInvenboardTargetsIfReady()) {
+                calcResult = calculateBoardRequirements();
+                autoCompleted = true;
+            }
             updateInvenboard(calcResult || _lastCalcResult || calculateBoardRequirements());
         }
+        return autoCompleted;
+    }
+
+    function refreshPanelsAfterBoardAutoComplete() {
+        const calcResult = calculateBoardRequirements();
+        _lastCalcResult = calcResult;
+        updateCostboard();
+        updateTabsUI();
+        updateTabContentUI();
+        updateCartUI();
+        updatePresetBtns();
+        saveNexusState();
     }
 
     function ensureActiveBoardRendered(calcResult) {
-        updateBoardPanel(calcResult || _lastCalcResult || calculateBoardRequirements());
-        if (_currentViewMode === 'invenboard') return _isInvenboardRendered;
-        if (_currentViewMode === 'hiddenboard') return _isHiddenboardRendered;
-        return true;
+        return updateBoardPanel(calcResult || _lastCalcResult || calculateBoardRequirements());
     }
 
     function wrapHiddenboardGridPages(grid, pageSize) {
@@ -2713,6 +2769,38 @@
         ];
     }
 
+    function getCurrentCartUnitMap() {
+        if (_cartTab === 'paused') return pausedUnits;
+        if (_cartTab === 'done') return completedTargets;
+        return activeUnits;
+    }
+
+    function getCartEssenceTotals(sourceMap) {
+        const totals = { coral: 0, aiur: 0, zerus: 0 };
+        sourceMap?.forEach((rawQty, uid) => {
+            const unit = unitMap.get(uid);
+            if (!unit) return;
+            const qty = Math.max(1, parseInt(rawQty, 10) || 1);
+            getUnitEssenceParts(unit).forEach(([partId, , value]) => {
+                if (Object.prototype.hasOwnProperty.call(totals, partId)) totals[partId] += value * qty;
+            });
+        });
+        return totals;
+    }
+
+    function renderCartEssenceSummary() {
+        const summaryEl = getEl('cartEssenceSummary');
+        if (!summaryEl) return;
+        const totals = getCartEssenceTotals(getCurrentCartUnitMap());
+        const parts = [
+            ['coral', '코랄정수', totals.coral],
+            ['aiur', '아이어정수', totals.aiur],
+            ['zerus', '제루스정수', totals.zerus]
+        ];
+        const tabLabel = getCartTabDefinitions().find(tab => tab.key === _cartTab)?.label || '선택';
+        summaryEl.innerHTML = `<div class="cart-essence-title">${tabLabel} 정수 합계</div><div class="cart-essence-chips">${parts.map(([id, name, value]) => `<span class="cart-essence-chip cart-essence-${id}"><span class="cart-essence-label">${name}</span><span class="cart-essence-value">${value}</span></span>`).join('')}</div>`;
+    }
+
     function renderCartPanel(tabBarId, listAreaId, prefix) {
         const cartListArea = getEl(listAreaId); if (!cartListArea) return;
         const tabBar = getEl(tabBarId);
@@ -2755,6 +2843,7 @@
     }
 
     function updateCartUI() {
+        renderCartEssenceSummary();
         renderCartPanel('cartTabBar', 'cartListArea', 'ci');
     }
 
@@ -2778,8 +2867,11 @@
         };
         Object.entries(buttons).forEach(([key, btn]) => btn?.classList.toggle('active', key === nextMode));
 
-        if (nextMode === 'hiddenboard' || nextMode === 'invenboard') ensureActiveBoardRendered(_lastCalcResult);
+        const autoCompleted = (nextMode === 'hiddenboard' || nextMode === 'invenboard')
+            ? ensureActiveBoardRendered(_lastCalcResult)
+            : false;
         updateBoardHeader();
+        if (autoCompleted) refreshPanelsAfterBoardAutoComplete();
     }
 
     function startSmartChange(id, delta, event) {
@@ -3003,7 +3095,12 @@
             case 'toggleInvenboardSlotMode': e.stopPropagation(); toggleInvenboardSlotMode(); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
-                if (preset && !(preset.oneTime && _presetUsed.get(idx))) { processCommand(preset.command, true, preset.preventStack === true); if (preset.oneTime) _presetUsed.set(idx, true); updatePresetBtns(); }
+                if (preset && !(preset.oneTime && _presetUsed.get(idx))) {
+                    processCommand(preset.command, true, preset.preventStack === true);
+                    if (isEssencePreset(preset) && applyEssencePresetTopLevelFilter()) debouncedUpdateAllPanels();
+                    if (preset.oneTime) _presetUsed.set(idx, true);
+                    updatePresetBtns();
+                }
                 break;
             case 'showAppVersion': showNexusAppVersion(); break;
             case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
