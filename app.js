@@ -883,26 +883,6 @@
         return counts;
     }
 
-    function collectEssenceContributors(uid, targetEssence, list, visited) {
-        if (!uid || visited.has(uid)) return;
-        visited.add(uid);
-        const u = unitMap.get(uid);
-        if (!u) return;
-        const hiddenGradeIdx = getGradeIndex(SYSTEM_CONFIG.policy.hiddenGroupMinGrade || "히든");
-        const unitEssence = SYSTEM_CONFIG.essence.mapping[u.category];
-        const isHybridShare = unitEssence === '혼종' && ['코랄', '아이어', '제루스'].includes(targetEssence);
-        if (getGradeIndex(u.grade) >= hiddenGradeIdx && (unitEssence === targetEssence || isHybridShare)) {
-            list.push({ unit: u, basis: isHybridShare ? '혼종 · 3 번 조합' : '일반 · 1 번 조합', basisType: isHybridShare ? 'hybrid' : 'normal' });
-        }
-        u.parsedRecipe?.forEach(pr => pr.id && collectEssenceContributors(pr.id, targetEssence, list, visited));
-    }
-
-    function getEssenceContributors(uid, targetEssence) {
-        const list = [];
-        collectEssenceContributors(uid, targetEssence, list, new Set());
-        return list;
-    }
-
     function calculateBoardRequirements() {
         const cacheKey = `${makeMapSignature(activeUnits)}::${makeMapSignature(completedUnits)}`;
         if (_boardRequirementsCache.has(cacheKey)) return _boardRequirementsCache.get(cacheKey);
@@ -2466,7 +2446,7 @@
     function getUnitUnitboardEssenceText(item) {
         const parts = getUnitEssenceParts(item);
         if (!parts.length) return '';
-        return `<button type="button" class="uc-essence-summary" data-action="showEssenceBreakdown" data-uid="${item.id}" aria-label="${item.name} 정수정보 보기">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</button>`;
+        return `<div class="uc-essence-summary" aria-label="${item.name} 정수정보">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</div>`;
     }
 
     function buildCard(item, idx, prefix, showRecipe) {
@@ -2973,37 +2953,6 @@
         });
     }
 
-    function showEssenceBreakdown(id, essenceName, event) {
-        event?.stopPropagation();
-        const u = unitMap.get(id), tt = getEl('recipeTooltip');
-        if (!u || !tt) return;
-        const parts = getUnitEssenceParts(u);
-        if (!parts.length) return;
-        const selected = parts.some(([, name]) => name === essenceName) ? essenceName : parts[0][1];
-        const contributors = getEssenceContributors(id, selected);
-        const isClickInside = isInsideRecipeTooltip(event);
-        tt.innerHTML = `
-            <div class="tooltip-header tooltip-header-essence">
-                <span class="essence-tooltip-title">${escapeHtml(u.name)}</span>
-                <button type="button" class="tooltip-close-btn" data-action="hideRecipeTooltip" aria-label="정수 정보 닫기">×</button>
-            </div>
-            <div class="tooltip-essence-tabs">
-                ${parts.map(([partId, name, value]) => `<button type="button" class="uc-essence-chip uc-essence-${partId} tooltip-essence-tab${name === selected ? ' active' : ''}" data-action="showEssenceBreakdown" data-uid="${id}" data-essence="${name}" aria-pressed="${name === selected}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></button>`).join('')}
-            </div>
-            <div class="tooltip-body essence-breakdown-body">
-                ${contributors.length > 0 ? contributors.map(({ unit: cu, basis, basisType }) => `
-                    <div class="essence-unit-row">
-                        <span class="essence-unit-main">
-                            <span class="gtag grade-${cu.grade}">${escapeHtml(cu.grade)}</span>
-                            <span class="essence-unit-name" style="color:${SYSTEM_CONFIG.grades.colors[cu.grade] || 'var(--text)'};">${escapeHtml(cu.name)}</span>
-                        </span>
-                        <span class="essence-unit-basis${basisType === 'hybrid' ? ' is-hybrid' : ''}">${escapeHtml(basis)}</span>
-                    </div>`).join('') : '<div class="recipe-empty-msg">표시할 구성 유닛이 없습니다.</div>'}
-            </div>
-            <div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
-        showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
-    }
-
     function showExcludedTooltip(id, event) {
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
         
@@ -3138,7 +3087,6 @@
             case 'restorePausedUnit': e.stopPropagation(); restorePausedUnit(uid); break;
             case 'resetGroup': e.stopPropagation(); resetGroupCompleted(parseInt(actionEl.dataset.level, 10)); break;
             case 'showExcludedTooltip': e.stopPropagation(); showExcludedTooltip(uid, e); break;
-            case 'showEssenceBreakdown': e.stopPropagation(); showEssenceBreakdown(uid, actionEl.dataset.essence, e); break;
             case 'hideRecipeTooltip': e.stopPropagation(); hideRecipeTooltip(); break;
             case 'showRecipeTooltip': e.stopPropagation(); showRecipeTooltip(uid, e, actionEl.dataset.isHiddenboard === 'true'); break;
         }
