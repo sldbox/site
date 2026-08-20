@@ -306,6 +306,10 @@
         const color = SYSTEM_CONFIG.grades.colors[grade];
         return color ? ` style="color:${color};"` : '';
     };
+    const getUnitNameStyle = (unit) => {
+        const color = SYSTEM_CONFIG.grades.colors[unit?.grade];
+        return color ? `style="color:${color};"` : '';
+    };
     const calculateTotalCostScore = (u) => u?.parsedCost?.reduce((sum, pc) => sum + (pc.qty || 0), 0) || 0;
     const getNexusVersion = () => window.APP_VERSION || window.NEXUS_BUILD_VERSION || '';
     const NEXUS_TITLE_TEXT = Object.freeze({
@@ -990,9 +994,9 @@
         return deps;
     }
 
-    function clampCompletedUnits(calcResult) {
+    function clampCompletedUnits(calcResult, costboardTotals = null) {
         const { baseMap, baseAutoCostReq } = calcResult || calculateBoardRequirements();
-        const costboardTotals = _currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : calculateCostboardAtomTotals();
+        const resolvedCostboardTotals = costboardTotals || (_currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : calculateCostboardAtomTotals());
         let changed = false;
         for (let [uid, rawQty] of [...completedUnits.entries()]) {
             const compQty = parseInt(rawQty, 10);
@@ -1009,7 +1013,7 @@
                 if (compQty > maxAllow) { completedUnits.set(uid, maxAllow); changed = true; }
                 continue;
             }
-            let maxAllow = isUnitSlot ? (baseMap.get(uid) || 0) : (costboardTotals.targetMap[getCostboardAtomRawName(uid)] || baseAutoCostReq[uid] || 0);
+            let maxAllow = isUnitSlot ? (baseMap.get(uid) || 0) : (resolvedCostboardTotals.targetMap[getCostboardAtomRawName(uid)] || baseAutoCostReq[uid] || 0);
             if (compQty > maxAllow) {
                 if (maxAllow <= 0) completedUnits.delete(uid);
                 else completedUnits.set(uid, maxAllow);
@@ -1023,12 +1027,18 @@
         if (updateTimer) cancelAnimationFrame(updateTimer);
         updateTimer = requestAnimationFrame(() => {
             let calcResult = calculateBoardRequirements();
-            if (clampCompletedUnits(calcResult)) calcResult = calculateBoardRequirements();
+            let costboardTotals = calculateCostboardAtomTotals();
+            let boardTotals = _currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : costboardTotals;
+            if (clampCompletedUnits(calcResult, boardTotals)) {
+                calcResult = calculateBoardRequirements();
+                costboardTotals = calculateCostboardAtomTotals();
+                boardTotals = _currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : costboardTotals;
+            }
             _lastCalcResult = calcResult;
-            updateCostboard();
+            updateCostboard(costboardTotals);
             updateTabsUI();
             updateTabContentUI();
-            updateBoardPanel(calcResult);
+            updateBoardPanel(calcResult, boardTotals);
             updateCartUI();
             updatePresetBtns();
             saveNexusState();
@@ -1298,8 +1308,8 @@
         return result;
     }
 
-    function updateCostboard() {
-        const { remainingMap } = calculateCostboardAtomTotals();
+    function updateCostboard(costboardTotals = null) {
+        const { remainingMap } = costboardTotals || calculateCostboardAtomTotals();
 
         SYSTEM_CONFIG.costboardAtoms.forEach(atom => {
             const container = getEl(`vslot-${clean(atom)}`), valueEl = container?.querySelector('.costboard-val'), nameEl = container?.querySelector('.costboard-name');
@@ -1333,7 +1343,7 @@
         if (!boardEl) return;
         boardEl.classList.remove('invenboard-mode');
         _isInvenboardRendered = false;
-        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}" style="display:none;"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond" style="margin-left:4px; pointer-events:none;">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
                 <div class="hiddenboard-group-title" data-action="toggleGroup" data-grid-id="${pid}">
@@ -1355,7 +1365,7 @@
         const _exIds = new Set((SYSTEM_CONFIG.policy.hideCompletedExcludeGroups || []).map(t => titleToGridId[t]).filter(Boolean));
 
         returnHiddenboardControlsToHeader();
-        boardEl.innerHTML = `<div id="hiddenboard-empty-msg" class="empty-msg" style="display:none;"></div><div id="hiddenboard-slot-pool" style="display:none;">${unitSlots}</div>` + GROUP_DEFS.map(g => getGrp(g.id, g.pid, g.title, g.resetLevel, g.isCol, g.alwaysShow, g.alwaysOpen, g.resetLabel)).join('');
+        boardEl.innerHTML = `<div id="hiddenboard-empty-msg" class="empty-msg"></div><div id="hiddenboard-slot-pool" class="hiddenboard-slot-pool">${unitSlots}</div>` + GROUP_DEFS.map(g => getGrp(g.id, g.pid, g.title, g.resetLevel, g.isCol, g.alwaysShow, g.alwaysOpen, g.resetLabel)).join('');
         boardEl.dataset.excludeGridIds = JSON.stringify([..._exIds]);
         _hiddenboardSlotElsByUid.clear();
         boardEl.querySelectorAll('.hiddenboard-slot[data-uid]').forEach(el => _hiddenboardSlotElsByUid.set(el.dataset.uid, el));
@@ -1528,7 +1538,7 @@
             return `<div class="${slotClass} is-split-slot" data-slot-atoms="${slotIds}">${atomList.map(renderCostItem).join('<div class="invenboard-split-divider" aria-hidden="true"></div>')}</div>`;
         };
 
-        boardEl.innerHTML = `<div id="invenboardEmpty" class="empty-msg" style="display:none;"></div>
+        boardEl.innerHTML = `<div id="invenboardEmpty" class="empty-msg"></div>
             <div class="invenboard-grid" id="invenboardGrid">${getInvenboardSlotDefs().map(renderCostSlot).join('')}</div>`;
         _isInvenboardRendered = true;
     }
@@ -1839,7 +1849,7 @@
 
     function toggleInvenboardInputMode() {
         _invenboardInputMode = _invenboardInputMode === 'manual' ? 'auto' : 'manual';
-        updateInvenboard(_lastCalcResult || calculateBoardRequirements());
+        updateInvenboard();
     }
 
     function resetInvenboardAmounts() {
@@ -1889,12 +1899,12 @@
         commitNexusStateChange({ clearHighlight: true });
     }
 
-    function updateInvenboard(calcResult) {
+    function updateInvenboard(costboardTotals = null) {
         if (!_isInvenboardRendered) return;
         const boardEl = getEl('boardContent');
         if (!boardEl) return;
         boardEl.classList.add('invenboard-mode');
-        const totals = calculateInvenboardCostboardTotals();
+        const totals = costboardTotals || calculateInvenboardCostboardTotals();
         const isManual = _invenboardInputMode === 'manual';
 
         getInvenboardAtoms().forEach(atom => {
@@ -1962,7 +1972,7 @@
         }
     }
 
-    function updateBoardPanel(calcResult) {
+    function updateBoardPanel(calcResult, costboardTotals = null) {
         updateBoardHeader();
         let autoCompleted = false;
         if (_currentViewMode === 'hiddenboard') {
@@ -1980,9 +1990,10 @@
             if (!_isInvenboardRendered) renderInvenboard();
             if (completeInvenboardTargetsIfReady()) {
                 calcResult = calculateBoardRequirements();
+                costboardTotals = null;
                 autoCompleted = true;
             }
-            updateInvenboard(calcResult || _lastCalcResult || calculateBoardRequirements());
+            updateInvenboard(costboardTotals);
         }
         return autoCompleted;
     }
@@ -1990,7 +2001,7 @@
     function refreshPanelsAfterBoardAutoComplete() {
         const calcResult = calculateBoardRequirements();
         _lastCalcResult = calcResult;
-        updateCostboard();
+        updateCostboard(calculateCostboardAtomTotals());
         updateTabsUI();
         updateTabContentUI();
         updateCartUI();
@@ -2458,12 +2469,12 @@
             `${starBtnHtml(item.id)}` +
             `<div class="uc-head${showRecipe ? '' : ' uc-head-slim'}">` +
             `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isPrimaryUnit ? '<span class="badge-primary-unit">주력</span>' : ''}</div>` +
-            `<div class="uc-name-row" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</div>` +
+            `<div class="uc-name-row" ${getUnitNameStyle(item)}>${item.name}</div>` +
             `${essenceText ? `<div class="uc-essence-row">${essenceText}</div>` : ''}` +
             `${isRestricted ? `<span class="badge-excluded" data-action="showExcludedTooltip" data-uid="${item.id}">선택제한</span>` : ''}` +
             `</div>` +
             `${showRecipe ? `<div class="uc-recipe-area">${formatRecipe(item, 1, false)}</div>` : ''}` +
-            `${showRecipe && CLEAN_UNIT_CONDITIONS[item.id] ? `<div class="tsc-wrap" style="margin:4px 0 2px;"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[item.id]}</div></div>` : ''}` +
+            `${showRecipe && CLEAN_UNIT_CONDITIONS[item.id] ? `<div class="tsc-wrap tsc-wrap-card"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[item.id]}</div></div>` : ''}` +
             `${buildCardControl(item, prefix, isRestricted, isOT)}` +
             `</div></div>`;
     }
@@ -2798,7 +2809,7 @@
             cartListArea.innerHTML = actionHtml + items.map(item => {
                 const qty = activeUnits.get(item.id) || 1;
                 const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime active-qty">×${qty}</span>`;
-                return `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
+                return `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
             }).join('');
             return;
         }
@@ -2809,7 +2820,7 @@
                 cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">보류된 유닛이 없습니다.<br><span class="cart-empty-sub">선택 탭의 보류 버튼을 누르면 이곳으로 이동됩니다.</span></div>`;
                 return;
             }
-            cartListArea.innerHTML = actionHtml + getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removePausedUnit" data-uid="${item.id}">제거</button></div>`).join('');
+            cartListArea.innerHTML = actionHtml + getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" ${getUnitNameStyle(item)}>${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removePausedUnit" data-uid="${item.id}">제거</button></div>`).join('');
             return;
         }
 
@@ -2818,7 +2829,7 @@
             cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
             return;
         }
-        cartListArea.innerHTML = actionHtml + getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" style="color:${SYSTEM_CONFIG.grades.colors[item.grade]};">${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><button type="button" class="cart-done-restore-hint cart-restore-btn always-show" data-action="restoreUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeCompletedUnit" data-uid="${item.id}">제거</button></div>`).join('');
+        cartListArea.innerHTML = actionHtml + getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" ${getUnitNameStyle(item)}>${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><button type="button" class="cart-done-restore-hint cart-restore-btn always-show" data-action="restoreUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeCompletedUnit" data-uid="${item.id}">제거</button></div>`).join('');
     }
 
     function updateCartUI() {
@@ -2959,20 +2970,20 @@
         
         const parentUnits = []; unitMap.forEach(pu => pu.parsedRecipe?.some(pr => pr.id === id) && parentUnits.push(pu));
         tt.innerHTML = `
-            <div class="tooltip-header" style="display:flex;align-items:center;gap:6px;">
+            <div class="tooltip-header excluded-tooltip-header">
                 <span class="gtag grade-${u.grade}">${u.grade}</span>
-                <span style="color:${SYSTEM_CONFIG.grades.colors[u.grade] || '#fbbf24'};">${u.name}</span>
-                <span class="badge-excluded" style="pointer-events:none;margin-left:2px;">선택제한</span>
+                <span class="excluded-tooltip-name" style="--tooltip-grade-color:${SYSTEM_CONFIG.grades.colors[u.grade] || '#fbbf24'};">${u.name}</span>
+                <span class="badge-excluded excluded-tooltip-badge">선택제한</span>
             </div>
-            <div class="tooltip-body" style="font-size:0.82rem;color:var(--text);margin-top:8px;display:flex;flex-direction:column;gap:8px;">
-                <div style="color:var(--text-sub);line-height:1.5;">이 유닛은 아래 상위 유닛의 <b style="color:var(--text);">조합 재료로 자동 포함</b>되므로<br>직접 선택할 수 없습니다.</div>
+            <div class="tooltip-body excluded-tooltip-body">
+                <div class="excluded-tooltip-description">이 유닛은 아래 상위 유닛의 <strong>조합 재료로 자동 포함</strong>되므로<br>직접 선택할 수 없습니다.</div>
                 ${parentUnits.length > 0 ? `
-                <div style="display:flex;flex-direction:column;gap:4px;">
+                <div class="excluded-tooltip-parents">
                     ${parentUnits.map(pu => `
-                    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+                    <div class="excluded-tooltip-parent">
                         <span class="gtag grade-${pu.grade}">${pu.grade}</span>
-                        <span style="color:${SYSTEM_CONFIG.grades.colors[pu.grade] || 'var(--text)'};font-size:0.85rem;font-weight:900;">${pu.name}</span>
-                        <span style="color:var(--text-muted);font-size:0.75rem;margin-left:auto;">의 기본 재료</span>
+                        <span class="excluded-tooltip-parent-name" style="--tooltip-grade-color:${SYSTEM_CONFIG.grades.colors[pu.grade] || 'var(--text)'};">${pu.name}</span>
+                        <span class="excluded-tooltip-parent-reason">의 기본 재료</span>
                     </div>`).join('')}
                 </div>` : ''}
             </div>
