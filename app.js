@@ -110,11 +110,13 @@
     const ATOM_HASH = Object.fromEntries(SYSTEM_CONFIG.costboardAtoms.map(a => [clean(a), a]));
     const makeCleanSet = (list = []) => new Set(list.map(clean).filter(Boolean));
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
+    const CLEAN_TOOLS_SET_MAP = Object.fromEntries(Object.entries(CLEAN_TOOLS_MAP).map(([k, v]) => [k, new Set(v)]));
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
     const CLEAN_UNITBOARD_VISIBLE_EXCEPTION_IDS = makeCleanSet(SYSTEM_CONFIG.unitboard.visibleExceptionIds || []);
     const _behaviors = SYSTEM_CONFIG.unitBehaviors || {};
     const AUTO_COST_ENTRIES = Object.entries(_behaviors).filter(([, b]) => b.skillUseRender);
     const SPECIAL_RENDER_LIST = AUTO_COST_ENTRIES.map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
+    const SPECIAL_RENDER_BATCH_MAP = Object.fromEntries(SPECIAL_RENDER_LIST.map(entry => [entry.id, entry.batch]));
     const AUTO_COST_SLOT_SET = new Set(AUTO_COST_ENTRIES.map(([id]) => clean(id)));
     const AUTO_COST_SLOT_RAWS = AUTO_COST_ENTRIES.map(([id]) => id);
     const AUTO_COST_RAW_MAP = Object.fromEntries(AUTO_COST_SLOT_RAWS.map(id => [clean(id), id]));
@@ -127,6 +129,9 @@
     ];
     const INVENBOARD_EXPANSION_RAW_MAP = Object.fromEntries(INVENBOARD_EXPANSION_ATOMS.map(atom => [clean(atom), atom]));
     const INVENBOARD_EXPANSION_ATOM_ID_SET = new Set(INVENBOARD_EXPANSION_ATOMS.map(clean));
+    const INVENBOARD_CORE_ATOMS = Object.freeze([...SYSTEM_CONFIG.costboardAtoms]);
+    const INVENBOARD_EXPANDED_ATOMS = Object.freeze([...INVENBOARD_CORE_ATOMS, ...INVENBOARD_EXPANSION_ATOMS]);
+    const INVENBOARD_BOTTOM_SLOT_IDS = new Set(["땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타", "메시브"].map(clean));
     const COSTBOARD_ATOM_ID_SET = new Set(SYSTEM_CONFIG.costboardAtoms.map(atom => clean(atom)));
     const INVENBOARD_SLOT_SET = new Set([...COSTBOARD_ATOM_ID_SET, ...AUTO_COST_SLOT_SET]);
     const ALL_INVENBOARD_SLOT_SET = new Set([...INVENBOARD_SLOT_SET, ...INVENBOARD_EXPANSION_ATOM_ID_SET]);
@@ -192,12 +197,35 @@
     ];
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
-    const unitMap = new Map(), activeUnits = new Map(), pausedUnits = new Map(), completedUnits = new Map(), depCache = new Map();
-    const completedTargets = new Map(), _invenboardAutoCompletedUnits = new Map(), _invenboardManualInputs = new Map(), _unitNativeLevels = new Map(), _unitRestoreLevels = new Map();
+    class CalculationStateMap extends Map {
+        touch() { this._revision = (this._revision || 0) + 1; }
+        set(key, value) {
+            const changed = !this.has(key) || this.get(key) !== value;
+            const result = super.set(key, value);
+            if (changed) this.touch();
+            return result;
+        }
+        delete(key) {
+            const changed = super.delete(key);
+            if (changed) this.touch();
+            return changed;
+        }
+        clear() {
+            if (this.size > 0) {
+                super.clear();
+                this.touch();
+            }
+        }
+    }
+    const unitMap = new Map(), activeUnits = new CalculationStateMap(), pausedUnits = new Map(), completedUnits = new CalculationStateMap(), depCache = new Map();
+    const completedTargets = new CalculationStateMap(), _invenboardAutoCompletedUnits = new Map(), _invenboardManualInputs = new Map(), _unitNativeLevels = new Map(), _unitRestoreLevels = new Map();
     const _depVisiting = new Set();
     const GRADE_INDEX_MAP = new Map(SYSTEM_CONFIG.grades.order.map((grade, index) => [grade, index]));
     const _boardRequirementsCache = new Map(), _costboardTotalsCache = new Map(), _directInvenboardAtomNeedCache = new Map(), _unitEssencePartsCache = new Map();
-    const _hiddenboardSlotElsByUid = new Map(), _unitCardElsByUid = new Map(), _favoriteBtnElsByUid = new Map(), _dirtyUnitCardIds = new Set();
+    const _hiddenboardSlotElsByUid = new Map(), _hiddenboardSlotPartsByUid = new Map(), _unitCardElsByUid = new Map(), _favoriteBtnElsByUid = new Map(), _dirtyUnitCardIds = new Set();
+    const _invenboardItemElsById = new Map(), _invenboardSlotEls = [];
+    const _mapSignatureCache = new WeakMap();
+    let _trackedTargetsCache = null, _boardDependencyDepthCache = null, _hiddenboardLayoutCacheKey = null;
     let _unitboardDomIndexed = false, _lastUnitboardQtyByUid = new Map();
     const PRESET_COLOR_MAP = {
         '빨강':'red', '주황':'orange', '노랑':'yellow', '연두':'lime',
@@ -272,6 +300,7 @@
     let _isSwiping = false;
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
+    let _lastPersistedStateJson = null;
 
     /* DOM·등급·검색 공통 유틸 */
     const getEl = (id) => document.getElementById(id);
@@ -280,15 +309,18 @@
 
     const triggerHaptic = () => navigator.vibrate?.(APP_INTERNAL.hapticDuration);
     const virtualUnitIds = new Set(AUTO_COMPLETE_IDS);
-    const isToolRequirement = (parent, child) => CLEAN_TOOLS_MAP[parent]?.includes(child);
+    const isToolRequirement = (parent, child) => CLEAN_TOOLS_SET_MAP[parent]?.has(child);
     const getToolNeed = (parent) => CLEAN_TOOLS_MAP[parent] || [];
     const isRestrictedUnit = (id) => CLEAN_RESTRICTED_IDS.has(id);
-    const getGradeIndex = (grade) => GRADE_INDEX_MAP.has(grade) ? GRADE_INDEX_MAP.get(grade) : -99;
-    const getUnitboardMinGradeIndex = () => getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
+    const getGradeIndex = (grade) => GRADE_INDEX_MAP.get(grade) ?? -99;
+    const HIDDEN_GROUP_MIN_GRADE_INDEX = getGradeIndex(SYSTEM_CONFIG.policy.hiddenGroupMinGrade || '히든');
+    const UNITBOARD_MIN_GRADE_INDEX = getGradeIndex(SYSTEM_CONFIG.search.minGradeForSearch || "레전드");
+    const ONE_TIME_MIN_GRADE_INDEX = getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든");
+    const getUnitboardMinGradeIndex = () => UNITBOARD_MIN_GRADE_INDEX;
     const isUnitboardVisibleException = (id) => CLEAN_UNITBOARD_VISIBLE_EXCEPTION_IDS.has(clean(id));
     const isUnitboardVisibleUnit = (u) => !!u && (getGradeIndex(u.grade) >= getUnitboardMinGradeIndex() || isUnitboardVisibleException(u.id));
     const isSelectableUnitboardUnit = (u) => isUnitboardVisibleUnit(u) && !isRestrictedUnit(u.id);
-    const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
+    const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= ONE_TIME_MIN_GRADE_INDEX);
     const isInvenboardInstantCompleteUnit = (uid) => CLEAN_INVENBOARD_INSTANT_COMPLETE.has(clean(uid));
     const getUnitId = (rawName) => clean(rawName);
     const getCostboardAtomRawName = (uid) => ATOM_HASH[uid] || INVENBOARD_EXPANSION_RAW_MAP[uid] || AUTO_COST_RAW_MAP[uid] || uid;
@@ -433,11 +465,14 @@
     const getUnitsFromIds = (ids) => Array.from(ids).map(uid => unitMap.get(uid)).filter(Boolean);
     const getUnitsFromMap = (map) => getUnitsFromIds(map.keys()).sort(compareUnitForDisplay);
     const getInvenboardTrackedTargets = (source = activeUnits) => {
+        const revision = `${activeUnits._revision || 0}:${completedTargets._revision || 0}`;
+        if (source === activeUnits && _trackedTargetsCache?.revision === revision) return _trackedTargetsCache.map;
         const tracked = new Map(source instanceof Map ? source : []);
         if (source === activeUnits) completedTargets.forEach((qty, uid) => {
             const amount = Math.max(0, parseInt(qty, 10) || 0);
             if (amount > 0) tracked.set(uid, (tracked.get(uid) || 0) + amount);
         });
+        if (source === activeUnits) _trackedTargetsCache = { revision, map: tracked };
         return tracked;
     };
     const normalizeSavedId = (id) => typeof id === 'string' ? clean(id) : '';
@@ -454,12 +489,20 @@
     };
 
     /* 상태 정리·조합식 파싱·데이터 캐시 */
-    const makeMapSignature = (map) => [...(map instanceof Map ? map : new Map(map || [])).entries()]
-        .map(([uid, qty]) => [uid, Math.max(0, parseInt(qty, 10) || 0)]).filter(([, qty]) => qty > 0)
-        .sort(([a], [b]) => String(a).localeCompare(String(b))).map(([uid, qty]) => `${uid}:${qty}`).join('|');
+    const makeMapSignature = (map) => {
+        if (map instanceof CalculationStateMap) {
+            const cached = _mapSignatureCache.get(map);
+            if (cached?.revision === (map._revision || 0)) return cached.signature;
+        }
+        const source = map instanceof Map ? map : new Map(map || []);
+        const signature = [...source.entries()]
+            .map(([uid, qty]) => [uid, Math.max(0, parseInt(qty, 10) || 0)]).filter(([, qty]) => qty > 0)
+            .sort(([a], [b]) => String(a).localeCompare(String(b))).map(([uid, qty]) => `${uid}:${qty}`).join('|');
+        if (map instanceof CalculationStateMap) _mapSignatureCache.set(map, { revision: map._revision || 0, signature });
+        return signature;
+    };
     const makeObjectSignature = (obj, keys) => (keys || Object.keys(obj || {})).map(key => `${key}:${Math.max(0, parseInt(obj?.[key], 10) || 0)}`).join('|');
     const limitCacheSize = (cache, maxSize) => { while (cache.size > maxSize) cache.delete(cache.keys().next().value); };
-    const cloneTotals = (totals) => ({ targetMap: { ...totals.targetMap }, completedMap: { ...totals.completedMap }, remainingMap: { ...totals.remainingMap } });
 
     function writeRuntimeStateEntry(map, rawUid, rawQty, { allowAutoCost = false, keepCompletedQty = false } = {}) {
         const uid = normalizeSavedId(rawUid);
@@ -497,7 +540,7 @@
             const completedQty = Math.max(0, parseInt(completedUnits.get(uid), 10) || 0);
             const nextQty = Math.min(trackedQty, completedQty);
             if (nextQty > 0 && unitMap.has(uid) && !activeUnits.has(uid) && !completedTargets.has(uid)) {
-                _invenboardAutoCompletedUnits.set(uid, nextQty);
+                if (rawQty !== nextQty) _invenboardAutoCompletedUnits.set(uid, nextQty);
             } else {
                 _invenboardAutoCompletedUnits.delete(uid);
             }
@@ -507,15 +550,16 @@
     function pruneInvenboardManualInputs() {
         let changed = false;
         for (const [rawId, rawQty] of [..._invenboardManualInputs.entries()]) {
-            _invenboardManualInputs.delete(rawId);
             const id = normalizeSavedId(rawId);
             const qty = Math.max(0, parseInt(rawQty, 10) || 0);
+            if (id === rawId && qty === rawQty && id && ALL_INVENBOARD_SLOT_SET.has(id) && qty > 0) continue;
+            _invenboardManualInputs.delete(rawId);
             if (!id || !ALL_INVENBOARD_SLOT_SET.has(id) || qty <= 0) {
                 changed = true;
                 continue;
             }
             _invenboardManualInputs.set(id, qty);
-            if (id !== rawId || qty !== rawQty) changed = true;
+            changed = true;
         }
         return changed;
     }
@@ -545,8 +589,16 @@
     function sanitizeRuntimeState() {
         const normalizeMap = (map, options = {}) => {
             for (const [rawUid, rawQty] of [...map.entries()]) {
+                const uid = normalizeSavedId(rawUid);
+                const qty = parseInt(rawQty, 10);
+                let normalizedQty = 0;
+                if (uid && Number.isFinite(qty) && qty > 0) {
+                    if (unitMap.has(uid)) normalizedQty = options.keepCompletedQty ? qty : normalizeUnitQty(uid, qty);
+                    else if (options.allowAutoCost && INVENBOARD_SLOT_SET.has(uid)) normalizedQty = qty;
+                }
+                if (uid === rawUid && normalizedQty > 0 && map.get(rawUid) === normalizedQty) continue;
                 map.delete(rawUid);
-                writeRuntimeStateEntry(map, rawUid, rawQty, options);
+                if (normalizedQty > 0) map.set(uid, normalizedQty);
             }
         };
         normalizeMap(activeUnits);
@@ -703,7 +755,10 @@
     function saveNexusState() {
         try {
             sanitizeRuntimeState();
-            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, JSON.stringify(getPersistedStatePayload()));
+            const serialized = JSON.stringify(getPersistedStatePayload());
+            if (serialized === _lastPersistedStateJson) return;
+            localStorage.setItem(SYSTEM_CONFIG.storageKeys.saveData, serialized);
+            _lastPersistedStateJson = serialized;
         } catch(e) {}
     }
 
@@ -869,8 +924,7 @@
         if (visited.has(uid)) return;
         visited.add(uid);
         const u = unitMap.get(uid); if (!u) return;
-        const hiddenGradeIdx = getGradeIndex(SYSTEM_CONFIG.policy.hiddenGroupMinGrade || "히든");
-        if (getGradeIndex(u.grade) >= hiddenGradeIdx) {
+        if (getGradeIndex(u.grade) >= HIDDEN_GROUP_MIN_GRADE_INDEX) {
             const tEssence = SYSTEM_CONFIG.essence.mapping[u.category];
             if (tEssence && counts[tEssence] !== undefined) counts[tEssence]++;
         }
@@ -1275,10 +1329,11 @@
     function calculateCostboardAtomTotals(completedSource = completedUnits, atomList = SYSTEM_CONFIG.costboardAtoms, options = {}) {
         const costboardAtoms = (Array.isArray(atomList) && atomList.length ? atomList : SYSTEM_CONFIG.costboardAtoms).filter(Boolean);
         const activeSource = options.activeSource instanceof Map ? options.activeSource : activeUnits;
-        const cacheKey = [costboardAtoms.join(''), options.preferRecipeAtoms ? 1 : 0, options.targetMap ? makeObjectSignature(options.targetMap, costboardAtoms) : makeMapSignature(activeSource), makeMapSignature(completedSource)].join('::');
-        if (_costboardTotalsCache.has(cacheKey)) return cloneTotals(_costboardTotalsCache.get(cacheKey));
+        const cacheKey = [costboardAtoms.join('\u001f'), options.preferRecipeAtoms ? 1 : 0, options.targetMap ? makeObjectSignature(options.targetMap, costboardAtoms) : makeMapSignature(activeSource), makeMapSignature(completedSource)].join('::');
+        if (_costboardTotalsCache.has(cacheKey)) return _costboardTotalsCache.get(cacheKey);
 
         const costboardAtomSet = new Set(costboardAtoms), targetMap = {}, completedMap = {}, remainingMap = {};
+        const traversalPath = new Set();
         costboardAtoms.forEach(atom => { targetMap[atom] = completedMap[atom] = remainingMap[atom] = 0; });
         const addCostboardAtom = (rawName, qty, map) => {
             const normalizedRawName = getCostboardAtomRawName(clean(rawName));
@@ -1290,21 +1345,29 @@
             if (qty <= 0 || path.has(uid)) return;
             path.add(uid);
             try {
-                if (addCostboardAtom(getCostboardAtomRawName(uid), qty, map)) return;
+                if (addCostboardAtom(uid, qty, map)) return;
                 const u = unitMap.get(uid); if (!u) return;
                 const flattenRecipe = () => u.parsedRecipe?.forEach(child => child.id && (isToolRequirement(uid, child.id) ? flattenUnitToAtoms(child.id, 1, map, path) : flattenUnitToAtoms(child.id, child.qty * qty, map, path)));
-                const flattenCost = () => { u.parsedCost?.forEach(pc => !addCostboardAtom(getCostboardAtomRawName(pc.key), pc.qty * qty, map) && flattenUnitToAtoms(pc.key, pc.qty * qty, map, path)); getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, 1, map, path)); };
+                const flattenCost = () => { u.parsedCost?.forEach(pc => !addCostboardAtom(pc.key, pc.qty * qty, map) && flattenUnitToAtoms(pc.key, pc.qty * qty, map, path)); getToolNeed(uid).forEach(toolId => flattenUnitToAtoms(toolId, 1, map, path)); };
                 if (options.preferRecipeAtoms) { if (u.parsedRecipe?.length) return flattenRecipe(); flattenCost(); }
                 else { if (u.parsedCost?.length) return flattenCost(); flattenRecipe(); }
             } finally { path.delete(uid); }
         };
 
+        const flattenSource = (source, map) => {
+            const sourceMap = source instanceof Map ? source : new Map(source || []);
+            sourceMap.forEach((count, uid) => {
+                if (count <= 0) return;
+                traversalPath.clear();
+                flattenUnitToAtoms(uid, count, map, traversalPath);
+            });
+        };
         if (options.targetMap) costboardAtoms.forEach(atom => targetMap[atom] = Math.max(0, parseInt(options.targetMap[atom], 10) || 0));
-        else activeSource.forEach((count, uid) => count > 0 && flattenUnitToAtoms(uid, count, targetMap, new Set()));
-        (completedSource instanceof Map ? completedSource : new Map(completedSource || [])).forEach((count, uid) => count > 0 && flattenUnitToAtoms(uid, count, completedMap, new Set()));
+        else flattenSource(activeSource, targetMap);
+        flattenSource(completedSource, completedMap);
         costboardAtoms.forEach(atom => remainingMap[atom] = Math.max(0, (targetMap[atom] || 0) - (completedMap[atom] || 0)));
         const result = { targetMap, completedMap, remainingMap };
-        _costboardTotalsCache.set(cacheKey, cloneTotals(result)); limitCacheSize(_costboardTotalsCache, 24);
+        _costboardTotalsCache.set(cacheKey, result); limitCacheSize(_costboardTotalsCache, 24);
         return result;
     }
 
@@ -1343,6 +1406,7 @@
         if (!boardEl) return;
         boardEl.classList.remove('invenboard-mode');
         _isInvenboardRendered = false;
+        _hiddenboardLayoutCacheKey = null;
         const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
@@ -1368,7 +1432,17 @@
         boardEl.innerHTML = `<div id="hiddenboard-empty-msg" class="empty-msg"></div><div id="hiddenboard-slot-pool" class="hiddenboard-slot-pool">${unitSlots}</div>` + GROUP_DEFS.map(g => getGrp(g.id, g.pid, g.title, g.resetLevel, g.isCol, g.alwaysShow, g.alwaysOpen, g.resetLabel)).join('');
         boardEl.dataset.excludeGridIds = JSON.stringify([..._exIds]);
         _hiddenboardSlotElsByUid.clear();
-        boardEl.querySelectorAll('.hiddenboard-slot[data-uid]').forEach(el => _hiddenboardSlotElsByUid.set(el.dataset.uid, el));
+        _hiddenboardSlotPartsByUid.clear();
+        boardEl.querySelectorAll('.hiddenboard-slot[data-uid]').forEach(el => {
+            const uid = el.dataset.uid;
+            _hiddenboardSlotElsByUid.set(uid, el);
+            _hiddenboardSlotPartsByUid.set(uid, {
+                slot: el,
+                reason: el.querySelector('.d-reason-wrap'),
+                condition: el.querySelector('.d-cond-inline'),
+                craft: el.querySelector('.craft-wrap')
+            });
+        });
         _isHiddenboardRendered = true;
         placeHiddenboardControls();
     }
@@ -1411,12 +1485,12 @@
     }
 
     function getInvenboardAtoms() {
-        return _isInvenboardSlotsExpanded ? [...SYSTEM_CONFIG.costboardAtoms, ...INVENBOARD_EXPANSION_ATOMS] : SYSTEM_CONFIG.costboardAtoms;
+        return _isInvenboardSlotsExpanded ? INVENBOARD_EXPANDED_ATOMS : INVENBOARD_CORE_ATOMS;
     }
 
     function getInvenboardSlotDefs() {
         if (!_isInvenboardSlotsExpanded) return COSTBOARD_SLOT_DEFS;
-        const bottomSlotIds = new Set(["땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타", "메시브"].map(clean));
+        const bottomSlotIds = INVENBOARD_BOTTOM_SLOT_IDS;
         const isBottomSlot = (slot) => (slot.atoms || []).some(atom => bottomSlotIds.has(clean(atom)));
         const upperSlots = COSTBOARD_SLOT_DEFS.filter(slot => !isBottomSlot(slot));
         const bottomSlots = COSTBOARD_SLOT_DEFS.filter(isBottomSlot);
@@ -1429,8 +1503,7 @@
 
     function getInvenboardInputStep(id) {
         const cleanId = normalizeSavedId(id);
-        const special = SPECIAL_RENDER_LIST.find(entry => entry.id === cleanId);
-        return Math.max(1, parseInt(special?.batch, 10) || 1);
+        return Math.max(1, parseInt(SPECIAL_RENDER_BATCH_MAP[cleanId], 10) || 1);
     }
 
     function normalizeInvenboardAmount(qty, maxQty) {
@@ -1540,6 +1613,10 @@
 
         boardEl.innerHTML = `<div id="invenboardEmpty" class="empty-msg"></div>
             <div class="invenboard-grid" id="invenboardGrid">${getInvenboardSlotDefs().map(renderCostSlot).join('')}</div>`;
+        _invenboardItemElsById.clear();
+        _invenboardSlotEls.length = 0;
+        boardEl.querySelectorAll('.invenboard-item[data-inven-id]').forEach(item => _invenboardItemElsById.set(item.dataset.invenId, item));
+        boardEl.querySelectorAll('.invenboard-slot').forEach(slot => _invenboardSlotEls.push(slot));
         _isInvenboardRendered = true;
     }
 
@@ -1593,6 +1670,8 @@
     }
 
     function getBoardDependencyDepths(source = activeUnits) {
+        const revision = source === activeUnits ? (activeUnits._revision || 0) : null;
+        if (source === activeUnits && _boardDependencyDepthCache?.revision === revision) return _boardDependencyDepthCache.depths;
         const depths = new Map();
         const visit = (uid, depth, path = new Set()) => {
             if (!uid || path.has(uid)) return;
@@ -1605,6 +1684,7 @@
             path.delete(uid);
         };
         (source instanceof Map ? source : activeUnits).forEach((_, uid) => visit(uid, 0));
+        if (source === activeUnits) _boardDependencyDepthCache = { revision, depths };
         return depths;
     }
 
@@ -1917,7 +1997,7 @@
             const ownedQty = Math.max(directOwnedQty, Math.max(0, parseInt(totals.completedMap[atom], 10) || 0));
             const isOverLimit = isManual && needQty > 0 && shownInputQty > needQty;
             const remainQty = Math.max(0, needQty - Math.min(ownedQty, needQty));
-            const item = getEl(`invenboard-${id}`);
+            const item = _invenboardItemElsById.get(id);
             if (!item) return;
             item.classList.toggle('active', needQty > 0 || ownedQty > 0);
             item.classList.toggle('is-disabled', needQty <= 0 && ownedQty <= 0);
@@ -1950,7 +2030,7 @@
             if (plus10) plus10.disabled = needQty <= 0 || remainQty < 10;
         });
 
-        document.querySelectorAll('.invenboard-slot').forEach(slot => {
+        _invenboardSlotEls.forEach(slot => {
             const hasActive = !!slot.querySelector('.invenboard-item.active');
             slot.classList.toggle('active', hasActive);
             slot.classList.toggle('has-active', hasActive);
@@ -2103,6 +2183,13 @@
             'grid-special': 4,
             'grid-target': 5
         };
+        const layoutKey = [
+            makeMapSignature(activeUnits),
+            makeMapSignature(completedTargets),
+            makeMapSignature(completedUnits),
+            _hideCompleted ? 1 : 0
+        ].join('::');
+        const layoutChanged = _hiddenboardLayoutCacheKey !== layoutKey;
         _unitRestoreLevels.clear();
 
         const exactDepths = new Map();
@@ -2148,12 +2235,16 @@
             queue = nextQueue;
         }
 
-        _hiddenboardSlotElsByUid.forEach(el => {
-            el.style.display = 'none'; el.classList.remove('is-visible','has-target','is-completed','highlighted-tree');
-            if (pool && el.parentElement !== pool) pool.appendChild(el);
-        });
-        getEl('boardContent')?.querySelectorAll('.hiddenboard-page').forEach(el => el.remove());
-        const gridFragments = new Map(Object.values(grids).filter(Boolean).map(grid => [grid, document.createDocumentFragment()]));
+        if (layoutChanged) {
+            _hiddenboardSlotElsByUid.forEach(el => {
+                el.style.display = 'none'; el.classList.remove('is-visible','has-target','is-completed','highlighted-tree');
+                if (pool && el.parentElement !== pool) pool.appendChild(el);
+            });
+            getEl('boardContent')?.querySelectorAll('.hiddenboard-page').forEach(el => el.remove());
+        }
+        const gridFragments = layoutChanged
+            ? new Map(Object.values(grids).filter(Boolean).map(grid => [grid, document.createDocumentFragment()]))
+            : null;
         const reasonEntriesCache = new Map();
         const getCachedReasonEntries = (slotId, rMap) => {
             if (!reasonEntriesCache.has(slotId)) reasonEntriesCache.set(slotId, getReasonDisplayEntries(slotId, rMap));
@@ -2163,7 +2254,8 @@
         const visibleMaterialIds = new Set([...baseMap.keys(), ...reqMap.keys()]);
 
         const processSlot = (id) => {
-            const slotEl = _hiddenboardSlotElsByUid.get(id); if (!slotEl) return null;
+            const slotParts = _hiddenboardSlotPartsByUid.get(id); if (!slotParts) return null;
+            const slotEl = slotParts.slot;
             
             const isAutoCost = AUTO_COST_SLOT_SET.has(id);
             if (isAutoCost) return null;
@@ -2183,7 +2275,7 @@
 
             if (!baseNeeded && !isTarget && !isCompletedTarget) return null;
 
-            const rCon = slotEl.querySelector(`#d-reason-${id}`);
+            const rCon = slotParts.reason;
             if (rCon) {
                 let rMap = reasonMap.get(id);
                 if (rMap && rMap.size > 0 && needed > 0) {
@@ -2217,7 +2309,7 @@
                 } else { rCon.style.display='none'; rCon.classList.remove('is-target-only'); rCon.innerHTML=''; }
             }
 
-            const cEl = slotEl.querySelector(`#d-cond-${id}`);
+            const cEl = slotParts.condition;
             if (cEl) {
                 let rMap = reasonMap.get(id);
                 let condMap = new Map();
@@ -2250,7 +2342,7 @@
                 }
             }
 
-            const cWrap = slotEl.querySelector(`#craft-wrap-${id}`);
+            const cWrap = slotParts.craft;
             const isCompleted = needed === 0;
             slotEl.classList.toggle('has-target', !isCompleted);
             slotEl.classList.toggle('is-completed', isCompleted);
@@ -2303,7 +2395,7 @@
                     slotEl.classList.remove('is-visible');
                 }
                 slotEl.style.display = hideT ? 'none' : 'flex';
-                (gridFragments.get(tGrid) || tGrid).appendChild(slotEl);
+                if (layoutChanged) gridFragments.get(tGrid).appendChild(slotEl);
             }
 
             
@@ -2318,28 +2410,31 @@
             .sort(compareUnitByHiddenboardPriority)
             .forEach(u => processSlot(u.id));
 
-        gridFragments.forEach((frag, grid) => { if (frag.childNodes.length > 0) grid.appendChild(frag); });
+        if (layoutChanged) {
+            gridFragments.forEach((frag, grid) => { if (frag.childNodes.length > 0) grid.appendChild(frag); });
 
-        [grids.target, grids.special, grids.upperHidden, grids.basicHidden].forEach(grid => {
-            if (!grid) return;
-            const children = Array.from(grid.children);
-            children.sort((a, b) => {
-                const uidA = a.dataset.uid || a.id.replace('d-slot-wrap-','');
-                const uidB = b.dataset.uid || b.id.replace('d-slot-wrap-','');
-                const uA = unitMap.get(uidA);
-                const uB = unitMap.get(uidB);
-                if (grid === grids.upperHidden) {
-                    const levelDiff = (_unitNativeLevels.get(uidB) || 1) - (_unitNativeLevels.get(uidA) || 1);
-                    if (levelDiff !== 0) return levelDiff;
-                }
-                return getGradeIndex(uB?.grade) - getGradeIndex(uA?.grade) ||
-                       (SYSTEM_CONFIG.sorting.order[uB?.name]||0) - (SYSTEM_CONFIG.sorting.order[uA?.name]||0) ||
-                       (uA?.name || uidA).localeCompare(uB?.name || uidB);
+            [grids.target, grids.special, grids.upperHidden, grids.basicHidden].forEach(grid => {
+                if (!grid) return;
+                const children = Array.from(grid.children);
+                children.sort((a, b) => {
+                    const uidA = a.dataset.uid || a.id.replace('d-slot-wrap-','');
+                    const uidB = b.dataset.uid || b.id.replace('d-slot-wrap-','');
+                    const uA = unitMap.get(uidA);
+                    const uB = unitMap.get(uidB);
+                    if (grid === grids.upperHidden) {
+                        const levelDiff = (_unitNativeLevels.get(uidB) || 1) - (_unitNativeLevels.get(uidA) || 1);
+                        if (levelDiff !== 0) return levelDiff;
+                    }
+                    return getGradeIndex(uB?.grade) - getGradeIndex(uA?.grade) ||
+                           (SYSTEM_CONFIG.sorting.order[uB?.name]||0) - (SYSTEM_CONFIG.sorting.order[uA?.name]||0) ||
+                           (uA?.name || uidA).localeCompare(uB?.name || uidB);
+                });
+                children.forEach(el => grid.appendChild(el));
             });
-            children.forEach(el => grid.appendChild(el));
-        });
 
-        Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9));
+            Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9));
+            _hiddenboardLayoutCacheKey = layoutKey;
+        }
 
         Object.values(grids).forEach(g => {
             if (!g) return;
