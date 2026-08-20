@@ -71,7 +71,7 @@
         storageKeys: window.NEXUS_STORAGE_KEYS || {
             saveData: "nexusSaveData",
             favorites: "nexusFavorites",
-            fontScale: "nexusFontScale"
+            fontScale: "nexusFontScaleV2"
         },
         unitboard: {
             visibleExceptionIds: []
@@ -2773,12 +2773,11 @@
         if (!summaryEl) return;
         const totals = getCartEssenceTotals(getCurrentCartUnitMap());
         const parts = [
-            ['coral', '코랄정수', totals.coral],
-            ['aiur', '아이어정수', totals.aiur],
-            ['zerus', '제루스정수', totals.zerus]
+            ['coral', '코랄', totals.coral],
+            ['aiur', '아이어', totals.aiur],
+            ['zerus', '제루스', totals.zerus]
         ];
-        const tabLabel = getCartTabDefinitions().find(tab => tab.key === _cartTab)?.label || '선택';
-        summaryEl.innerHTML = `<div class="cart-essence-title">${tabLabel} 정수 합계</div><div class="cart-essence-chips">${parts.map(([id, name, value]) => `<span class="cart-essence-chip cart-essence-${id}"><span class="cart-essence-label">${name}</span><span class="cart-essence-value">${value}</span></span>`).join('')}</div>`;
+        summaryEl.innerHTML = `<div class="cart-essence-title"><span class="cart-essence-total-label">정수 합계</span></div><div class="cart-essence-chips">${parts.map(([id, name, value]) => `<span class="cart-essence-chip cart-essence-${id}"><span class="cart-essence-label">${name}</span><span class="cart-essence-value">${value}</span></span>`).join('')}</div>`;
     }
 
     function renderCartPanel(tabBarId, listAreaId, prefix) {
