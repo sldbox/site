@@ -22,7 +22,7 @@
             colors: {
                 "매직": "var(--grade-magic)", "레어": "var(--grade-rare)", "에픽": "var(--grade-epic)", "유니크": "var(--grade-unique)",
                 "헬": "var(--grade-hell)", "레전드": "var(--grade-legend)", "히든": "var(--grade-hidden)", "고유히든": "var(--grade-unique-hidden)", "슈퍼히든": "var(--grade-super)",
-                "스킬사용": "#fff"
+                "스킬사용": "var(--grade-hell)"
             }
         },
         tabs: [
@@ -260,6 +260,7 @@
 
     /* 선택·완료·화면 상태 */
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
+    let _unitboardCollection = null;
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
     let _invenboardInputMode = 'auto', _isInvenboardSlotsExpanded = false;
     let _cartTab = 'active', _isTabContentInitialized = false, _isHiddenboardRendered = false, _isInvenboardRendered = false;
@@ -343,7 +344,6 @@
         const meta = getNexusTitleViewMeta(mode);
         const text = meta.label ? `${meta.label} ${meta.value}` : meta.value;
         title.dataset.titleView = mode;
-        title.classList.toggle('is-creator-view', mode === 'creator');
         title.classList.toggle('is-version-view', mode === 'version');
         title.innerHTML = buildNexusTitleHtml(mode, meta);
         title.setAttribute('aria-label', `${text} · 앱 버전 보기`);
@@ -587,7 +587,7 @@
                 const unitId = getUnitId(m[1].trim()), u = unitMap.get(unitId);
                 let condHtml = '';
                 if (CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    condHtml = `<span class="badge-special-cond recipe-special-cond">특수조건</span>`;
+                    condHtml = `<span class="badge-special-cond">특수조건</span>`;
                     if (!foundSpecialIds.includes(unitId)) foundSpecialIds.push(unitId);
                 } else if (m[2]) condHtml = `<span class="badge-cond">${m[2].replace(/,/g, ' ')}</span>`;
                 const isTool = isToolRequirement(item.id, unitId);
@@ -601,7 +601,7 @@
             }
             return `<div class="recipe-token-muted">${p}</div>`;
         }).join('');
-        let specialCondInlineHtml = (!showSep && foundSpecialIds.length > 0) ? `<div class="tsc-wrap tsc-wrap-inline">${foundSpecialIds.map(uid => `<div class="tsc-item tsc-item-inline">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
+        let specialCondInlineHtml = (!showSep && foundSpecialIds.length > 0) ? `<div class="tsc-wrap">${foundSpecialIds.map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
         return `<div class="${showSep ? 'recipe-flex-wrap' : 'recipe-vertical'}">${partsHtml}</div>${specialCondInlineHtml}`;
     }
 
@@ -1343,17 +1343,17 @@
         if (!boardEl) return;
         boardEl.classList.remove('invenboard-mode');
         _isInvenboardRendered = false;
-        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
                 <div class="hiddenboard-group-title" data-action="toggleGroup" data-grid-id="${pid}">
                     <div class="grp-title-main">
                         <span class="grp-toggle-icon" style="transform:${isCol?'rotate(-90deg)':'rotate(0deg)'};">▼</span>
-                        <span class="grp-title-text">${title}</span>
+                        <span>${title}</span>
                         ${resetLevel > 0 ? `<span class="grp-count-badge" id="grp-count-${pid}"></span>` : ''}
                     </div>
                     <div class="grp-title-actions" id="${id}-actions">
-                        ${resetLevel > 0 ? `<button type="button" class="btn-text-link grp-restore-btn" data-action="resetGroup" data-level="${resetLevel}">${resetLabel}</button>` : ''}
+                        ${resetLevel > 0 ? `<button type="button" class="btn-text-link" data-action="resetGroup" data-level="${resetLevel}">${resetLabel}</button>` : ''}
                     </div>
                 </div>
                 <div class="hiddenboard-grid" id="${pid}" ${isCol?'style="display:none;"':''}></div>
@@ -2241,7 +2241,7 @@
                     cEl.style.gap = '2px';
                     let htmlArr = [];
                     condMap.forEach((qty, condStr) => {
-                        htmlArr.push(`<span class="d-cond-tag">${condStr} <span class="d-cond-qty">· ${qty}개</span></span>`);
+                        htmlArr.push(`<span>${condStr} <span class="d-cond-qty">· ${qty}개</span></span>`);
                     });
                     cEl.innerHTML = htmlArr.join('');
                 } else {
@@ -2409,35 +2409,52 @@
     /* 도감·탭·즐겨찾기·프리셋 */
     function renderTabs() {
         const t = getEl('unitboardTabs');
-        if (t) { t.innerHTML = SYSTEM_CONFIG.tabs.map((c, i) => `<button type="button" id="tab-btn-${i}" role="tab" aria-selected="${i===_activeTabIdx}" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join(''); updateTabsUI(); }
+        if (!t) return;
+        const collections = [['favorites', '즐겨찾기', '☆'], ['primary', '주력', '✦']];
+        t.innerHTML = collections.map(([key, label, icon]) => `<button type="button" id="tab-btn-${key}" role="tab" aria-controls="cat-group-${key}" aria-selected="false" class="tab-btn collection-tab" data-action="showUnitCollection" data-collection="${key}"><span aria-hidden="true">${icon}</span><span>${label}</span><span id="${key}Count" class="collection-count">0</span></button>`).join('') +
+            SYSTEM_CONFIG.tabs.map((c, i) => `<button type="button" id="tab-btn-${i}" role="tab" aria-controls="cat-group-${c.key}" aria-selected="false" class="tab-btn" data-action="selectTab" data-tab-idx="${i}"><span>${c.name}</span></button>`).join('');
+        updateTabsUI();
     }
-
     function updateTabsUI() {
-        let aCats = new Set([...activeUnits.keys()].map(id => unitMap.get(id)?.category).filter(Boolean));
+        const aCats = new Set([...activeUnits.keys()].map(id => unitMap.get(id)?.category).filter(Boolean));
         SYSTEM_CONFIG.tabs.forEach((c, i) => {
-            let btn = getEl(`tab-btn-${i}`), isActive = (i === _activeTabIdx), has = aCats.has(c.key);
+            const btn = getEl(`tab-btn-${i}`), isActive = !_unitboardCollection && i === _activeTabIdx;
             if (!btn) return;
-            if (btn.classList.contains('active') !== isActive) { btn.classList.toggle('active', isActive); btn.setAttribute('aria-selected', isActive ? 'true' : 'false'); }
-            if (btn.classList.contains('has-active') !== has) btn.classList.toggle('has-active', has);
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', String(isActive));
+            btn.classList.toggle('has-active', aCats.has(c.key));
         });
-        const selectAllBtn = getEl('btnSelectAllTab'), currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx];
-        if (selectAllBtn && currentTab) {
-            selectAllBtn.disabled = false;
-            const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && isSelectableUnitboardUnit(u));
-            selectAllBtn.innerHTML = (catItems.length > 0 && catItems.every(item => activeUnits.has(item.id))) ? `<span class="btn-select-all-clear-label">✖ ${currentTab.name} 해제</span>` : `✔ ${currentTab.name} 선택`;
+        ['favorites', 'primary'].forEach(key => {
+            const items = getUnitboardCollectionItems(key), tab = getEl(`tab-btn-${key}`), count = getEl(`${key}Count`);
+            if (tab) {
+                tab.classList.toggle('active', _unitboardCollection === key);
+                tab.setAttribute('aria-selected', String(_unitboardCollection === key));
+                tab.classList.toggle('has-active', items.some(item => activeUnits.has(item.id)));
+            }
+            if (count) count.textContent = String(items.length);
+        });
+        const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx];
+        const visibleItems = _unitboardCollection ? getUnitboardCollectionItems(_unitboardCollection) : getUnitboardVisibleItems().filter(u => u.category === currentTab?.key);
+        const categoryTitle = getEl('archiveCategoryTitle'), archiveCount = getEl('archiveCount'), selectAllBtn = getEl('btnSelectAllTab');
+        if (categoryTitle) categoryTitle.textContent = _unitboardCollection === 'favorites' ? '즐겨찾기' : _unitboardCollection === 'primary' ? '주력 유닛' : currentTab?.name || '';
+        if (archiveCount) archiveCount.textContent = `${visibleItems.length} UNITS`;
+        if (selectAllBtn) {
+            const selectable = visibleItems.filter(isSelectableUnitboardUnit);
+            selectAllBtn.disabled = selectable.length === 0;
+            selectAllBtn.innerHTML = selectable.length > 0 && selectable.every(item => activeUnits.has(item.id))
+                ? '<span class="btn-select-all-clear-label">전체 선택 해제</span>' : '+ 전체 선택';
         }
     }
-
     function starBtnHtml(id) {
-        const isFav = _favorites.has(id);
-        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-label="즐겨찾기">${isFav ? '★' : '☆'}</button>`;
+        const isFav = _favorites.has(id), name = unitMap.get(id)?.name || id;
+        return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-pressed="${isFav}" aria-label="${escapeHtml(name)} 즐겨찾기 ${isFav ? '해제' : '추가'}">${isFav ? '★' : '☆'}</button>`;
     }
-
     function buildCardControl(item, prefix, isRestricted, isOT) {
-        if (!isOT && !isRestricted) {
-            return `<div class="uc-ctrl-area"><div class="smart-stepper active-stepper" id="stepper-${prefix}${item.id}"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">-</button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">-</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div></div>`;
-        }
-        return `<div class="uc-ctrl-area uc-ctrl-area-reserved" aria-hidden="true"><div class="smart-stepper smart-stepper-placeholder"><button type="button" disabled>-</button><div class="ss-val">-</div><button type="button" disabled>+</button></div></div>`;
+        const selection = `<span class="uc-selection-state"><span class="selection-check" aria-hidden="true">✓</span><span class="selection-status-label">목표 선택</span></span>`;
+        const control = !isOT && !isRestricted
+            ? `<div class="smart-stepper" id="stepper-${prefix}${item.id}"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">−</button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">−</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`
+            : `<span class="uc-limit">${isRestricted ? '직접 선택 제한' : '최대 1개'}</span>`;
+        return `<div class="uc-ctrl-area">${selection}${control}</div>`;
     }
 
     function getUnitEssenceParts(item) {
@@ -2457,31 +2474,23 @@
     function getUnitUnitboardEssenceText(item) {
         const parts = getUnitEssenceParts(item);
         if (!parts.length) return '';
-        return `<div class="uc-essence-summary" aria-label="${item.name} 정수정보">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span class="uc-essence-label">${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</div>`;
+        return `<div class="uc-essence-summary" aria-label="${item.name} 정수정보">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span>${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</div>`;
     }
 
-    function buildCard(item, idx, prefix, showRecipe) {
-        const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item), isFav = _favorites.has(item.id);
+    function buildCard(item, prefix = '') {
+        const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item);
         const isPrimaryUnit = CLEAN_PRIMARY_UNIT_IDS.has(item.id);
         const essenceText = getUnitUnitboardEssenceText(item);
-        return `<div id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}${isFav ? ' is-fav-card' : ''}${showRecipe ? '' : ' no-recipe'}" data-grade="${item.grade}" style="${idx >= 0 ? `animation-delay:${idx*0.02}s;` : ''}${isRestricted ? 'pointer-events:auto;cursor:not-allowed;' : ''}" data-action="toggleUnit" data-uid="${item.id}">` +
-            `<div class="uc-card-inner">` +
-            `${starBtnHtml(item.id)}` +
-            `<div class="uc-head${showRecipe ? '' : ' uc-head-slim'}">` +
-            `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isPrimaryUnit ? '<span class="badge-primary-unit">주력</span>' : ''}</div>` +
-            `<div class="uc-name-row" ${getUnitNameStyle(item)}>${item.name}</div>` +
-            `${essenceText ? `<div class="uc-essence-row">${essenceText}</div>` : ''}` +
-            `${isRestricted ? `<span class="badge-excluded" data-action="showExcludedTooltip" data-uid="${item.id}">선택제한</span>` : ''}` +
-            `</div>` +
-            `${showRecipe ? `<div class="uc-recipe-area">${formatRecipe(item, 1, false)}</div>` : ''}` +
-            `${showRecipe && CLEAN_UNIT_CONDITIONS[item.id] ? `<div class="tsc-wrap tsc-wrap-card"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[item.id]}</div></div>` : ''}` +
-            `${buildCardControl(item, prefix, isRestricted, isOT)}` +
-            `</div></div>`;
+        return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} 목표 선택">` +
+            `<div class="uc-card-inner"><div class="uc-head">` +
+            `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isPrimaryUnit ? '<span class="badge-primary-unit"><span aria-hidden="true">✦</span>주력</span>' : ''}${starBtnHtml(item.id)}</div>` +
+            `<h3 class="uc-name-row">${item.name}</h3>` +
+            `${essenceText ? `<div>${essenceText}</div>` : ''}` +
+            `${isRestricted ? `<span class="badge-excluded" data-action="showExcludedTooltip" data-uid="${item.id}">선택제한</span>` : ''}</div>` +
+            `<div class="uc-recipe-area"><span class="recipe-label">COMBINATION</span>${formatRecipe(item, 1, false)}</div>` +
+            `${CLEAN_UNIT_CONDITIONS[item.id] ? `<div class="tsc-wrap tsc-wrap-card"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[item.id]}</div></div>` : ''}` +
+            `${buildCardControl(item, prefix, isRestricted, isOT)}</div></article>`;
     }
-
-    function buildUnitCard(item, idx) { return buildCard(item, idx, '', true); }
-
-    function buildFavCard(item, idx, categoryKey) { return buildCard(item, idx, `fav-${categoryKey}-`, true); }
 
     function buildPagerPages(htmlItems, pageSize, pageClass) {
         if (!Array.isArray(htmlItems) || htmlItems.length === 0) return '';
@@ -2505,43 +2514,34 @@
         return Array.from(unitMap.values()).filter(isUnitboardVisibleUnit);
     }
 
-    function getFavoriteItems() {
-        return getUnitboardVisibleItems().filter(u => _favorites.has(u.id)).sort(getUnitboardSort);
+    function getUnitboardCollectionItems(collection) {
+        return getUnitboardVisibleItems().filter(u => collection === 'favorites' ? _favorites.has(u.id) : collection === 'primary' && CLEAN_PRIMARY_UNIT_IDS.has(u.id)).sort(getUnitboardSort);
     }
-
-    function buildFavoriteSection(categoryKey) {
-        const favItems = getFavoriteItems();
-        if (favItems.length > 0) {
-            return `<div class="unitboard-fav-section">` +
-                `<div class="unitboard-fav-header"><span class="unitboard-fav-title">⭐ 즐겨찾기</span></div>` +
-                `<div class="unitboard-fav-grid">${buildPagerPages(favItems.map((item, idx) => buildFavCard(item, idx, categoryKey)), 3, 'unitboard-page unitboard-fav-page')}</div>` +
-                `<div class="unitboard-fav-divider"></div>` +
-                `</div>`;
+    function buildUnitboardCollection(collection) {
+        const items = getUnitboardCollectionItems(collection), isFavorite = collection === 'favorites';
+        if (items.length === 0) {
+            const title = isFavorite ? '자주 쓰는 유닛을 모아두세요' : '등록된 주력 유닛이 없습니다';
+            const description = isFavorite ? '카드의 별을 누르면 여기에 모입니다.<br>원래 도감의 위치와 선택 상태는 그대로 유지됩니다.' : '주력 유닛을 등록하면 이곳에서 함께 볼 수 있습니다.';
+            return `<div class="collection-empty"><span aria-hidden="true">${isFavorite ? '☆' : '✦'}</span><h3>${title}</h3><p>${description}</p><button type="button" class="ctrl-btn" data-action="selectTab" data-tab-idx="${_activeTabIdx}">유닛도감 둘러보기</button></div>`;
         }
-        return `<div class="unitboard-fav-empty">` +
-            `<span class="unitboard-fav-empty-star">☆</span>` +
-            `<span class="unitboard-fav-empty-text">카드 우측 상단 <b>☆</b>를 누르면 즐겨찾기에 등록됩니다</span>` +
-            `</div>`;
+        const guide = isFavorite ? '모든 분류의 즐겨찾기를 한곳에서 확인하세요. 별을 다시 누르면 해제됩니다.' : '각 분류의 주력 유닛입니다. 선택과 수량은 원래 도감에도 함께 반영됩니다.';
+        const prefix = isFavorite ? 'fav-' : 'primary-';
+        return `<p class="collection-guide">${guide}</p><div class="unitboard-fav-grid">${buildPagerPages(items.map(item => buildCard(item, prefix)), 3, 'unitboard-page unitboard-fav-page')}</div>`;
     }
-
     function initAllTabContents() {
-        const tc = getEl('tabContent'); if (!tc) return;
-        const favSet = new Set(_favorites);
-        tc.innerHTML = SYSTEM_CONFIG.tabs.map(cat => {
-            const items = Array.from(unitMap.values()).filter(u =>
-                isUnitboardVisibleUnit(u) &&
-                u.category === cat.key &&
-                !favSet.has(u.id)
-            ).sort(getUnitboardSort);
-            const bodyHtml = !items.length
-                ? `<div class="unitboard-empty-msg">즐겨찾기를 제외하고 표시할 유닛이 없습니다.</div>`
-                : buildPagerPages(items.map((item, idx) => buildUnitCard(item, idx)), 9, 'unitboard-page unitboard-category-page');
-            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel">${buildFavoriteSection(cat.key)}<div class="unitboard-category-grid">${bodyHtml}</div></div>`;
+        const tc = getEl('tabContent');
+        if (!tc) return;
+        const categories = SYSTEM_CONFIG.tabs.map(cat => {
+            const items = getUnitboardVisibleItems().filter(u => u.category === cat.key).sort(getUnitboardSort);
+            const bodyHtml = items.length
+                ? buildPagerPages(items.map(item => buildCard(item)), 9, 'unitboard-page unitboard-category-page')
+                : '<div class="unitboard-empty-msg">표시할 유닛이 없습니다.</div>';
+            return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" aria-labelledby="tab-btn-${SYSTEM_CONFIG.tabs.indexOf(cat)}"><div class="unitboard-category-grid">${bodyHtml}</div></div>`;
         }).join('');
+        tc.innerHTML = ['favorites', 'primary'].map(key => `<div id="cat-group-${key}" class="cat-group" role="tabpanel" aria-labelledby="tab-btn-${key}">${buildUnitboardCollection(key)}</div>`).join('') + categories;
         _isTabContentInitialized = true;
         indexUnitboardDom();
     }
-
     function indexUnitboardDom() {
         _unitCardElsByUid.clear(); _favoriteBtnElsByUid.clear();
         document.querySelectorAll('.unit-card[data-uid]').forEach(card => {
@@ -2559,10 +2559,10 @@
 
     function renderCurrentTabContent() {
         if (!_isTabContentInitialized) initAllTabContents();
-        SYSTEM_CONFIG.tabs.forEach((c, i) => getEl(`cat-group-${c.key}`)?.classList.toggle('is-visible', i === _activeTabIdx));
+        ['favorites', 'primary'].forEach(key => getEl(`cat-group-${key}`)?.classList.toggle('is-visible', _unitboardCollection === key));
+        SYSTEM_CONFIG.tabs.forEach((c, i) => getEl(`cat-group-${c.key}`)?.classList.toggle('is-visible', !_unitboardCollection && i === _activeTabIdx));
         updateTabContentUI();
     }
-
     function updateTabContentUI() {
         if (!_unitboardDomIndexed) indexUnitboardDom();
         const dirtyIds = new Set(_dirtyUnitCardIds);
@@ -2581,11 +2581,15 @@
                 }
                 card.style.display = 'flex';
                 card.classList.toggle('active', isActive);
-                card.classList.toggle('is-fav-card', isFav);
+                card.setAttribute('aria-label', `${item.name} · ${isActive ? '선택됨' : '목표 선택'}`);
+                const status = card.querySelector('.selection-status-label');
+                if (status) status.textContent = isRestrictedUnit(uid) ? '선택 제한' : isActive ? '선택됨' : '목표 선택';
             });
             (_favoriteBtnElsByUid.get(uid) || []).forEach(btn => {
                 btn.classList.toggle('is-fav', isFav);
                 btn.textContent = isFav ? '★' : '☆';
+                btn.setAttribute('aria-pressed', String(isFav));
+                btn.setAttribute('aria-label', `${item?.name || uid} 즐겨찾기 ${isFav ? '해제' : '추가'}`);
                 btn.removeAttribute('title');
             });
         });
@@ -2595,17 +2599,27 @@
 
     function toggleFavorite(id, event) {
         event?.stopPropagation();
-        if (!unitMap.has(id)) return;
-        if (_favorites.has(id)) _favorites.delete(id); else _favorites.add(id);
+        const unit = unitMap.get(id);
+        if (!unit) return;
+        const wasFavorite = _favorites.has(id), content = getEl('tabContent');
+        const scrollTop = content?.scrollTop || 0;
+        const scrollLeft = getEl('cat-group-favorites')?.querySelector('.unitboard-fav-grid')?.scrollLeft || 0;
+        if (wasFavorite) _favorites.delete(id); else _favorites.add(id);
         saveFavorites();
         triggerHaptic();
-        _isTabContentInitialized = false;
+        const favoritePanel = getEl('cat-group-favorites');
+        if (favoritePanel) favoritePanel.innerHTML = buildUnitboardCollection('favorites');
         _unitboardDomIndexed = false;
-        initAllTabContents();
+        indexUnitboardDom();
         renderCurrentTabContent();
         updateTabsUI();
+        if (content) content.scrollTop = scrollTop;
+        const pager = favoritePanel?.querySelector('.unitboard-fav-grid');
+        if (pager) pager.scrollLeft = Math.min(scrollLeft, Math.max(0, pager.scrollWidth - pager.clientWidth));
+        const status = getEl('favoriteStatus');
+        if (status) status.textContent = `${unit.name} 즐겨찾기 ${wasFavorite ? '해제됨' : '추가됨'}`;
+        if (_unitboardCollection === 'favorites' && event?.detail === 0) getEl('tab-btn-favorites')?.focus({ preventScroll: true });
     }
-
     function renderPresetButtons() {
         const tabBar = getEl('presetInlineTabBar'), btnList = getEl('presetInlineBtnList'), wrap = getEl('presetInlineWrap');
         if (!tabBar || !btnList || !wrap) return;
@@ -2627,7 +2641,7 @@
             else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
             else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
             else if (isBrightColor(p.배경색)) styleStr += ';--btn-text-override:#111111';
-            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span class="gohaeng-icon">${p.icon}</span>` : ''}<span class="gohaeng-label">${p.label}</span></button>`;
+            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span>${p.icon}</span>` : ''}<span>${p.label}</span></button>`;
         }).join('');
 
         wrap.style.display = '';
@@ -2655,16 +2669,17 @@
     }
 
     function toggleSelectAllTab() {
-        const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx]; if (!currentTab) return;
-        const catItems = Array.from(unitMap.values()).filter(u => u.category === currentTab.key && isSelectableUnitboardUnit(u));
-        if (!catItems.length) return;
-        if (catItems.every(item => activeUnits.has(item.id))) catItems.forEach(item => activeUnits.delete(item.id));
-        else catItems.forEach(item => !activeUnits.has(item.id) && setActiveUnitQty(item.id, pausedUnits.get(item.id) || 1));
+        const currentTab = SYSTEM_CONFIG.tabs[_activeTabIdx];
+        const visible = _unitboardCollection ? getUnitboardCollectionItems(_unitboardCollection) : getUnitboardVisibleItems().filter(u => u.category === currentTab?.key);
+        const items = visible.filter(isSelectableUnitboardUnit);
+        if (!items.length) return;
+        if (items.every(item => activeUnits.has(item.id))) items.forEach(item => activeUnits.delete(item.id));
+        else items.forEach(item => !activeUnits.has(item.id) && setActiveUnitQty(item.id, pausedUnits.get(item.id) || 1));
         commitNexusStateChange();
     }
-
     function selectTab(idx) {
         hideRecipeTooltip();
+        _unitboardCollection = null;
         _activeTabIdx = Math.max(0, Math.min(parseInt(idx, 10) || 0, SYSTEM_CONFIG.tabs.length - 1));
         updateTabsUI();
         renderCurrentTabContent();
@@ -2788,7 +2803,7 @@
             ['aiur', '아이어', totals.aiur],
             ['zerus', '제루스', totals.zerus]
         ];
-        summaryEl.innerHTML = `<div class="cart-essence-title"><span class="cart-essence-total-label">정수 합계</span></div><div class="cart-essence-chips">${parts.map(([id, name, value]) => `<span class="cart-essence-chip cart-essence-${id}"><span class="cart-essence-label">${name}</span><span class="cart-essence-value">${value}</span></span>`).join('')}</div>`;
+        summaryEl.innerHTML = `<div class="cart-essence-title"><span>정수 합계</span></div><div class="cart-essence-chips">${parts.map(([id, name, value]) => `<span class="cart-essence-chip cart-essence-${id}"><span class="cart-essence-label">${name}</span><span class="cart-essence-value">${value}</span></span>`).join('')}</div>`;
     }
 
     function renderCartPanel(tabBarId, listAreaId, prefix) {
@@ -2799,7 +2814,7 @@
         }
 
         if (_cartTab === 'active') {
-            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-active-pause-all-btn" data-action="pauseAllActiveUnits" ${activeUnits.size === 0 ? 'disabled' : ''}>전체 보류</button><button type="button" class="cart-tab-action-btn cart-active-remove-all-btn" data-action="clearCartItems" ${activeUnits.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
+            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn" data-action="pauseAllActiveUnits" ${activeUnits.size === 0 ? 'disabled' : ''}>전체 보류</button><button type="button" class="cart-tab-action-btn" data-action="clearCartItems" ${activeUnits.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
             if (activeUnits.size === 0) {
                 const subText = pausedUnits.size > 0 ? '보류 탭에서 복구하면 다시 계산에 포함됩니다.' : '목표 유닛을 선택하면 여기에 표시됩니다.';
                 cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">선택된 유닛이 없습니다.<br><span class="cart-empty-sub">${subText}</span></div>`;
@@ -2808,28 +2823,28 @@
             const items = getUnitsFromMap(activeUnits);
             cartListArea.innerHTML = actionHtml + items.map(item => {
                 const qty = activeUnits.get(item.id) || 1;
-                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime active-qty">×${qty}</span>`;
-                return `<div class="cart-item" id="${prefix}-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
+                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime">×${qty}</span>`;
+                return `<div class="cart-item" id="${prefix}-${item.id}"><div class="cart-unit-info"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span></div>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
             }).join('');
             return;
         }
 
         if (_cartTab === 'paused') {
-            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-paused-restore-all-btn" data-action="restoreAllPausedUnits" ${pausedUnits.size === 0 ? 'disabled' : ''}>보류 복구</button><button type="button" class="cart-tab-action-btn cart-paused-remove-all-btn" data-action="clearCartItems" ${pausedUnits.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
+            const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn" data-action="restoreAllPausedUnits" ${pausedUnits.size === 0 ? 'disabled' : ''}>보류 복구</button><button type="button" class="cart-tab-action-btn" data-action="clearCartItems" ${pausedUnits.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
             if (pausedUnits.size === 0) {
                 cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">보류된 유닛이 없습니다.<br><span class="cart-empty-sub">선택 탭의 보류 버튼을 누르면 이곳으로 이동됩니다.</span></div>`;
                 return;
             }
-            cartListArea.innerHTML = actionHtml + getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name paused-name" ${getUnitNameStyle(item)}>${item.name}</span>${!isOneTime(item) ? `<span class="ci-onetime paused-qty">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint cart-paused-restore-btn always-show" data-action="restorePausedUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removePausedUnit" data-uid="${item.id}">제거</button></div>`).join('');
+            cartListArea.innerHTML = actionHtml + getUnitsFromMap(pausedUnits).map(item => `<div class="cart-item cart-item-paused" id="${prefix}p-${item.id}"><div class="cart-unit-info"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span></div>${!isOneTime(item) ? `<span class="ci-onetime">×${pausedUnits.get(item.id) || 1}</span>` : ''}<button type="button" class="cart-done-restore-hint" data-action="restorePausedUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del" data-action="removePausedUnit" data-uid="${item.id}">제거</button></div>`).join('');
             return;
         }
 
-        const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn cart-done-restore-all-btn" data-action="restoreAllCompletedUnits" ${completedTargets.size === 0 ? 'disabled' : ''}>완료 복구</button><button type="button" class="cart-tab-action-btn cart-done-remove-all-btn" data-action="clearCartItems" ${completedTargets.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
+        const actionHtml = `<div class="cart-tab-action-row"><button type="button" class="cart-tab-action-btn" data-action="restoreAllCompletedUnits" ${completedTargets.size === 0 ? 'disabled' : ''}>완료 복구</button><button type="button" class="cart-tab-action-btn" data-action="clearCartItems" ${completedTargets.size === 0 ? 'disabled' : ''}>전체 제거</button></div>`;
         if (completedTargets.size === 0) {
             cartListArea.innerHTML = `${actionHtml}<div class="cart-empty-msg">완료된 유닛이 없습니다.<br><span class="cart-empty-sub">목표 완료 시 이곳으로 이동됩니다.</span></div>`;
             return;
         }
-        cartListArea.innerHTML = actionHtml + getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" ${getUnitNameStyle(item)}>${item.name}</span><span class="ci-onetime done-qty">×${completedTargets.get(item.id) || 1}</span><button type="button" class="cart-done-restore-hint cart-restore-btn always-show" data-action="restoreUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del cart-item-remove" data-action="removeCompletedUnit" data-uid="${item.id}">제거</button></div>`).join('');
+        cartListArea.innerHTML = actionHtml + getUnitsFromMap(completedTargets).map(item => `<div class="cart-item cart-item-done" id="${prefix}d-${item.id}"><div class="cart-unit-info"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name done-name" ${getUnitNameStyle(item)}>${item.name}</span></div><span class="ci-onetime">×${completedTargets.get(item.id) || 1}</span><button type="button" class="cart-done-restore-hint" data-action="restoreUnit" data-uid="${item.id}">복구</button><button type="button" class="cart-item-del" data-action="removeCompletedUnit" data-uid="${item.id}">제거</button></div>`).join('');
     }
 
     function updateCartUI() {
@@ -2847,6 +2862,15 @@
         if (!layout) return;
         const nextMode = ['unitboard', 'hiddenboard', 'invenboard'].includes(mode) ? mode : 'unitboard';
         _currentViewMode = nextMode;
+        const viewMeta = {
+            unitboard: ['유닛도감', 'UNIT ARCHIVE', '목표를 고르세요. 완성까지 필요한 모든 조합을 연결합니다.'],
+            hiddenboard: ['히든보드', 'COMBINATION BOARD', '목표부터 기본 재료까지, 조합의 흐름을 한눈에 확인하세요.'],
+            invenboard: ['재료보드', 'MATERIAL INVENTORY', '보유한 재료를 기록하고, 완성할 수 있는 조합을 확인하세요.']
+        }[nextMode];
+        const title = getEl('workspaceTitle'), breadcrumb = getEl('workspaceBreadcrumb'), description = getEl('workspaceDescription');
+        if (title) title.innerHTML = `${viewMeta[0]}<span class="heading-dot">.</span>`;
+        if (breadcrumb) breadcrumb.textContent = viewMeta[1];
+        if (description) description.textContent = viewMeta[2];
         layout.classList.remove('view-unitboard', 'view-hiddenboard', 'view-invenboard');
         layout.classList.add(`view-${nextMode}`);
 
@@ -2855,7 +2879,12 @@
             hiddenboard: getEl('btnViewHiddenboard'),
             invenboard: getEl('btnViewInvenboard')
         };
-        Object.entries(buttons).forEach(([key, btn]) => btn?.classList.toggle('active', key === nextMode));
+        Object.entries(buttons).forEach(([key, btn]) => {
+            if (!btn) return;
+            btn.classList.toggle('active', key === nextMode);
+            if (key === nextMode) btn.setAttribute('aria-current', 'page');
+            else btn.removeAttribute('aria-current');
+        });
 
         const autoCompleted = (nextMode === 'hiddenboard' || nextMode === 'invenboard')
             ? ensureActiveBoardRendered(_lastCalcResult)
@@ -2970,12 +2999,12 @@
         
         const parentUnits = []; unitMap.forEach(pu => pu.parsedRecipe?.some(pr => pr.id === id) && parentUnits.push(pu));
         tt.innerHTML = `
-            <div class="tooltip-header excluded-tooltip-header">
+            <div class="tooltip-header">
                 <span class="gtag grade-${u.grade}">${u.grade}</span>
                 <span class="excluded-tooltip-name" style="--tooltip-grade-color:${SYSTEM_CONFIG.grades.colors[u.grade] || '#fbbf24'};">${u.name}</span>
                 <span class="badge-excluded excluded-tooltip-badge">선택제한</span>
             </div>
-            <div class="tooltip-body excluded-tooltip-body">
+            <div class="tooltip-body">
                 <div class="excluded-tooltip-description">이 유닛은 아래 상위 유닛의 <strong>조합 재료로 자동 포함</strong>되므로<br>직접 선택할 수 없습니다.</div>
                 ${parentUnits.length > 0 ? `
                 <div class="excluded-tooltip-parents">
@@ -3010,7 +3039,7 @@
         multi = isOneTime(u) ? 1 : Math.max(multi, 1);
         let foundSpecialConds = new Set(); u.parsedRecipe?.forEach(pr => pr.id && CLEAN_SPECIAL_CONDITIONS[pr.id] && foundSpecialConds.add(pr.id));
 
-        tt.innerHTML = `<div class="tooltip-header" style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}"><div>${u.name} 조합법 ${multi > 1 ? `<span class="tooltip-multi-count">(${multi}개 기준)</span>` : ''}</div></div><div class="tooltip-body">${formatRecipe(u, multi, true)}${foundSpecialConds.size > 0 ? `<div class="tsc-wrap">${Array.from(foundSpecialConds).map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : ''}</div>${CLEAN_UNIT_CONDITIONS[u.id] ? `<div class="tsc-wrap tsc-wrap-unit"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[u.id]}</div></div>` : ''}<div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
+        tt.innerHTML = `<div class="tooltip-header" style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}"><div>${u.name} 조합법 ${multi > 1 ? `<span class="tooltip-multi-count">(${multi}개 기준)</span>` : ''}</div></div><div class="tooltip-body">${formatRecipe(u, multi, true)}${foundSpecialConds.size > 0 ? `<div class="tsc-wrap">${Array.from(foundSpecialConds).map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : ''}</div>${CLEAN_UNIT_CONDITIONS[u.id] ? `<div class="tsc-wrap"><div class="tsc-item">${CLEAN_UNIT_CONDITIONS[u.id]}</div></div>` : ''}<div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
         showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
     }
 
@@ -3071,6 +3100,12 @@
             case 'restoreAllCompleted': restoreAllCompleted(); break;
             case 'resetUnitboard': resetUnitboard(); break;
             case 'selectTab': selectTab(parseInt(actionEl.dataset.tabIdx, 10)); break;
+            case 'showUnitCollection':
+                hideRecipeTooltip();
+                _unitboardCollection = ['favorites', 'primary'].includes(actionEl.dataset.collection) ? actionEl.dataset.collection : null;
+                updateTabsUI();
+                renderCurrentTabContent();
+                break;
             case 'toggleSelectAllTab': toggleSelectAllTab(); break;
             case 'pauseCartItem': e.stopPropagation(); if (uid) pauseCartUnit(uid); break;
             case 'removeActiveUnit': e.stopPropagation(); if (uid) discardActiveCartUnit(uid); break;
@@ -3121,6 +3156,20 @@
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
     document.addEventListener('keydown', e => {
+        if (e.target?.matches?.('#unitboardTabs [role="tab"]') && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+            e.preventDefault();
+            const tabs = Array.from(getEl('unitboardTabs').querySelectorAll('[role="tab"]'));
+            const index = tabs.indexOf(e.target);
+            const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[next].click();
+            tabs[next].focus({ preventScroll: true });
+            return;
+        }
+        if ((e.key === 'Enter' || e.key === ' ') && e.target?.matches?.('.unit-card[data-action="toggleUnit"]')) {
+            e.preventDefault();
+            toggleUnitSelection(e.target.dataset.uid, 1);
+            return;
+        }
         if ((e.key === 'Enter' || e.key === ' ') && e.target?.closest?.('[data-action="showAppVersion"]')) {
             e.preventDefault();
             e.target.closest('[data-action="showAppVersion"]').click();
@@ -3184,7 +3233,7 @@
                     sPager = pager ? { ...pager, scrollLeft: pager.el.scrollLeft } : null;
                 }, { passive: true });
                 sArea.addEventListener('touchend', e => {
-                    if (_isSwiping) return;
+                    if (_isSwiping || _unitboardCollection) return;
                     let dX = e.changedTouches[0].screenX - sX, dY = e.changedTouches[0].screenY - sY;
                     if (Math.abs(dX) > 70 && Math.abs(dY) < 50) {
                         if (sPager?.type === 'favorite') { sPager = null; return; }
