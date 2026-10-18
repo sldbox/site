@@ -3,13 +3,13 @@
 <head>
 <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
-        window.NEXUS_BUILD_VERSION = "2610180004";
-        window.APP_VERSION = "2610180004";
+        window.NEXUS_BUILD_VERSION = "2610180005";
+        window.APP_VERSION = "2610180005";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "2610180004",
-            "config.js": "2610180004",
-            "style.css": "2610180004",
-            "data.js": "2610180004"
+            "app.js": "2610180005",
+            "config.js": "2610180005",
+            "style.css": "2610180005",
+            "data.js": "2610180005"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -145,12 +145,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=2610180004" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610180004">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610180004">
+    <link rel="icon" href="./icon.png?v=2610180005" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610180005">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610180005">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610180004">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610180005">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -171,8 +171,32 @@
     <header id="globalHeader" class="global-header">
         <div class="gh-left">
             <div class="gh-logo-text" id="ghLogoText">
-                <span class="gh-brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="12" fill="#E7C57B"/><path d="M12 28V12l16 16V12" stroke="#211C12" stroke-width="4" stroke-linejoin="round"/></svg></span>
-                <div class="gh-title-wrap"><span class="gh-title-kicker">NEXUS</span><span class="gh-title" id="ghTitleText" data-action="showAppVersion" role="button" tabindex="0" aria-label="앱 버전 보기">개복디 넥서스</span></div>
+                <span class="gh-brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                        <defs>
+                            <linearGradient id="nexusMarkEdge" x1="4" y1="2" x2="43" y2="46" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#FFF0C2"/>
+                                <stop offset=".48" stop-color="#BB9050"/>
+                                <stop offset="1" stop-color="#E7C57B"/>
+                            </linearGradient>
+                            <linearGradient id="nexusMarkFill" x1="7" y1="3" x2="39" y2="44" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#3B3326"/>
+                                <stop offset="1" stop-color="#151517"/>
+                            </linearGradient>
+                            <linearGradient id="nexusMarkLetter" x1="12" y1="14" x2="36" y2="35" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#FFF7E0"/>
+                                <stop offset="1" stop-color="#E7C57B"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 1.5H36L46.5 12V36L36 46.5H12L1.5 36V12L12 1.5Z" fill="url(#nexusMarkFill)" stroke="url(#nexusMarkEdge)" stroke-width="1.5"/>
+                        <path d="M13 5.5H35L42.5 13V35L35 42.5H13L5.5 35V13L13 5.5Z" stroke="#E5C17B" stroke-opacity=".36"/>
+                        <path d="M14.5 34V14L33.5 34V14" stroke="url(#nexusMarkLetter)" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/>
+                        <path d="M9 11H13M35 38H39M10 35V39M38 25V29" stroke="#EACB8D" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div class="gh-title-wrap">
+                    <span class="gh-title" id="ghTitleText" data-action="showAppVersion" role="button" tabindex="0" aria-label="앱 버전 보기">개복디 넥서스</span>
+                </div>
             </div>
         </div>
         <div class="nav-eyebrow">WORKSPACE</div>

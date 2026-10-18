@@ -33,15 +33,15 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
 .global-header { position:fixed; inset:0 auto 0 0; z-index:9000; width:var(--sidebar-w); display:flex; flex-direction:column; padding:30px 18px 22px; background:var(--sidebar); color:#d5d2c8;  border-right:1px solid #2b2923; }
 .gh-left { min-width:0; height:52px; flex:0 0 52px; margin-bottom:52px; }
 .gh-logo-text { display:flex; align-items:center; gap:11px; height:52px; }
-.gh-brand-mark { flex:0 0 38px; }
-.gh-brand-mark svg { width:38px; height:38px; }
-.gh-title-wrap { display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0; flex:1; height:52px; }
-.gh-title-kicker { font-size:19px; line-height:1; font-weight:850; letter-spacing:2.2px; color:#f0e3c3; }
-.gh-title { display:block; height:28px; min-height:28px; max-height:28px; overflow:hidden; max-width:126px; cursor:pointer; transition:opacity .18s,transform .18s; }
-.gh-title-mainline { display:block; padding-top:2px; font-size:11px; font-weight:500; color:#ada99f; letter-spacing:.1px; white-space:nowrap; }
-.gh-title-stack { display:flex; flex-direction:column; gap:3px; width:100%; min-width:0; }
-.gh-title-label { font-size:8px; color:#ada99f; }
-.gh-title-main { display:block; font-size:10px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#e9e5da; }
+.gh-brand-mark { display:block; flex:0 0 38px; width:38px; height:38px; }
+.gh-brand-mark svg { width:100%; height:100%; filter:drop-shadow(0 2px 7px rgba(231,197,123,.17)); }
+.gh-title-wrap { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; min-width:0; flex:1; height:52px; }
+.gh-title { position:relative; display:flex; align-items:center; justify-content:flex-start; min-width:0; width:100%; min-height:24px; max-height:32px; overflow:hidden; cursor:pointer; text-align:left; font-size:16px; line-height:1.14; font-weight:900; letter-spacing:-.04em; color:#f4ead1; text-shadow:0 0 12px #e7c57b26; transition:opacity .18s,transform .18s,color .18s,text-shadow .18s; }
+.gh-title-mainline { display:block; width:100%; overflow:hidden; text-overflow:ellipsis; padding-top:1px; font-size:15px; line-height:1.18; font-weight:900; color:#f4ead1; letter-spacing:-.04em; white-space:nowrap; }
+.gh-title-stack { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:2px; width:100%; min-width:0; overflow:hidden; }
+.gh-title-label { font-size:8px; line-height:1; font-weight:750; letter-spacing:.04em; color:#c4ac7f; }
+.gh-title-main { display:block; max-width:100%; font-size:10px; line-height:1.3; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#f4ead1; }
+.gh-title:hover { color:#fff5da; text-shadow:0 0 18px #e7c57b55; }
 .gh-title.is-transitioning { opacity:0; transform:translateY(2px); }
 .gh-title.is-version-view .gh-title-main { font-family:var(--font-mono); }
 .nav-eyebrow { margin:0 12px 14px; color:#ada99f; font-size:9px; font-weight:600; letter-spacing:1.6px; }
@@ -74,8 +74,9 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .global-header { padding:24px 12px 20px; }
     .gh-logo-text { gap:8px; }
     .gh-brand-mark,.gh-brand-mark svg { width:30px; height:30px; flex-basis:30px; }
-    .gh-title-kicker { font-size:16px; }
-    .gh-title { max-width:104px; }
+    .gh-title-mainline { font-size:13px; }
+    .gh-title-main { font-size:9px; }
+    .gh-title { max-width:100%; }
     .gh-nav-btn { gap:9px; padding:12px 10px; }
     .nav-index { display:none; }
     .sidebar-note { margin:auto 5px; }
@@ -99,11 +100,10 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-left { margin:0; height:30px; flex:0 0 30px; }
     .gh-logo-text { gap:9px; height:30px; }
     .gh-brand-mark,.gh-brand-mark svg { width:30px; height:30px; flex-basis:30px; }
-    .gh-title-kicker { font-size:16px; }
-    .gh-title { height:24px; min-height:24px; max-height:24px; max-width:200px; }
-    .gh-title-wrap { flex-direction:row; align-items:center; justify-content:flex-start; gap:12px; height:30px; }
-    .gh-title-mainline { font-size:10px; padding:0; }
-    .gh-title-stack { flex-direction:row; gap:4px; align-items:center; height:24px; }
+    .gh-title { min-height:24px; max-height:24px; max-width:100%; }
+    .gh-title-wrap { flex-direction:column; align-items:flex-start; justify-content:center; height:30px; }
+    .gh-title-mainline { font-size:15px; padding:0; }
+    .gh-title-stack { flex-direction:column; align-items:flex-start; gap:2px; height:24px; }
     .nav-eyebrow,.nav-index,.sidebar-note,.gh-fontsize-ctrl { display:none; }
     .gh-center { display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0 auto; }
     .gh-nav-btn { justify-content:center; padding:10px 3px; min-height:40px; gap:7px; border-radius:7px; }
