@@ -22,7 +22,7 @@
             colors: {
                 "매직": "var(--grade-magic)", "레어": "var(--grade-rare)", "에픽": "var(--grade-epic)", "유니크": "var(--grade-unique)",
                 "헬": "var(--grade-hell)", "레전드": "var(--grade-legend)", "히든": "var(--grade-hidden)", "고유히든": "var(--grade-unique-hidden)", "슈퍼히든": "var(--grade-super)",
-                "스킬사용": "var(--grade-hell)"
+                "스킬사용": "var(--grade-skill-use)"
             }
         },
         tabs: [
@@ -1524,8 +1524,8 @@
                     <span class="invenboard-name"${getInvenboardAtomNameStyle(atom)}>${safeName}</span>
                 </div>
                 <div class="invenboard-controls">
-                    <button type="button" class="pc-btn invenboard-plus" data-action="invenboardAdd" data-inven-id="${id}" data-delta="${inputStep}">${inputStep}보유</button>
-                    <button type="button" class="pc-btn invenboard-plus invenboard-plus10" data-action="invenboardAdd" data-inven-id="${id}" data-delta="10">10보유</button>
+                    <button type="button" class="pc-btn invenboard-plus" data-action="invenboardAdd" data-inven-id="${id}" data-delta="${inputStep}" aria-label="${safeName} ${inputStep}개 보유 추가">+${inputStep}</button>
+                    <button type="button" class="pc-btn invenboard-plus invenboard-plus10" data-action="invenboardAdd" data-inven-id="${id}" data-delta="10" aria-label="${safeName} 10개 보유 추가">+10</button>
                 </div>
             </div>`;
         };
