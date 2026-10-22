@@ -271,8 +271,8 @@
     let _isSwiping = false;
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
-    let _buildPipWindow = null, _buildWindowObserver = null, _buildPipOpening = false;
-    const _buildIndependentWindows = new Set();
+    const IS_STANDALONE_BUILD = new URLSearchParams(window.location.search).get('nexusStandalone') === 'build';
+    let _buildStandaloneWindow = null;
 
     /* DOM·등급·검색 공통 유틸 */
     const getEl = (id) => document.getElementById(id);
@@ -1041,7 +1041,8 @@
             updateBoardPanel(calcResult, boardTotals);
             updateCartUI();
             updatePresetBtns();
-            saveNexusState();
+            // 독립 창은 원본 저장 데이터를 읽기만 하며 덮어쓰지 않는다.
+            if (!IS_STANDALONE_BUILD) saveNexusState();
         });
     }
 
@@ -2686,154 +2687,52 @@
     }
 
 
-    /* 나의 조합 · 필요 재료 전용 PIP / 독립 창 */
+    /* 나의 조합 · 필요 재료 독립 창: 원본 탭에 의존하지 않는 자체 페이지 */
     function updateBuildWindowButton() {
-        const button = getEl('btnBuildPip');
-        if (!button) return;
-        button.classList.toggle('is-active', Boolean(_buildPipWindow && !_buildPipWindow.closed) ||
-            Array.from(_buildIndependentWindows).some(win => !win.closed));
-    }
-
-    function closeBuildWindowMenu(restoreFocus = false) {
-        const menu = getEl('buildWindowMenu');
-        if (!menu || menu.hidden) return;
-        menu.hidden = true;
-        getEl('btnBuildPip')?.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) getEl('btnBuildPip')?.focus();
-    }
-
-    function toggleBuildWindowMenu() {
-        const menu = getEl('buildWindowMenu');
-        if (!menu) return;
-        if (!menu.hidden) { closeBuildWindowMenu(); return; }
-        const pipOption = menu.querySelector('[data-action="toggleBuildPip"]');
-        const supported = Boolean(window.documentPictureInPicture?.requestWindow);
-        if (pipOption) {
-            pipOption.disabled = !supported;
-            pipOption.textContent = !supported ? 'PIP 미지원' :
-                (_buildPipWindow && !_buildPipWindow.closed ? 'PIP 닫기' : 'PIP 열기');
-            pipOption.title = supported ? '' : 'Chrome 또는 Edge의 HTTPS 환경에서만 지원';
+        const button = getEl('btnBuildStandalone');
+        if (button && !IS_STANDALONE_BUILD) {
+            button.classList.toggle('is-active', Boolean(_buildStandaloneWindow && !_buildStandaloneWindow.closed));
         }
-        menu.hidden = false;
-        getEl('btnBuildPip')?.setAttribute('aria-expanded', 'true');
-    }
-
-    function syncBuildWindowContent() {
-        const source = document.querySelector('.build-overview');
-        if (!source) return;
-        const windows = [..._buildIndependentWindows];
-        if (_buildPipWindow) windows.push(_buildPipWindow);
-        for (const mirrorWindow of windows) {
-            if (mirrorWindow.closed) {
-                _buildIndependentWindows.delete(mirrorWindow);
-                if (_buildPipWindow === mirrorWindow) _buildPipWindow = null;
-                continue;
-            }
-            try {
-                const mirrorDocument = mirrorWindow.document;
-                const scrollTop = mirrorDocument.scrollingElement?.scrollTop || 0;
-                const content = source.cloneNode(true);
-                content.querySelector('#buildWindowMenu')?.remove();
-                const closeButton = content.querySelector('#btnBuildPip');
-                if (closeButton) {
-                    closeButton.dataset.action = 'closeBuildMirror';
-                    closeButton.setAttribute('aria-label', '창 닫기');
-                    closeButton.title = '창 닫기';
-                    closeButton.removeAttribute('aria-haspopup');
-                    closeButton.removeAttribute('aria-controls');
-                    closeButton.removeAttribute('aria-expanded');
-                }
-                mirrorDocument.body.replaceChildren(content);
-                mirrorDocument.documentElement.style.setProperty('--fs-scale', String(_fontScale));
-                if (mirrorDocument.scrollingElement) mirrorDocument.scrollingElement.scrollTop = scrollTop;
-            } catch (error) {
-                _buildIndependentWindows.delete(mirrorWindow);
-                if (_buildPipWindow === mirrorWindow) _buildPipWindow = null;
-            }
-        }
-        if (!_buildPipWindow && _buildIndependentWindows.size === 0) {
-            _buildWindowObserver?.disconnect();
-            _buildWindowObserver = null;
-        }
-        updateBuildWindowButton();
-    }
-
-    function registerBuildMirrorWindow(mirrorWindow, isPip) {
-        const mirrorDocument = mirrorWindow.document;
-        mirrorDocument.title = '나의 조합 · 필요 재료';
-        mirrorDocument.documentElement.lang = 'ko';
-        mirrorDocument.documentElement.classList.add('inspector-pip-document');
-        document.querySelectorAll('link[rel="stylesheet"]').forEach(sourceLink => {
-            const link = mirrorDocument.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = sourceLink.href;
-            mirrorDocument.head.appendChild(link);
-        });
-        mirrorDocument.body.className = 'inspector-pip-body';
-        if (isPip) _buildPipWindow = mirrorWindow;
-        else _buildIndependentWindows.add(mirrorWindow);
-        mirrorWindow.addEventListener('pagehide', () => {
-            if (_buildPipWindow === mirrorWindow) _buildPipWindow = null;
-            _buildIndependentWindows.delete(mirrorWindow);
-            if (!_buildPipWindow && _buildIndependentWindows.size === 0) {
-                _buildWindowObserver?.disconnect();
-                _buildWindowObserver = null;
-            }
-            updateBuildWindowButton();
-        }, { once: true });
-        mirrorDocument.addEventListener('click', event => {
-            if (event.target.closest('[data-action="closeBuildMirror"]')) mirrorWindow.close();
-        });
-        mirrorDocument.addEventListener('toggle', event => {
-            if (!event.target.matches?.('details.build-materials') || !mirrorDocument.contains(event.target)) return;
-            const originalDetails = document.querySelector('.build-overview details.build-materials');
-            if (originalDetails && originalDetails.open !== event.target.open) originalDetails.open = event.target.open;
-        }, true);
-        if (!_buildWindowObserver) {
-            _buildWindowObserver = new MutationObserver(syncBuildWindowContent);
-            _buildWindowObserver.observe(document.querySelector('.build-overview'), {
-                subtree: true, attributes: true, childList: true, characterData: true
-            });
-            _buildWindowObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-        }
-        syncBuildWindowContent();
     }
 
     function openBuildIndependentWindow() {
-        closeBuildWindowMenu();
-        // 클릭 이벤트에서 즉시 생성해야 Safari 팝업 차단을 피할 수 있다.
-        const mirrorWindow = window.open('', '_blank', 'popup=yes,width=420,height=540,resizable=yes,scrollbars=yes');
-        if (!mirrorWindow) {
+        // 클릭 이벤트에서 주소가 있는 새 창을 직접 열어 독립 실행한다.
+        if (_buildStandaloneWindow && !_buildStandaloneWindow.closed) {
+            _buildStandaloneWindow.focus();
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('nexusStandalone', 'build');
+        url.searchParams.delete('fresh');
+        url.searchParams.delete('__nexus_check');
+        _buildStandaloneWindow = window.open(url.href, 'nexusBuildStandalone',
+            'popup=yes,width=420,height=540,resizable=yes,scrollbars=yes');
+        if (!_buildStandaloneWindow) {
             window.alert('독립 창이 차단되었습니다. 브라우저의 팝업 허용 설정을 확인해 주세요.');
             return;
         }
-        try {
-            registerBuildMirrorWindow(mirrorWindow, false);
-            mirrorWindow.focus();
-        } catch (error) {
-            mirrorWindow.close();
-            window.alert('독립 창을 열지 못했습니다. 팝업 허용 여부를 확인해 주세요.');
-        }
+        updateBuildWindowButton();
+        _buildStandaloneWindow.focus();
     }
 
-    async function toggleBuildPip() {
-        closeBuildWindowMenu();
-        if (_buildPipWindow && !_buildPipWindow.closed) {
-            _buildPipWindow.close();
-            return;
+    function setupBuildStandaloneWindow() {
+        if (!IS_STANDALONE_BUILD) return;
+        document.title = '나의 조합 · 필요 재료 | 개복디 넥서스';
+        const button = getEl('btnBuildStandalone');
+        if (button) {
+            button.dataset.action = 'closeBuildStandaloneWindow';
+            button.setAttribute('aria-label', '독립 창 닫기');
+            button.title = '독립 창 닫기';
         }
-        if (_buildPipOpening) return;
-        if (!window.documentPictureInPicture?.requestWindow) return;
-        _buildPipOpening = true;
-        try {
-            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 400, height: 480 });
-            registerBuildMirrorWindow(pipWindow, true);
-        } catch (error) {
-            if (_buildPipWindow && !_buildPipWindow.closed) _buildPipWindow.close();
-            window.alert('PIP 창을 열지 못했습니다. 브라우저의 PIP 허용 여부를 확인해 주세요.');
-        } finally {
-            _buildPipOpening = false;
-        }
+        // 원본 탭의 저장값 변경을 자체 엔진으로 다시 계산한다.
+        window.addEventListener('storage', event => {
+            if (event.key === SYSTEM_CONFIG.storageKeys.saveData) {
+                loadNexusState();
+                debouncedUpdateAllPanels();
+            } else if (event.key === SYSTEM_CONFIG.storageKeys.fontScale) {
+                loadFontScale();
+            }
+        });
     }
 
     /* 장바구니 */
@@ -3222,7 +3121,6 @@
 
     document.addEventListener('click', e => {
         if (!e.target.closest('.gh-fontsize-ctrl')) closeFontSizePopup();
-        if (!e.target.closest('.inspector-window-controls')) closeBuildWindowMenu();
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
             const invenInput = e.target?.closest?.('.invenboard-input[data-inven-id]');
@@ -3254,9 +3152,8 @@
                 }
                 break;
             case 'showAppVersion': showNexusAppVersion(); break;
-            case 'toggleBuildWindowMenu': toggleBuildWindowMenu(); break;
-            case 'toggleBuildPip': toggleBuildPip(); break;
             case 'openBuildIndependentWindow': openBuildIndependentWindow(); break;
+            case 'closeBuildStandaloneWindow': window.close(); break;
             case 'toggleFontSizePopup': toggleFontSizePopup(); break;
             case 'increaseFont': if (e.detail === 0) setFontScale(_fontScale + APP_INTERNAL.fontScaleStep); break;
             case 'decreaseFont': if (e.detail === 0) setFontScale(_fontScale - APP_INTERNAL.fontScaleStep); break;
@@ -3346,15 +3243,15 @@
         }
         if (e.key === 'Escape') {
             closeFontSizePopup(true);
-            closeBuildWindowMenu(true);
             if (_currentHighlight) toggleHighlight(null);
             hideRecipeTooltip();
             const searchInp = getEl('unitSearchInput');
             if (document.activeElement === searchInp) searchInp?.blur();
         }
     });
-    window.addEventListener('orientationchange', () => { hideRecipeTooltip(); closeFontSizePopup(); closeBuildWindowMenu(); placeHiddenboardControls(); updateBoardHeader(); });
-    window.addEventListener('resize', () => { hideRecipeTooltip(); closeFontSizePopup(); closeBuildWindowMenu(); placeHiddenboardControls(); updateBoardHeader(); });
+    window.addEventListener('orientationchange', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
+    window.addEventListener('resize', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
+    window.addEventListener('focus', updateBuildWindowButton);
     /* 앱 초기화 */
     function startNexusApp(){
         try {
@@ -3366,6 +3263,7 @@
             initializeCacheEngine();
             loadNexusState();
             loadFontScale();
+            setupBuildStandaloneWindow();
             renderCostboardAtoms();
             renderTabs();
             selectTab(0);
