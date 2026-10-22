@@ -230,8 +230,6 @@
         fontScaleMin: 0.8,
         fontScaleMax: 2.0,
         fontScaleStep: 0.05,
-        mobileBreakpoint: 768,
-        tabletPortraitMax: 1024,
         tooltipFallbackWidth: 290,
         tooltipFallbackHeight: 150,
         tooltipOffset: 15,
@@ -273,6 +271,7 @@
     let _isSwiping = false;
     let _presetTab = '일반 프리셋';
     let _fontScale = 1.0;
+    let _buildPipWindow = null, _buildPipObserver = null, _buildPipOpening = false;
 
     /* DOM·등급·검색 공통 유틸 */
     const getEl = (id) => document.getElementById(id);
@@ -2686,6 +2685,81 @@
     }
 
 
+    /* 나의 조합 · 필요 재료 전용 PIP */
+    function updateBuildPipButton(isOpen) {
+        const button = getEl('btnBuildPip');
+        if (!button) return;
+        button.classList.toggle('is-active', isOpen);
+        button.setAttribute('aria-pressed', String(isOpen));
+        button.setAttribute('aria-label', isOpen ? 'PIP 닫기' : '나의 조합과 필요 재료 PIP 열기');
+        button.title = isOpen ? 'PIP 닫기' : 'PIP 창 열기';
+    }
+
+    function syncBuildPipContent() {
+        if (!_buildPipWindow || _buildPipWindow.closed) return;
+        const source = document.querySelector('.build-overview');
+        if (!source) return;
+        const pipDocument = _buildPipWindow.document;
+        const scrollTop = pipDocument.scrollingElement?.scrollTop || 0;
+        pipDocument.body.replaceChildren(source.cloneNode(true));
+        pipDocument.documentElement.style.setProperty('--fs-scale', String(_fontScale));
+        if (pipDocument.scrollingElement) pipDocument.scrollingElement.scrollTop = scrollTop;
+    }
+
+    async function toggleBuildPip() {
+        if (_buildPipWindow && !_buildPipWindow.closed) {
+            _buildPipWindow.close();
+            return;
+        }
+        if (_buildPipOpening) return;
+        if (!window.documentPictureInPicture?.requestWindow) {
+            window.alert('PIP 기능은 HTTPS 환경의 최신 Chrome 또는 Edge 브라우저에서 사용할 수 있습니다.');
+            return;
+        }
+        _buildPipOpening = true;
+        try {
+            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 400, height: 480 });
+            const pipDocument = pipWindow.document;
+            _buildPipWindow = pipWindow;
+            pipDocument.title = '나의 조합 · 필요 재료';
+            pipDocument.documentElement.lang = 'ko';
+            document.querySelectorAll('link[rel="stylesheet"]').forEach(sourceLink => {
+                const link = pipDocument.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = sourceLink.href;
+                pipDocument.head.appendChild(link);
+            });
+            pipDocument.body.className = 'inspector-pip-body';
+            pipWindow.addEventListener('pagehide', () => {
+                if (_buildPipWindow !== pipWindow) return;
+                _buildPipObserver?.disconnect();
+                _buildPipObserver = null;
+                _buildPipWindow = null;
+                updateBuildPipButton(false);
+            }, { once: true });
+            pipDocument.addEventListener('click', event => {
+                if (event.target.closest('[data-action="toggleBuildPip"]')) pipWindow.close();
+            });
+            pipDocument.addEventListener('toggle', event => {
+                if (!event.target.matches?.('details.build-materials') || !pipDocument.contains(event.target)) return;
+                const sourceDetails = document.querySelector('.build-overview details.build-materials');
+                if (sourceDetails && sourceDetails.open !== event.target.open) sourceDetails.open = event.target.open;
+            }, true);
+            updateBuildPipButton(true);
+            _buildPipObserver = new MutationObserver(syncBuildPipContent);
+            _buildPipObserver.observe(document.querySelector('.build-overview'), {
+                subtree: true, attributes: true, childList: true, characterData: true
+            });
+            _buildPipObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+            syncBuildPipContent();
+        } catch (error) {
+            if (_buildPipWindow && !_buildPipWindow.closed) _buildPipWindow.close();
+            window.alert('PIP 창을 열지 못했습니다. 브라우저의 PIP 허용 여부를 확인해 주세요.');
+        } finally {
+            _buildPipOpening = false;
+        }
+    }
+
     /* 장바구니 */
     function pauseCartUnit(uid) {
         if (!activeUnits.has(uid) || !unitMap.has(uid)) return;
@@ -2950,7 +3024,7 @@
     }
 
     function setFontScale(scale) {
-        if (window.innerWidth < (APP_INTERNAL.mobileBreakpoint)) return;
+        if (!Number.isFinite(scale)) return;
         _fontScale = Math.max(APP_INTERNAL.fontScaleMin, Math.min(APP_INTERNAL.fontScaleMax, scale));
         document.documentElement.style.setProperty('--fs-scale', _fontScale);
         const label = getEl('fontSizeLabel');
@@ -2959,12 +3033,23 @@
     }
 
     function loadFontScale() {
-        const ctrl = document.querySelector('.gh-fontsize-ctrl');
-        const minWidth = APP_INTERNAL.mobileBreakpoint;
-        const tabletMax = APP_INTERNAL.tabletPortraitMax;
-        const isTabletPortrait = window.innerWidth >= minWidth && window.innerWidth <= tabletMax && window.innerHeight > window.innerWidth;
-        if (window.innerWidth < minWidth || isTabletPortrait) { if (ctrl) ctrl.style.display = 'none'; return; }
         try { const saved = localStorage.getItem(SYSTEM_CONFIG.storageKeys.fontScale); if (saved) setFontScale(parseFloat(saved)); } catch(e) {}
+    }
+
+    function closeFontSizePopup(restoreFocus = false) {
+        const popup = getEl('fontSizePopup');
+        if (!popup || popup.hidden) return;
+        popup.hidden = true;
+        getEl('btnFontSizePopup')?.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) getEl('btnFontSizePopup')?.focus();
+    }
+
+    function toggleFontSizePopup() {
+        const popup = getEl('fontSizePopup');
+        const trigger = getEl('btnFontSizePopup');
+        if (!popup || !trigger) return;
+        popup.hidden = !popup.hidden;
+        trigger.setAttribute('aria-expanded', String(!popup.hidden));
     }
 
     function showTooltipOverlay(tt, event, widthOffset = APP_INTERNAL.tooltipOffset, heightOffset = APP_INTERNAL.tooltipOffset, forceInsideClick = false) {
@@ -3060,6 +3145,7 @@
     });
 
     document.addEventListener('click', e => {
+        if (!e.target.closest('.gh-fontsize-ctrl')) closeFontSizePopup();
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
             const invenInput = e.target?.closest?.('.invenboard-input[data-inven-id]');
@@ -3091,6 +3177,10 @@
                 }
                 break;
             case 'showAppVersion': showNexusAppVersion(); break;
+            case 'toggleBuildPip': toggleBuildPip(); break;
+            case 'toggleFontSizePopup': toggleFontSizePopup(); break;
+            case 'increaseFont': if (e.detail === 0) setFontScale(_fontScale + APP_INTERNAL.fontScaleStep); break;
+            case 'decreaseFont': if (e.detail === 0) setFontScale(_fontScale - APP_INTERNAL.fontScaleStep); break;
             case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
             case 'toggleHideCompleted':
                 _hideCompleted = !_hideCompleted;
@@ -3176,14 +3266,15 @@
             return;
         }
         if (e.key === 'Escape') {
+            closeFontSizePopup(true);
             if (_currentHighlight) toggleHighlight(null);
             hideRecipeTooltip();
             const searchInp = getEl('unitSearchInput');
             if (document.activeElement === searchInp) searchInp?.blur();
         }
     });
-    window.addEventListener('orientationchange', () => { hideRecipeTooltip(); placeHiddenboardControls(); updateBoardHeader(); });
-    window.addEventListener('resize', () => { hideRecipeTooltip(); placeHiddenboardControls(); updateBoardHeader(); });
+    window.addEventListener('orientationchange', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
+    window.addEventListener('resize', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
     /* 앱 초기화 */
     function startNexusApp(){
         try {

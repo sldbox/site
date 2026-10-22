@@ -3,13 +3,13 @@
 <head>
 <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
-        window.NEXUS_BUILD_VERSION = "2610190008";
-        window.APP_VERSION = "2610190008";
+        window.NEXUS_BUILD_VERSION = "2610190010";
+        window.APP_VERSION = "2610190010";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "2610190008",
-            "config.js": "2610190008",
-            "style.css": "2610190008",
-            "data.js": "2610190008"
+            "app.js": "2610190010",
+            "config.js": "2610190010",
+            "style.css": "2610190010",
+            "data.js": "2610190010"
         };
         window.NEXUS_STORAGE_KEYS = {
             saveData: "nexusSaveData",
@@ -145,12 +145,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=2610190008" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610190008">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610190008">
+    <link rel="icon" href="./icon.png?v=2610190010" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610190010">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610190010">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610190008">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610190010">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -207,9 +207,15 @@
         </nav>
         <div class="sidebar-note"><div class="sidebar-orbit" aria-hidden="true"><span></span><span></span><b>✳</b></div><p>조합의 시작부터<br><strong>완성까지, 한곳에서.</strong></p><span class="sidebar-note-caption">YOUR GAME. CONNECTED.</span></div>
         <div class="gh-right">
-            <a class="gh-trait-link" href="https://sldbox.github.io/dps/" aria-label="개복디 특성 계산기"><span>특성 계산기</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
-            <div class="gh-fontsize-ctrl" aria-label="글자 크기"><span class="font-control-label">글자 크기</span><button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소">A−</button><span class="gh-fontsize-val" id="fontSizeLabel">100%</span><button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대">A+</button></div>
-            
+            <a class="gh-tool-btn" href="https://sldbox.github.io/dps/" aria-label="개복디 특성 계산기" title="특성 계산기"><span aria-hidden="true">D</span></a>
+            <div class="gh-fontsize-ctrl">
+                <button type="button" class="gh-tool-btn gh-fontsize-trigger" data-action="toggleFontSizePopup" id="btnFontSizePopup" aria-label="글자 크기 조절" aria-controls="fontSizePopup" aria-expanded="false" title="글자 크기 조절">A</button>
+                <div id="fontSizePopup" class="gh-fontsize-popup" role="group" aria-label="글자 크기 조절" hidden>
+                    <button type="button" class="gh-icon-btn" data-action="decreaseFont" aria-label="글씨 축소">A−</button>
+                    <span class="gh-fontsize-val" id="fontSizeLabel" aria-live="polite">100%</span>
+                    <button type="button" class="gh-icon-btn" data-action="increaseFont" aria-label="글씨 확대">A+</button>
+                </div>
+            </div>
         </div>
     </header>
     <main id="mainLayout" class="main-layout">
@@ -229,7 +235,7 @@
         </section>
         <aside class="build-inspector hud-panel" aria-label="나의 조합">
             <section class="build-overview" aria-label="정수와 필요 재료">
-            <div class="inspector-heading"><div><span class="section-kicker">MY BUILD WORKSPACE</span><h2>나의 조합</h2></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16l-1 14H5L4 7Zm4 0V6a4 4 0 0 1 8 0v1"/></svg></div>
+            <div class="inspector-heading"><div><span class="section-kicker">MY BUILD WORKSPACE</span><h2>나의 조합</h2></div><button type="button" id="btnBuildPip" class="inspector-pip-btn" data-action="toggleBuildPip" aria-label="나의 조합과 필요 재료 PIP 열기" aria-pressed="false" title="PIP 창 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="15" rx="2"/><rect x="11.5" y="11" width="7.5" height="5.5" rx="1"/></svg></button></div>
             <div id="cartEssenceSummary" class="cart-essence-summary" aria-live="polite"></div>
             <section class="panel-costboard" id="panelCostboard" aria-label="필요 재료">
                 <details class="build-materials" open>
