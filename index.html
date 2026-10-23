@@ -3,13 +3,13 @@
 <head>
 <meta name="google-site-verification" content="RTuDWbMdnKgbpRpl05eXh9epFwWRSxju4NOl8OtjMsI" />
     <script>
-        window.NEXUS_BUILD_VERSION = "2610230002";
-        window.APP_VERSION = "2610230002";
+        window.NEXUS_BUILD_VERSION = "2610240000";
+        window.APP_VERSION = "2610240000";
         window.NEXUS_ASSET_VERSIONS = {
-            "app.js": "2610230002",
-            "config.js": "2610230002",
-            "style.css": "2610230002",
-            "data.js": "2610230002"
+            "app.js": "2610240000",
+            "config.js": "2610240000",
+            "style.css": "2610240000",
+            "data.js": "2610240000"
         };
         if (new URLSearchParams(window.location.search).get('nexusStandalone') === 'build') {
             document.documentElement.classList.add('nexus-standalone-build');
@@ -113,6 +113,10 @@
                 window.__nexusBootError=true;
                 if(window.nexusCancelIntro) window.nexusCancelIntro();
                 try{window.NEXUS_LAST_BOOT_ERROR={code:code,error:err||'unknown',time:Date.now()};}catch(e){}
+                if(document.readyState==='loading' && !document.getElementById('nexusBootScreen')){
+                    document.addEventListener('DOMContentLoaded',function(){window.nexusShowBootError(code,err);},{once:true});
+                    return;
+                }
                 try{
                     document.documentElement.classList.add('nexus-booting','nexus-boot-error');
                     var boot=document.getElementById('nexusBootScreen');
@@ -124,24 +128,80 @@
                     }
                 }catch(e){}
             };
+            window.addEventListener('error',function(event){
+                if(event.error && !window.__nexusAppReady && !window.__nexusBootError){
+                    window.nexusShowBootError('N1001',event.error);
+                }
+            });
+            window.addEventListener('error',function(event){
+                var link=event.target;
+                if(link && link.matches && link.matches('link[data-boot-style]')){
+                    link.dataset.loadFailed='1';
+                    window.nexusShowBootError('N1004',new Error('style.css load failed'));
+                }
+            },true);
+            function waitForEssentialResources(){
+                function waitForDocument(){
+                    if(document.readyState!=='loading') return Promise.resolve();
+                    return new Promise(function(resolve){document.addEventListener('DOMContentLoaded',resolve,{once:true});});
+                }
+                function waitForStyle(){
+                    var link=document.querySelector('link[data-boot-style]');
+                    if(!link) return Promise.reject(new Error('required stylesheet missing'));
+                    if(link.dataset.loadFailed==='1') return Promise.reject(new Error('required stylesheet failed'));
+                    if(link.sheet) return Promise.resolve();
+                    return new Promise(function(resolve,reject){
+                        link.addEventListener('load',resolve,{once:true});
+                        link.addEventListener('error',function(){reject(new Error('required stylesheet failed'));},{once:true});
+                    });
+                }
+                function waitForPageLoad(){
+                    if(document.readyState==='complete') return Promise.resolve();
+                    return new Promise(function(resolve){window.addEventListener('load',resolve,{once:true});});
+                }
+                function waitForImages(){
+                    // 지연 로딩·숨겨진 상세 화면은 첫 화면 필수 리소스가 아닙니다.
+                    var images=Array.from(document.images).filter(function(img){
+                        return img.src && img.loading!=='lazy' && !img.closest('[hidden]');
+                    });
+                    return Promise.all(images.map(function(img){
+                        function check(){
+                            if(img.naturalWidth>0) return;
+                            throw new Error('required image failed: '+(img.currentSrc || img.src));
+                        }
+                        if(img.complete){try{check();return Promise.resolve();}catch(error){return Promise.reject(error);}}
+                        return new Promise(function(resolve,reject){
+                            img.addEventListener('load',resolve,{once:true});
+                            img.addEventListener('error',function(){reject(new Error('required image failed: '+(img.currentSrc || img.src)));},{once:true});
+                        });
+                    }));
+                }
+                function waitForPaint(){
+                    return new Promise(function(resolve){
+                        requestAnimationFrame(function(){requestAnimationFrame(resolve);});
+                    });
+                }
+                return waitForDocument()
+                    .then(waitForStyle)
+                    .then(waitForPageLoad)
+                    .then(function(){return document.fonts ? document.fonts.ready : null;})
+                    .then(waitForImages)
+                    .then(waitForPaint);
+            }
             function releaseBootScreen(){
                 if(window.__nexusBootError) return;
                 if(window.nexusFinishIntro && !window.__nexusIntroReleased){window.nexusFinishIntro(releaseBootScreen);return;}
-                try{document.documentElement.classList.remove('nexus-booting','nexus-boot-error');}catch(e){}
-                try{
-                    var boot=document.getElementById('nexusBootScreen');
-                    if(boot) boot.setAttribute('aria-hidden','true');
-                }catch(e){}
+                document.documentElement.classList.remove('nexus-booting','nexus-boot-error');
+                var boot=document.getElementById('nexusBootScreen');
+                if(boot) boot.setAttribute('aria-hidden','true');
             }
             window.nexusMarkAppReady=function(){
+                if(window.__nexusAppReady || window.__nexusBootError) return;
                 window.__nexusAppReady=true;
-                requestAnimationFrame(function(){ requestAnimationFrame(releaseBootScreen); });
+                waitForEssentialResources().then(releaseBootScreen).catch(function(error){
+                    window.nexusShowBootError('N1004',error);
+                });
             };
-            setTimeout(function(){
-                if(!window.__nexusAppReady && !window.__nexusBootError && typeof window.nexusShowBootError === 'function'){
-                    window.nexusShowBootError('N1000', new Error('boot timeout'));
-                }
-            },8000);
         })();
     </script>
 <meta charset="UTF-8">
@@ -150,12 +210,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" href="./icon.png?v=2610230002" type="image/png">
-    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610230002">
-    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610230002">
+    <link rel="icon" href="./icon.png?v=2610240000" type="image/png">
+    <meta property="og:image" content="https://sldbox.github.io/site/logo.png?v=2610240000">
+    <meta property="og:image:secure_url" content="https://sldbox.github.io/site/logo.png?v=2610240000">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610230002">
+    <meta name="twitter:image" content="https://sldbox.github.io/site/logo.png?v=2610240000">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -168,28 +228,23 @@
     <meta name="twitter:title" content="개복디 넥서스 - 히든조합&정수 계산 HUB">
     <meta name="twitter:description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <script>
-        document.write('<link rel="stylesheet" href="' + window.nexusAssetUrl('style.css', 'style.css') + '">');
+        document.write('<link rel="stylesheet" data-boot-style="1" href="' + window.nexusAssetUrl('style.css', 'style.css') + '">');
     </script>
 <script id="standaloneExperience">
 (function(){
 'use strict';
 var isDps=false;
-var release={version:window.NEXUS_BUILD_VERSION,intro:{enabled:true,durationMs:3000}};
+var release={version:window.NEXUS_BUILD_VERSION,intro:{enabled:true}};
 function sharedAssetUrl(){return window.nexusAssetUrl('./icon.png','icon.png');}
-  // 인트로는 세션/빌드당 한 번, 실제 앱 준비 완료 후에만 종료됩니다.
-  var introState={active:false,ready:false,released:false,started:0,done:null,timer:0,frame:0,boot:null,skip:false};
-  var introPreview=new URLSearchParams(window.location.search).get('intro')==='preview';
-  var introSeenKey='nex:intro:'+release.version;
-  function introAlreadySeen(){try{return sessionStorage.getItem(introSeenKey)==='1';}catch(error){return false;}}
+  // 필수 파일과 첫 화면 준비가 완료될 때까지 인트로를 유지합니다.
+  var introState={active:false,ready:false,released:false,started:0,done:null,frame:0,boot:null};
   window.nexusCancelIntro=function(){
-    clearTimeout(introState.timer);
     cancelAnimationFrame(introState.frame);
     introState.active=false;
     introState.released=true;
     window.__nexusIntroReleased=true;
-    if(introState.boot) introState.boot.classList.remove('nexus-cinematic','is-ready','is-leaving','is-static');
+    if(introState.boot) introState.boot.classList.remove('nexus-cinematic','trait-intro','is-ready','is-leaving','is-static');
     window.removeEventListener('resize',resizeIntroStars);
-    document.removeEventListener('keydown',handleIntroKey,true);
   };
   function endIntro(){
     if(window.__nexusBootError || window.__dpsBootError){window.nexusCancelIntro();return;}
@@ -197,26 +252,16 @@ function sharedAssetUrl(){return window.nexusAssetUrl('./icon.png','icon.png');}
     introState.released=true;
     introState.active=false;
     window.__nexusIntroReleased=true;
-    clearTimeout(introState.timer);
     cancelAnimationFrame(introState.frame);
-    try{sessionStorage.setItem(introSeenKey,'1');}catch(error){}
     var boot=introState.boot;
     if(boot) boot.classList.add('is-leaving');
-    if(introState.done) introState.done();
-    setTimeout(function(){if(boot) boot.classList.remove('is-leaving');},700);
+    // 시네마틱이 사라진 후 준비된 메인 화면을 노출합니다.
+    setTimeout(function(){
+      if(window.__nexusBootError || window.__dpsBootError) return;
+      if(introState.done) introState.done();
+      if(boot) boot.classList.remove('is-leaving');
+    },650);
     window.removeEventListener('resize',resizeIntroStars);
-    document.removeEventListener('keydown',handleIntroKey,true);
-  }
-  function skipIntro(){
-    introState.skip=true;
-    if(introState.ready) endIntro();
-    else if(introState.boot){
-      var status=introState.boot.querySelector('.nexus-cinema-status');
-      if(status) status.textContent='화면을 준비하고 있습니다.';
-    }
-  }
-  function handleIntroKey(event){
-    if(event.key==='Escape' && introState.active){event.preventDefault();event.stopImmediatePropagation();skipIntro();}
   }
   function resizeIntroStars(){
     var canvas=introState.boot && introState.boot.querySelector('canvas');
@@ -257,22 +302,20 @@ function sharedAssetUrl(){return window.nexusAssetUrl('./icon.png','icon.png');}
     if(introState.active || introState.released || window.NEXUS_REDIRECTING || window.DPS_STANDALONE_VIEW || new URLSearchParams(window.location.search).get('nexusStandalone')==='build') return;
     if(window.__nexusBootError || window.__dpsBootError) return;
     if(release.intro && release.intro.enabled===false) return;
-    var staticIntro=(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (!introPreview && introAlreadySeen());
+    var staticIntro=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var boot=document.getElementById(isDps?'dpsBootScreen':'nexusBootScreen');
     if(!boot) return;
     introState.boot=boot;
     introState.active=true;
-    introState.skip=Boolean(staticIntro);
     introState.started=performance.now();
     boot.classList.add('nexus-cinematic');
     if(staticIntro) boot.classList.add('is-static');
-    boot.innerHTML='<canvas class="nexus-cinema-stars" aria-hidden="true"></canvas><div class="nexus-cinema-horizon" aria-hidden="true"></div><div class="nexus-cinema-grain" aria-hidden="true"></div><div class="nexus-cinema-top"><span class="nexus-cinema-brand">개복디 넥서스</span></div><button type="button" class="nexus-cinema-skip">건너뛰기 <span aria-hidden="true">↓</span></button><div class="nexus-cinema-content"><div class="nexus-cinema-emblem" aria-hidden="true"><div class="nexus-cinema-aura"></div><div class="nexus-cinema-guides"></div><div class="nexus-cinema-orbit"></div><div class="nexus-cinema-orbit second"></div><img class="nexus-cinema-mark" src="'+sharedAssetUrl('assets/brand/icon.png')+'" width="512" height="512" alt=""/><div class="nexus-cinema-flare"></div></div><h1 class="nexus-cinema-heading">NEXUS</h1><p class="nexus-cinema-name">개복디 넥서스</p><p class="nexus-cinema-tagline">조합에서 완성까지, 하나의 연결.</p></div><div class="nexus-cinema-foot"><div class="nexus-cinema-track" aria-hidden="true"></div><p class="nexus-cinema-status" role="status">화면을 준비하고 있습니다.</p></div><span class="nexus-cinema-edge" aria-hidden="true">YOUR GAME. CONNECTED.</span><span class="nexus-cinema-version"></span>';
+    boot.innerHTML='<canvas class="nexus-cinema-stars" aria-hidden="true"></canvas><div class="nexus-cinema-horizon" aria-hidden="true"></div><div class="nexus-cinema-grain" aria-hidden="true"></div><div class="nexus-cinema-top"><span class="nexus-cinema-brand">개복디 넥서스</span></div><div class="nexus-cinema-content"><div class="nexus-cinema-emblem" aria-hidden="true"><div class="nexus-cinema-aura"></div><div class="nexus-cinema-guides"></div><div class="nexus-cinema-orbit"></div><div class="nexus-cinema-orbit second"></div><img class="nexus-cinema-mark" src="'+sharedAssetUrl('assets/brand/icon.png')+'" width="512" height="512" alt=""/><div class="nexus-cinema-flare"></div></div><h1 class="nexus-cinema-heading">NEXUS</h1><p class="nexus-cinema-name">개복디 넥서스</p><p class="nexus-cinema-tagline">조합에서 완성까지, 하나의 연결.</p></div><div class="nexus-cinema-foot"><div class="nexus-cinema-track" aria-hidden="true"></div><p class="nexus-cinema-status" role="status">화면을 준비하고 있습니다.</p></div><span class="nexus-cinema-edge" aria-hidden="true">YOUR GAME. CONNECTED.</span><span class="nexus-cinema-version"></span>';
     boot.querySelector('.nexus-cinema-version').textContent=release.version;
-    boot.querySelector('.nexus-cinema-skip').addEventListener('click',skipIntro);
-    document.addEventListener('keydown',handleIntroKey,true);
     window.addEventListener('resize',resizeIntroStars,{passive:true});
     if(!staticIntro) startIntroStars(boot.querySelector('canvas'));
   }
+  window.nexusStartIntro=mountIntro;
   window.nexusFinishIntro=function(done){
     if(introState.released){done();return;}
     mountIntro();
@@ -281,17 +324,7 @@ function sharedAssetUrl(){return window.nexusAssetUrl('./icon.png','icon.png');}
     introState.ready=true;
     introState.boot.classList.add('is-ready');
     introState.boot.querySelector('.nexus-cinema-status').textContent='준비가 완료되었습니다.';
-    if(introState.skip){endIntro();return;}
-    var duration=Math.max(0,Math.min(6000,Number(release.intro && release.intro.durationMs) || 3000));
-    clearTimeout(introState.timer);
-    function countdown(){
-      if(introState.released) return;
-      var remaining=Math.max(0,duration-(performance.now()-introState.started));
-      if(remaining===0){endIntro();return;}
-      introState.boot.querySelector('.nexus-cinema-status').textContent=Math.ceil(remaining/1000)+'초 후 자동 입장';
-      introState.timer=setTimeout(countdown,Math.min(1000,remaining));
-    }
-    countdown();
+    endIntro();
   };
 
   function syncHeaderControlLayout(){
@@ -410,6 +443,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </head>
 <body>
 <div id="nexusBootScreen" aria-live="polite" aria-label="로딩"></div>
+<script>window.nexusStartIntro();</script>
     <header id="globalHeader" class="global-header">
         <div class="gh-left">
             <div class="gh-logo-text" id="ghLogoText">
