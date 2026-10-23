@@ -2720,6 +2720,10 @@
         document.title = '나의 조합 · 필요 재료 | 개복디 넥서스';
         const button = getEl('btnBuildStandalone');
         if (button) {
+            const closeHost = document.querySelector('.inspector-window-controls');
+            if (closeHost) closeHost.appendChild(button);
+            button.classList.remove('gh-tool-btn');
+            button.classList.add('inspector-standalone-btn');
             button.dataset.action = 'closeBuildStandaloneWindow';
             button.setAttribute('aria-label', '독립 창 닫기');
             button.title = '독립 창 닫기';
@@ -2911,6 +2915,15 @@
         if (!layout) return;
         const nextMode = ['unitboard', 'hiddenboard', 'invenboard'].includes(mode) ? mode : 'unitboard';
         _currentViewMode = nextMode;
+        const viewMeta = {
+            unitboard: ['유닛도감', 'UNIT ARCHIVE', '목표를 고르세요. 완성까지 필요한 모든 조합을 연결합니다.'],
+            hiddenboard: ['히든보드', 'COMBINATION BOARD', '목표부터 기본 재료까지, 조합의 흐름을 한눈에 확인하세요.'],
+            invenboard: ['재료보드', 'MATERIAL INVENTORY', '보유한 재료를 기록하고, 완성할 수 있는 조합을 확인하세요.']
+        }[nextMode];
+        const title = getEl('workspaceTitle'), breadcrumb = getEl('workspaceBreadcrumb'), description = getEl('workspaceDescription');
+        if (title) title.innerHTML = `${viewMeta[0]}<span class="heading-dot">.</span>`;
+        if (breadcrumb) breadcrumb.textContent = viewMeta[1];
+        if (description) description.textContent = viewMeta[2];
         layout.classList.remove('view-unitboard', 'view-hiddenboard', 'view-invenboard');
         layout.classList.add(`view-${nextMode}`);
 
