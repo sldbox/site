@@ -2911,15 +2911,6 @@
         if (!layout) return;
         const nextMode = ['unitboard', 'hiddenboard', 'invenboard'].includes(mode) ? mode : 'unitboard';
         _currentViewMode = nextMode;
-        const viewMeta = {
-            unitboard: ['유닛도감', 'UNIT ARCHIVE', '목표를 고르세요. 완성까지 필요한 모든 조합을 연결합니다.'],
-            hiddenboard: ['히든보드', 'COMBINATION BOARD', '목표부터 기본 재료까지, 조합의 흐름을 한눈에 확인하세요.'],
-            invenboard: ['재료보드', 'MATERIAL INVENTORY', '보유한 재료를 기록하고, 완성할 수 있는 조합을 확인하세요.']
-        }[nextMode];
-        const title = getEl('workspaceTitle'), breadcrumb = getEl('workspaceBreadcrumb'), description = getEl('workspaceDescription');
-        if (title) title.innerHTML = `${viewMeta[0]}<span class="heading-dot">.</span>`;
-        if (breadcrumb) breadcrumb.textContent = viewMeta[1];
-        if (description) description.textContent = viewMeta[2];
         layout.classList.remove('view-unitboard', 'view-hiddenboard', 'view-invenboard');
         layout.classList.add(`view-${nextMode}`);
 
